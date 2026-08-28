@@ -603,29 +603,35 @@
             <!-- 📝 INDIVIDUAL MEETING VIEW -->
             <div id="conversation-thread" class="space-y-6 hidden">
                 
-                <!-- Top Split Row: [Gravação Original Bruta] + [Briefing Executivo] (Same Height & Same Structure!) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
+                <!-- Top Split Row: [Gravação Original Bruta] + [Briefing em Áudio com Linha Editorial Sugerida] -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                     
-                    <!-- Left: Raw Original Audio Player Card -->
-                    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs border-0 transition flex flex-col justify-between h-full min-h-[88px] space-y-2">
+                    <!-- Left Card: Raw Original Audio Player -->
+                    <div class="bg-white p-4 sm:p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col justify-between space-y-3 h-full">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 text-xs font-bold text-gray-900 leading-normal">
-                                <i class="ph-bold ph-waveform text-emerald-600 text-sm"></i>
-                                <span>Gravação Original (Áudio Bruto)</span>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm font-bold shadow-2xs">
+                                    <i class="ph-bold ph-waveform"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Gravação Original Bruta</div>
+                                    <div class="text-[10px] text-gray-400 font-mono" id="raw-hardware-label">Sensor Dual MEMS + VCS</div>
+                                </div>
                             </div>
-                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-black hover:text-white text-[11px] font-semibold text-gray-700 flex items-center gap-1 transition cursor-pointer">
-                                <i class="ph-bold ph-plus text-xs"></i> <span>Conectar / @</span>
+                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-black hover:text-white text-[10px] font-bold text-gray-700 transition cursor-pointer flex items-center gap-1">
+                                <i class="ph-bold ph-plus"></i> Conectar @
                             </button>
                         </div>
 
-                        <!-- Raw audio player content -->
-                        <div id="meeting-sources-list" class="flex-1 flex items-center">
-                            <!-- Injected by JS -->
+                        <div id="meeting-sources-list" class="pt-0.5">
+                            <!-- Rendered by JS -->
                         </div>
                     </div>
 
-                    <!-- Right: On-Demand Audio Briefing Section -->
-                    <div id="audio-briefing-section" class="h-full min-h-[88px]"></div>
+                    <!-- Right Card: On-Demand Audio Briefing with Suggested Editorial Line -->
+                    <div id="audio-briefing-section" class="h-full">
+                        <!-- Rendered by JS -->
+                    </div>
 
                 </div>
 
@@ -642,13 +648,25 @@
                             </div>
                         </div>
 
-                        <!-- Perspective Tabs (Resumo C-Level, Transcrição Completa, E-mail, Objeções) -->
-                        <div class="flex items-center gap-1.5 text-xs flex-wrap" id="meeting-perspective-tabs">
-                            <button onclick="copyCurrentSummary()" class="p-1.5 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition" title="Copiar"><i class="ph ph-copy text-sm"></i></button>
-                            <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1 text-xs font-bold text-white bg-black rounded-full transition shadow-xs cursor-pointer">🪄 Resumo C-Level</button>
-                            <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">📜 Transcrição Completa</button>
-                            <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">✉️ E-mail Follow-up</button>
-                            <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">🛡️ Objeções & Riscos</button>
+                        <!-- Seamless Apple Segmented Tab Bar (Never Wraps, Zero Layout Shift) -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="copyCurrentSummary()" class="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition cursor-pointer flex-shrink-0" title="Copiar Conteúdo da Aba">
+                                <i class="ph-bold ph-copy text-sm"></i>
+                            </button>
+                            <div class="inline-flex rounded-2xl bg-gray-200/80 p-1 border-0 text-xs font-semibold overflow-x-auto whitespace-nowrap scrollbar-none max-w-full flex-shrink-0" id="meeting-segmented-tabs">
+                                <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-article text-emerald-600"></i> <span>Resumo C-Level</span>
+                                </button>
+                                <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-file-text text-blue-600"></i> <span>Transcrição Completa</span>
+                                </button>
+                                <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-paper-plane-tilt text-red-500"></i> <span>Follow-up Gmail</span>
+                                </button>
+                                <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-shield-warning text-purple-600"></i> <span>Riscos & Objeções</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -4800,7 +4818,7 @@ Felipe Donato`);
             <div class="space-y-2 text-xs">
                 <div class="flex items-center justify-between">
                     <div class="font-bold text-gray-900 flex items-center gap-1.5">
-                        <i class="ph-bold ph-check-square-offset text-emerald-600"></i> Compromissos & Tarefas com Ela:
+                        <i class="ph-bold ph-check-square-offset text-emerald-600"></i> Compromissos & Tarefas com <span id="stk-first-name">o Interlocutor</span>:
                     </div>
                     <span class="text-[10px] font-mono text-gray-400" id="stk-tasks-count">1 tarefa</span>
                 </div>
@@ -4829,7 +4847,7 @@ Felipe Donato`);
             <!-- Footer Action -->
             <div class="flex items-center justify-between pt-1">
                 <button onclick="generateCustomFollowupForStakeholder()" class="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                    <i class="ph-bold ph-envelope"></i> Gerar Follow-up no Estilo Dela
+                    <i class="ph-bold ph-envelope"></i> <span id="stk-btn-followup-label">Gerar Follow-up Personalizado</span>
                 </button>
                 <button onclick="closeStakeholder360Modal()" class="px-5 py-2 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-semibold text-gray-800 transition">
                     Fechar

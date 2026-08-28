@@ -142,12 +142,7 @@ async def api_sync_plaud(payload: dict = Body(default={})):
         if mode == "full" or fid not in existing_ids:
             # Ensure raw audio exists in cache
             target_raw = cache_dir / f"{fid}.mp3"
-            if not target_raw.exists():
-                # Fallback to source raw audio
-                source_raw = cache_dir / "283524636ef0cace0cec3ff943f66f09.mp3"
-                if source_raw.exists():
-                    import shutil
-                    shutil.copy2(source_raw, target_raw)
+            audio_path_val = str(target_raw) if target_raw.exists() else ""
             
             # Save or Update meeting in SQLite
             # Rich commitments extraction for official Plaud recordings
@@ -205,7 +200,7 @@ async def api_sync_plaud(payload: dict = Body(default={})):
                 "duration_seconds": rec["duration"],
                 "executive_summary": rec["executive_summary"],
                 "intelligence": intel,
-                "audio_path": str(target_raw),
+                "audio_path": audio_path_val,
                 "transcription": f"Transcrição sincronizada do Plaud Note Pro para {rec['title']}."
             })
             synced_count += 1
