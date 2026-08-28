@@ -262,7 +262,18 @@
         </div>
 
         <!-- Sidebar Footer: Clean Minimal Profile & Settings Hub -->
-        <div class="p-3 border-t border-[#e5e5e5]">
+        <div class="p-3 border-t border-[#e5e5e5] space-y-2">
+            
+            <!-- FIXED PLAUD SYNC BUTTON (PERMANENT IN SIDEBAR) -->
+            <button onclick="openPlaudSyncChoiceModal()" id="btn-floating-sync" 
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer group">
+                <div class="flex items-center gap-2.5 truncate">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" id="sync-status-dot"></span>
+                    <i id="sync-floating-icon" class="ph-bold ph-waveform text-emerald-400 text-sm group-hover:scale-110 transition-transform"></i>
+                    <span id="sync-floating-label" class="tracking-wide truncate">Sincronizar Plaud</span>
+                </div>
+                <i class="ph-bold ph-caret-right text-gray-500 group-hover:text-emerald-400 text-xs transition-transform group-hover:translate-x-0.5"></i>
+            </button>
             <button onclick="openSettingsModal()" class="w-full flex items-center justify-between p-2 rounded-xl bg-white hover:bg-gray-100/80 shadow-2xs border-0 transition text-left cursor-pointer group">
                 <div class="flex items-center gap-2.5 truncate">
                     <div class="w-7 h-7 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold shadow-2xs flex-shrink-0">
@@ -2123,111 +2134,7 @@
                         currentMeetingId = null;
                         showHomeDashboard();
 
-        // ========== CLEAN NON-BLOCKING DRAGGABLE WIDGET ENGINE ==========
-        function initDraggableWidgetClean() {
-            const el = document.getElementById('draggable-plaud-widget');
-            if (!el) return;
-
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            let hasMoved = false;
-
-            // Restore position from localStorage if saved
-            const savedX = localStorage.getItem('plaud_widget_x');
-            const savedY = localStorage.getItem('plaud_widget_y');
-            if (savedX !== null && savedY !== null) {
-                el.style.left = Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX))) + 'px';
-                el.style.top = Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY))) + 'px';
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            el.onmousedown = function(e) {
-                if (e.button !== 0) return;
-                hasMoved = false;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-            };
-
-            function elementDrag(e) {
-                const deltaX = pos3 - e.clientX;
-                const deltaY = pos4 - e.clientY;
-                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-                    hasMoved = true;
-                }
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-
-                let newTop = el.offsetTop - deltaY;
-                let newLeft = el.offsetLeft - deltaX;
-
-                // Screen boundaries
-                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
-
-                el.style.top = newTop + "px";
-                el.style.left = newLeft + "px";
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                if (hasMoved) {
-                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
-                    localStorage.setItem('plaud_widget_y', el.offsetTop);
-                } else {
-                    openPlaudSyncChoiceModal();
-                }
-            }
-
-            // Touch support for trackpad / touch screens
-            el.ontouchstart = function(e) {
-                hasMoved = false;
-                pos3 = e.touches[0].clientX;
-                pos4 = e.touches[0].clientY;
-                document.ontouchend = closeTouchDrag;
-                document.ontouchmove = touchDrag;
-            };
-
-            function touchDrag(e) {
-                const deltaX = pos3 - e.touches[0].clientX;
-                const deltaY = pos4 - e.touches[0].clientY;
-                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-                    hasMoved = true;
-                }
-                pos3 = e.touches[0].clientX;
-                pos4 = e.touches[0].clientY;
-
-                let newTop = el.offsetTop - deltaY;
-                let newLeft = el.offsetLeft - deltaX;
-
-                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
-
-                el.style.top = newTop + "px";
-                el.style.left = newLeft + "px";
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            function closeTouchDrag() {
-                document.ontouchend = null;
-                document.ontouchmove = null;
-                if (hasMoved) {
-                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
-                    localStorage.setItem('plaud_widget_y', el.offsetTop);
-                } else {
-                    openPlaudSyncChoiceModal();
-                }
-            }
-        }
-
-        // Initialize after DOM load
-        window.addEventListener('DOMContentLoaded', initDraggableWidgetClean);
-        setTimeout(initDraggableWidgetClean, 500);
+        
 
 
         
@@ -2807,111 +2714,7 @@ ${transcriptText}
         // Show Home Dashboard by default
         showHomeDashboard();
 
-        // ========== CLEAN NON-BLOCKING DRAGGABLE WIDGET ENGINE ==========
-        function initDraggableWidgetClean() {
-            const el = document.getElementById('draggable-plaud-widget');
-            if (!el) return;
-
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            let hasMoved = false;
-
-            // Restore position from localStorage if saved
-            const savedX = localStorage.getItem('plaud_widget_x');
-            const savedY = localStorage.getItem('plaud_widget_y');
-            if (savedX !== null && savedY !== null) {
-                el.style.left = Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX))) + 'px';
-                el.style.top = Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY))) + 'px';
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            el.onmousedown = function(e) {
-                if (e.button !== 0) return;
-                hasMoved = false;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
-            };
-
-            function elementDrag(e) {
-                const deltaX = pos3 - e.clientX;
-                const deltaY = pos4 - e.clientY;
-                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-                    hasMoved = true;
-                }
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-
-                let newTop = el.offsetTop - deltaY;
-                let newLeft = el.offsetLeft - deltaX;
-
-                // Screen boundaries
-                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
-
-                el.style.top = newTop + "px";
-                el.style.left = newLeft + "px";
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                if (hasMoved) {
-                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
-                    localStorage.setItem('plaud_widget_y', el.offsetTop);
-                } else {
-                    openPlaudSyncChoiceModal();
-                }
-            }
-
-            // Touch support for trackpad / touch screens
-            el.ontouchstart = function(e) {
-                hasMoved = false;
-                pos3 = e.touches[0].clientX;
-                pos4 = e.touches[0].clientY;
-                document.ontouchend = closeTouchDrag;
-                document.ontouchmove = touchDrag;
-            };
-
-            function touchDrag(e) {
-                const deltaX = pos3 - e.touches[0].clientX;
-                const deltaY = pos4 - e.touches[0].clientY;
-                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-                    hasMoved = true;
-                }
-                pos3 = e.touches[0].clientX;
-                pos4 = e.touches[0].clientY;
-
-                let newTop = el.offsetTop - deltaY;
-                let newLeft = el.offsetLeft - deltaX;
-
-                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
-
-                el.style.top = newTop + "px";
-                el.style.left = newLeft + "px";
-                el.style.right = 'auto';
-                el.style.bottom = 'auto';
-            }
-
-            function closeTouchDrag() {
-                document.ontouchend = null;
-                document.ontouchmove = null;
-                if (hasMoved) {
-                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
-                    localStorage.setItem('plaud_widget_y', el.offsetTop);
-                } else {
-                    openPlaudSyncChoiceModal();
-                }
-            }
-        }
-
-        // Initialize after DOM load
-        window.addEventListener('DOMContentLoaded', initDraggableWidgetClean);
-        setTimeout(initDraggableWidgetClean, 500);
+        
 
 
         
@@ -4551,17 +4354,7 @@ Felipe Donato`);
 
     </script>
 
-    <!-- PERSISTENT DRAGGABLE FLOATING PLAUD SYNC WIDGET (FLUID DRAG TO ANY PIXEL) -->
-    <div id="draggable-plaud-widget" 
-         class="fixed bottom-6 right-6 z-50 flex items-center gap-2 select-none cursor-grab active:cursor-grabbing touch-none transition-shadow duration-200 shadow-2xl rounded-full"
-         style="touch-action: none;">
-        <button id="btn-floating-sync" 
-                class="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-black/95 hover:bg-black text-white text-xs font-semibold backdrop-blur-lg border border-gray-700/60 transition-transform duration-150 group">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" id="sync-status-dot"></span>
-            <i id="sync-floating-icon" class="ph-bold ph-waveform text-emerald-400 text-base group-hover:scale-110 transition-transform"></i>
-            <span id="sync-floating-label" class="tracking-wide pointer-events-none">Sincronizar Plaud</span>
-        </button>
-    </div>
+
 
 
     <!-- Modal Comparativo de IA (Cinza Claro, Sem Bordas, Sobre a Página) -->
