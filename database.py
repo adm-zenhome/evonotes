@@ -49,6 +49,7 @@ class ExecutiveDatabase:
             # Action Items & Commitments Table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS commitments (
+                    completed_at TIMESTAMP,
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     meeting_id TEXT NOT NULL,
                     owner TEXT,
@@ -322,12 +323,26 @@ class ExecutiveDatabase:
             logging.error(f"Error deleting meeting files/JSON: {e}")
 
 
+
     def get_all_tasks(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Returns all commitments/tasks across all meetings with meeting metadata."""
+        """Returns all commitments/tasks across all meetings with meeting metadata.
+        Completed tasks naturally sink to the bottom. Tasks completed >24h are flagged as ARCHIVED.
+        """
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Auto-archive tasks completed over 24 hours ago
+            cursor.execute("""
+                UPDATE commitments 
+                SET status = 'ARCHIVED' 
+                WHERE status = 'DONE' 
+                  AND completed_at IS NOT NULL 
+                  AND datetime(completed_at) <= datetime('now', '-24 hours')
+            """)
+            conn.commit()
+
             query = """
-                SELECT c.id, c.meeting_id, c.owner, c.action, c.deadline_or_context, c.status, c.created_at,
+                SELECT c.id, c.meeting_id, c.owner, c.action, c.deadline_or_context, c.status, c.created_at, c.completed_at,
                        m.title as meeting_title, m.category as meeting_category, m.start_time
                 FROM commitments c
                 LEFT JOIN meetings m ON c.meeting_id = m.file_id
@@ -336,16 +351,38 @@ class ExecutiveDatabase:
             if status and status != "ALL":
                 query += " WHERE c.status = ?"
                 params.append(status)
-            query += " ORDER BY c.id DESC"
+            
+            # Ordering: Active tasks first (PENDING/DELEGATED), then DONE at bottom, then ARCHIVED
+            query += """
+                ORDER BY 
+                    CASE 
+                        WHEN c.status = 'PENDING' THEN 0 
+                        WHEN c.status = 'DELEGATED' THEN 1 
+                        WHEN c.status = 'DONE' THEN 2 
+                        ELSE 3 
+                    END ASC,
+                    c.id DESC
+            """
             
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
     def update_task_status(self, task_id: int, status: str) -> bool:
-        """Updates task status (PENDING, DONE, DELEGATED, CANCELLED)."""
+        """Updates task status (PENDING, DONE, DELEGATED, CANCELLED, ARCHIVED) and updates completed_at timestamp."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("UPDATE commitments SET status = ? WHERE id = ?", (status, task_id))
+            if status == 'DONE':
+                cursor.execute("""
+                    UPDATE commitments 
+                    SET status = 'DONE', completed_at = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                """, (task_id,))
+            else:
+                cursor.execute("""
+                    UPDATE commitments 
+                    SET status = ?, completed_at = NULL 
+                    WHERE id = ?
+                """, (status, task_id))
             conn.commit()
             return cursor.rowcount > 0
 

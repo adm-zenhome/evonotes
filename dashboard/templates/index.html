@@ -527,6 +527,10 @@
                                 <i class="ph-bold ph-check-circle text-xs text-emerald-600"></i>
                                 <span>Concluídas</span>
                             </button>
+                            <button onclick="filterTasksView('ARCHIVED')" id="tab-task-archived" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                                <i class="ph-bold ph-archive text-xs text-purple-600"></i>
+                                <span>📦 Arquivadas (>24h)</span>
+                            </button>
                         </div>
                     </div>
 
@@ -2641,14 +2645,27 @@
 
             // Apply Tab Filter
             if (currentTaskFilter === 'MY_TASKS') {
-                filtered = filtered.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'DONE');
+                // Shows pending/delegated tasks assigned to Felipe (and recent completed at bottom)
+                filtered = filtered.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'ARCHIVED');
+            } else if (currentTaskFilter === 'ALL') {
+                // All non-archived tasks
+                filtered = filtered.filter(t => t.status !== 'ARCHIVED');
             } else if (currentTaskFilter === 'DELEGATED') {
-                filtered = filtered.filter(t => !(t.owner || '').toLowerCase().includes('felipe') || t.status === 'DELEGATED');
+                filtered = filtered.filter(t => (!(t.owner || '').toLowerCase().includes('felipe') || t.status === 'DELEGATED') && t.status !== 'ARCHIVED');
             } else if (currentTaskFilter === 'DONE') {
+                // Completed in last 24h
                 filtered = filtered.filter(t => t.status === 'DONE');
-            } else if (currentTaskFilter === 'PENDING') {
-                filtered = filtered.filter(t => t.status === 'PENDING');
+            } else if (currentTaskFilter === 'ARCHIVED') {
+                // Auto-archived after 24h
+                filtered = filtered.filter(t => t.status === 'ARCHIVED');
             }
+
+            // Always sort non-DONE to top, DONE to the bottom of the list
+            filtered.sort((a, b) => {
+                const scoreA = (a.status === 'PENDING' ? 0 : (a.status === 'DELEGATED' ? 1 : 2));
+                const scoreB = (b.status === 'PENDING' ? 0 : (b.status === 'DELEGATED' ? 1 : 2));
+                return scoreA - scoreB;
+            });
 
             // Apply Stakeholder Pill Filter
             if (currentStakeholderFilter !== 'ALL') {
