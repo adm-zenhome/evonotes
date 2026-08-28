@@ -494,42 +494,40 @@
             <div id="tasks-central-view" class="space-y-6 hidden">
                 
                 <!-- Header Banner with Executive KPIs & Tabs -->
-                <div class="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 space-y-5">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                    <i class="ph-bold ph-check-square-offset"></i>
-                                </div>
-                                <div>
-                                    <h2 class="text-base font-bold text-gray-900">Central de Tarefas & Ações Executivas</h2>
-                                    <p class="text-xs text-gray-400">Compromissos extraídos das reuniões categorizados por atribuição e prazos.</p>
-                                </div>
+                <div class="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 space-y-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs flex-shrink-0">
+                                <i class="ph-bold ph-check-square-offset"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-gray-900">Central de Tarefas & Ações Executivas</h2>
+                                <p class="text-xs text-gray-400">Compromissos extraídos das reuniões categorizados por atribuição e prazos.</p>
                             </div>
                         </div>
 
-                        <!-- Filter Tabs: Starts at "Minhas Tarefas" -->
-                        <div class="inline-flex rounded-xl bg-gray-200/70 p-1 border-0 text-xs font-medium self-start sm:self-auto shadow-inner" id="task-filter-tabs">
-                            <button onclick="filterTasksView('MY_TASKS')" id="tab-task-my_tasks" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-gray-900 shadow-xs font-bold transition cursor-pointer">
+                        <!-- Filter Tabs: Starts strictly at "Minhas Tarefas" with clean spacing -->
+                        <div class="inline-flex rounded-2xl bg-gray-100 p-1 border-0 text-xs font-semibold shadow-inner flex-wrap gap-1" id="task-filter-tabs">
+                            <button onclick="filterTasksView('MY_TASKS')" id="tab-task-my_tasks" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition cursor-pointer">
                                 <i class="ph-bold ph-user-check text-xs text-emerald-600"></i>
                                 <span>Minhas Tarefas</span>
-                                <span id="my-tasks-count-pill" class="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">0</span>
+                                <span id="my-tasks-count-pill" class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">2</span>
                             </button>
-                            <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
                                 <i class="ph-bold ph-list-dashes text-xs"></i>
                                 <span>Todas</span>
                             </button>
-                            <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
                                 <i class="ph-bold ph-user-switch text-xs text-blue-600"></i>
                                 <span>Delegadas / Time</span>
                             </button>
-                            <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
                                 <i class="ph-bold ph-check-circle text-xs text-emerald-600"></i>
                                 <span>Concluídas</span>
                             </button>
-                            <button onclick="filterTasksView('ARCHIVED')" id="tab-task-archived" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('ARCHIVED')" id="tab-task-archived" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
                                 <i class="ph-bold ph-archive text-xs text-purple-600"></i>
-                                <span>📦 Arquivadas (>24h)</span>
+                                <span>Arquivadas</span>
                             </button>
                         </div>
                     </div>
@@ -2553,7 +2551,7 @@
         let currentTasksList = [];
 
 
-        async function loadAndRenderTasks(filter = 'ALL') {
+        async function loadAndRenderTasks(filter = 'MY_TASKS') {
             currentTaskFilter = filter;
             try {
                 const res = await fetch('/api/tasks');
@@ -2636,15 +2634,16 @@
 
             let filtered = currentTasksList;
 
-            // Apply Tab Filter
+            // Apply Tab Filter (Strict Owner Distinction)
             if (currentTaskFilter === 'MY_TASKS') {
-                // Shows pending/delegated tasks assigned to Felipe (and recent completed at bottom)
+                // Strictly tasks assigned to Felipe Donato (Pending or recent completed)
                 filtered = filtered.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'ARCHIVED');
             } else if (currentTaskFilter === 'ALL') {
                 // All non-archived tasks
                 filtered = filtered.filter(t => t.status !== 'ARCHIVED');
             } else if (currentTaskFilter === 'DELEGATED') {
-                filtered = filtered.filter(t => (!(t.owner || '').toLowerCase().includes('felipe') || t.status === 'DELEGATED') && t.status !== 'ARCHIVED');
+                // Tasks assigned to team members (Rafa, Daniela Reis, Val, Bruno Rodrigues, etc.)
+                filtered = filtered.filter(t => !(t.owner || '').toLowerCase().includes('felipe') && t.status !== 'ARCHIVED');
             } else if (currentTaskFilter === 'DONE') {
                 // Completed in last 24h
                 filtered = filtered.filter(t => t.status === 'DONE');
@@ -2939,7 +2938,7 @@
             const navTasks = document.getElementById('nav-tasks');
             if (navTasks) navTasks.classList.add('bg-[#ececec]', 'font-semibold');
 
-            loadAndRenderTasks('ALL');
+            loadAndRenderTasks('MY_TASKS');
         }
 
 
