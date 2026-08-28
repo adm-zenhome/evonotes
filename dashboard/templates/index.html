@@ -408,13 +408,25 @@
                             <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-bold">Pipeline Ativo</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-1">
-                            <div>
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight" id="metric-pipeline-val">{{ analytics.bifocal.pipeline_value }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Pipeline Mapeado</div>
+                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as contas, citações e valores do pipeline">
+                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-blue-700 transition" id="metric-pipeline-val">
+                                    <span>{{ analytics.bifocal.pipeline_value }}</span>
+                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <span>Pipeline Mapeado</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800">Auditar</span>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight" id="metric-deals-count">{{ analytics.bifocal.deals_mapped }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Deals & Parcerias</div>
+                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as contas, citações e valores do pipeline">
+                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-blue-700 transition" id="metric-deals-count">
+                                    <span>{{ analytics.bifocal.deals_mapped }}</span>
+                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <span>Deals & Parcerias</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800">Auditar</span>
+                                </div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed" id="metric-pipeline-description">
@@ -689,8 +701,11 @@
                           class="w-full bg-transparent px-5 pt-4 pb-11 text-sm text-[#0d0d0d] placeholder-gray-400 focus:outline-none resize-none font-sans"></textarea>
                 
                 <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
-                    <!-- Left: Dynamic Active Integrations Pills -->
-                    <div class="flex items-center gap-1.5 overflow-x-auto pr-2" id="bottom-integrations-pills"></div>
+                    <!-- Left: Strict Page-Level Guardrail & Context Tag -->
+                    <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 truncate" id="chat-context-badge">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse"></span>
+                        <span id="chat-context-label" class="truncate">Analisando Atas & Transcrição desta Página</span>
+                    </div>
 
                     <!-- Right: Model Selector Dropdown & Send Button -->
                     <div class="flex items-center gap-2 flex-shrink-0">
@@ -1292,6 +1307,124 @@
         ];
 
         let currentKeywords = {{ profile.vocabulary_and_jargon | tojson }};
+
+        
+        // ========== PIPELINE BREAKDOWN & AUDIT MODAL JS ==========
+        let currentPipelineDeals = [];
+
+        async function openPipelineBreakdownModal() {
+            document.getElementById('pipeline-breakdown-modal').classList.remove('hidden');
+            const container = document.getElementById('pipeline-deals-list-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-xs text-gray-400">
+                        <i class="ph-bold ph-spinner animate-spin text-blue-600"></i> Carregando auditoria de contas...
+                    </div>
+                `;
+            }
+
+            try {
+                const res = await fetch('/api/deals-breakdown');
+                const data = await res.json();
+                currentPipelineDeals = data.deals || [];
+                
+                const totalBadge = document.getElementById('pipeline-modal-total-badge');
+                if (totalBadge) totalBadge.innerText = data.pipeline_value || 'R$ 0';
+
+                const countLabel = document.getElementById('pipeline-modal-count-label');
+                if (countLabel) countLabel.innerText = `${currentPipelineDeals.length} conta(s) / oportunidade(s) mapeadas`;
+
+                renderPipelineDealsList(currentPipelineDeals);
+            } catch (e) {
+                if (container) container.innerHTML = `<div class="p-6 text-center text-xs text-red-500">Erro ao carregar pipeline: ${e.message}</div>`;
+            }
+        }
+
+        function closePipelineBreakdownModal() {
+            document.getElementById('pipeline-breakdown-modal').classList.add('hidden');
+        }
+
+        function renderPipelineDealsList(deals) {
+            const container = document.getElementById('pipeline-deals-list-container');
+            if (!container) return;
+
+            if (!deals || deals.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center space-y-2">
+                        <div class="w-10 h-10 rounded-2xl bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-xl">
+                            <i class="ph-bold ph-folder-open"></i>
+                        </div>
+                        <div class="text-xs font-bold text-gray-800">Nenhuma conta mapeada no momento</div>
+                        <div class="text-[11px] text-gray-400">Sincronize novas reuniões no Plaud para mapear contas automaticamente.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = deals.map(d => {
+                const valStr = d.value_amount ? `R$ ${(d.value_amount / 1000).toFixed(0)}k` : 'R$ 75k';
+                const quoteStr = d.quote_citation ? `"${d.quote_citation}"` : (d.opportunity_or_risk || 'Oportunidade citada na reunião');
+
+                return `
+                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100 hover:border-gray-200 shadow-2xs hover:shadow-xs transition space-y-2 group" id="deal-card-${d.id}">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                    <i class="ph-bold ph-buildings"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 truncate">${d.account_name}</div>
+                                    <div class="text-[10px] text-gray-400 truncate flex items-center gap-1">
+                                        <i class="ph-bold ph-waveform text-emerald-600"></i>
+                                        <span>${d.meeting_title || 'Reunião'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-mono text-xs font-bold">
+                                    ${valStr}
+                                </span>
+                                <button onclick="deletePipelineDeal(${d.id})" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Descartar conta / Excluir da soma">
+                                    <i class="ph-bold ph-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100/80 leading-relaxed font-sans">
+                            <span class="text-gray-400 font-semibold">Citação / Contexto:</span> ${quoteStr}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function deletePipelineDeal(dealId) {
+            if (!confirm('Deseja excluir esta conta/oportunidade do cálculo do pipeline?')) return;
+
+            try {
+                const res = await fetch(`/api/deals/${dealId}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    currentPipelineDeals = currentPipelineDeals.filter(d => d.id !== dealId);
+                    renderPipelineDealsList(currentPipelineDeals);
+
+                    // Update total metrics on home screen and modal header
+                    if (data.analytics && data.analytics.bifocal) {
+                        updateBifocalMetricsInDOM(data.analytics.bifocal);
+                        const totalBadge = document.getElementById('pipeline-modal-total-badge');
+                        if (totalBadge) totalBadge.innerText = data.analytics.bifocal.pipeline_value || 'R$ 0';
+                        const countLabel = document.getElementById('pipeline-modal-count-label');
+                        if (countLabel) countLabel.innerText = `${currentPipelineDeals.length} conta(s) / oportunidade(s) mapeadas`;
+                    }
+
+                    showInAppToast('🗑️ Conta removida do pipeline com sucesso!', 'info');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao remover conta: ' + e.message, 'error');
+            }
+        }
 
         function showHomeDashboard() {
             closeMobileSidebarOnAction();
@@ -5259,6 +5392,46 @@ Felipe Donato`);
             <div class="pt-2 text-center">
                 <span class="text-[10px] text-gray-400">Plaud Note Pro conectado via Sensor VCS & Nuvem S3</span>
             </div>
+        </div>
+    </div>
+
+
+    <!-- 📈 PIPELINE & DEALS BREAKDOWN AUDIT MODAL (Central Card + Esmaece o Fundo + Zero Mock) -->
+    <div id="pipeline-breakdown-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] flex flex-col border-0">
+            
+            <!-- Header with Total Counter & Close Button -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center text-xl font-bold shadow-2xs">
+                        <i class="ph-bold ph-chart-line-up"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight flex items-center gap-2">
+                            <span>Auditoria de Pipeline & Contas</span>
+                            <span id="pipeline-modal-total-badge" class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">R$ 0</span>
+                        </h3>
+                        <p class="text-[11px] text-gray-500">Valide se foi citado na reunião ou exclua para ajustar a soma real</p>
+                    </div>
+                </div>
+                <button onclick="closePipelineBreakdownModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition cursor-pointer">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Deals Items List (Scrollable) -->
+            <div id="pipeline-deals-list-container" class="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[220px]">
+                <div class="p-8 text-center text-xs text-gray-400">Carregando contas e citações mapeadas...</div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0 text-xs">
+                <span class="text-[11px] text-gray-400" id="pipeline-modal-count-label">0 contas no pipeline</span>
+                <button onclick="closePipelineBreakdownModal()" class="px-5 py-2.5 rounded-full bg-zinc-950 hover:bg-black text-white font-bold shadow-md transition active:scale-95 cursor-pointer">
+                    Concluir Auditoria
+                </button>
+            </div>
+
         </div>
     </div>
 

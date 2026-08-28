@@ -60,6 +60,16 @@ class ExecutiveDatabase:
                     FOREIGN KEY (meeting_id) REFERENCES meetings (file_id) ON DELETE CASCADE
                 )
             """)
+            # Ensure columns value_amount and quote_citation exist in accounts_deals
+            try:
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 75000")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN quote_citation TEXT DEFAULT ''")
+            except Exception:
+                pass
+
 
             # Deals & Accounts Table
             cursor.execute("""
@@ -73,6 +83,16 @@ class ExecutiveDatabase:
                     FOREIGN KEY (meeting_id) REFERENCES meetings (file_id) ON DELETE CASCADE
                 )
             """)
+            # Ensure columns value_amount and quote_citation exist in accounts_deals
+            try:
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 75000")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN quote_citation TEXT DEFAULT ''")
+            except Exception:
+                pass
+
 
             # User Profiles & Calibrated Context
             cursor.execute("""
@@ -489,9 +509,10 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
         cursor.execute("SELECT term, vote FROM keyword_feedback WHERE user_id = ?", (user_id,))
         votes = {row["term"]: row["vote"] for row in cursor.fetchall()}
 
-        cursor.execute("SELECT COUNT(*) as c FROM accounts_deals")
+        cursor.execute("SELECT COUNT(*) as c, COALESCE(SUM(value_amount), 0) as total_val FROM accounts_deals")
         r_deals = cursor.fetchone()
         real_deals_count = r_deals["c"] if r_deals else 0
+        real_total_val = r_deals["total_val"] if r_deals else 0
 
     pending_unvoted = []
     voted_up = []
@@ -518,7 +539,7 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
     total_meetings = len(meetings)
     hours_saved = round((total_meetings * 45) / 60, 1) if total_meetings > 0 else 0.0
     deals_count = real_deals_count if total_meetings > 0 else 0
-    pipeline_value = f"R$ {deals_count * 75}k" if deals_count > 0 else "R$ 0"
+    pipeline_value = f"R$ {int(real_total_val/1000)}k" if (total_meetings > 0 and real_total_val > 0) else "R$ 0"
 
     # Dynamic stakeholders list from actual meetings
     stakeholders_list = []
@@ -665,3 +686,49 @@ def get_stakeholder_profile_data(name: str) -> dict:
         "key_topics": []
     }
 
+
+
+def get_all_deals_breakdown() -> list:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT d.id, d.meeting_id, d.account_name, d.opportunity_or_risk, d.next_step, 
+                   COALESCE(d.value_amount, 75000) as value_amount, 
+                   COALESCE(d.quote_citation, '') as quote_citation,
+                   COALESCE(m.title, 'Reunião Mapeada') as meeting_title,
+                   COALESCE(m.start_time, '') as meeting_date
+            FROM accounts_deals d
+            LEFT JOIN meetings m ON d.meeting_id = m.file_id
+            ORDER BY d.id DESC
+        """)
+        rows = cursor.fetchall()
+        return [dict(r) for r in rows]
+
+def delete_deal_by_id(deal_id: int):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM accounts_deals WHERE id = ?", (deal_id,))
+        conn.commit()
+
+def get_dynamic_categories() -> list:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT category, COUNT(*) as count 
+            FROM meetings 
+            GROUP BY category 
+            ORDER BY count DESC
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+
+def rename_category(old_name: str, new_name: str):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, old_name))
+        conn.commit()
+
+def delete_category(cat_name: str):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (cat_name,))
+        conn.commit()

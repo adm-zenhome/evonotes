@@ -1162,3 +1162,60 @@ async def api_whatsapp_activate_and_sync_latest(payload: dict = Body(...)):
         "created_meetings": created_meetings,
         "all_meetings": db.get_all_meetings()
     })
+
+
+# ========== DEALS & PIPELINE AUDIT BREAKDOWN ENDPOINTS ==========
+@app.get("/api/deals-breakdown")
+async def api_get_deals_breakdown():
+    """Returns all mapped accounts, opportunity context, values and citations for pipeline audit."""
+    from modules.executive_voice_os.database import get_all_deals_breakdown, get_keyword_analytics
+    deals = get_all_deals_breakdown()
+    analytics = get_keyword_analytics("felipe_donato")
+    return JSONResponse({
+        "status": "SUCCESS",
+        "deals": deals,
+        "total_deals": len(deals),
+        "pipeline_value": analytics["bifocal"]["pipeline_value"]
+    })
+
+@app.delete("/api/deals/{deal_id}")
+async def api_delete_deal(deal_id: int):
+    """Deletes a specific deal from pipeline and recalculates total sum."""
+    from modules.executive_voice_os.database import delete_deal_by_id, get_keyword_analytics
+    delete_deal_by_id(deal_id)
+    analytics = get_keyword_analytics("felipe_donato")
+    return JSONResponse({
+        "status": "SUCCESS",
+        "deleted_deal_id": deal_id,
+        "message": "Conta/Oportunidade removida do pipeline com sucesso.",
+        "analytics": analytics
+    })
+
+# ========== DYNAMIC CATEGORIES MANAGEMENT ENDPOINTS ==========
+@app.get("/api/categories")
+async def api_get_categories():
+    """Returns distinct categories and meeting counts."""
+    from modules.executive_voice_os.database import get_dynamic_categories
+    cats = get_dynamic_categories()
+    return JSONResponse({"status": "SUCCESS", "categories": cats})
+
+@app.post("/api/categories/rename")
+async def api_rename_category(payload: dict = Body(...)):
+    """Renames a category across all meetings."""
+    from modules.executive_voice_os.database import rename_category
+    old_name = payload.get("old_name")
+    new_name = payload.get("new_name")
+    if not old_name or not new_name:
+        raise HTTPException(status_code=400, detail="old_name and new_name are required")
+    rename_category(old_name, new_name)
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria renomeada para {new_name}."})
+
+@app.post("/api/categories/delete")
+async def api_delete_category(payload: dict = Body(...)):
+    """Deletes a category, reassigning its meetings to 'Geral'."""
+    from modules.executive_voice_os.database import delete_category
+    cat_name = payload.get("category")
+    if not cat_name:
+        raise HTTPException(status_code=400, detail="category is required")
+    delete_category(cat_name)
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria {cat_name} excluída com sucesso."})
