@@ -467,8 +467,8 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
-                        {% for s in analytics.stakeholders %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1" id="home-stakeholders-grid">
+                        {% for s in analytics.stakeholders[:5] %}
                         <div onclick="openStakeholder360Modal('{{ s.name }}')" class="p-3.5 rounded-2xl border-0 bg-[#f8f9fa] hover:bg-white hover:shadow-xs flex items-center justify-between transition-all cursor-pointer group shadow-2xs">
                             <div class="flex items-center gap-3 truncate pr-2">
                                 <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-105 transition shadow-2xs">
@@ -484,6 +484,22 @@
                             </div>
                         </div>
                         {% endfor %}
+
+                        <!-- 6th Card: VER TODOS OS PERFIS -->
+                        <div onclick="openAllStakeholdersDirectoryModal()" class="p-3.5 rounded-2xl border-2 border-dashed border-gray-200 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50/80 flex items-center justify-between transition-all cursor-pointer group shadow-2xs">
+                            <div class="flex items-center gap-3 truncate pr-2">
+                                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-110 transition shadow-2xs">
+                                    <i class="ph-bold ph-users-three text-sm"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 group-hover:text-blue-900 truncate">Ver Todos os Perfis</div>
+                                    <div class="text-[10px] text-blue-700 font-semibold truncate">{{ analytics.stakeholders|length }} profissionais mapeados ➜</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <i class="ph-bold ph-arrow-right text-blue-600 group-hover:translate-x-0.5 transition text-xs"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2568,27 +2584,37 @@
         // Show Home Dashboard by default
         showHomeDashboard();
     
-        async function triggerPlaudSync() {
+
+        async function triggerPlaudSync(mode = 'incremental') {
             const btn = document.getElementById('btn-floating-sync');
             const icon = document.getElementById('sync-floating-icon');
             const label = document.getElementById('sync-floating-label');
             const dot = document.getElementById('sync-status-dot');
 
-            btn.disabled = true;
-            icon.className = 'ph-bold ph-spinner animate-spin text-emerald-400 text-base';
-            label.innerText = 'Buscando gravações na Nuvem...';
-            dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0';
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'ph-bold ph-spinner animate-spin text-emerald-400 text-base';
+            if (label) label.innerText = mode === 'full' ? 'Restaurando 7 gravações Plaud...' : 'Buscando gravações na Nuvem...';
+            if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0';
 
             try {
-                const res = await fetch('/api/sync-plaud', { method: 'POST' });
+                const res = await fetch('/api/sync-plaud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: mode })
+                });
                 const data = await res.json();
                 
                 if (data.status === 'SUCCESS') {
-                    icon.className = 'ph-bold ph-check-circle text-emerald-400 text-base';
-                    label.innerText = `Sincronizado (${data.total_meetings} gravações)`;
-                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0';
+                    if (icon) icon.className = 'ph-bold ph-check-circle text-emerald-400 text-base';
+                    if (label) label.innerText = `Sincronizado (${data.total_meetings} gravações)`;
+                    if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0';
 
-                    // Update local meeting dataset & home metrics
+                    // Update sidebar meeting list if new meetings arrived
+                    if (data.meetings && data.meetings.length > 0) {
+                        renderDynamicSidebarMeetings(data.meetings);
+                    }
+
+                    // Update home metrics
                     if (data.analytics && data.analytics.bifocal) {
                         const hEl = document.getElementById('metric-hours-saved');
                         const cEl = document.getElementById('metric-calls-count');
@@ -2597,10 +2623,10 @@
                     }
 
                     setTimeout(() => {
-                        icon.className = 'ph-bold ph-waveform text-emerald-400 text-base';
-                        label.innerText = 'Sincronizar Plaud';
-                        btn.disabled = false;
-                    }, 2500);
+                        if (icon) icon.className = 'ph-bold ph-waveform text-emerald-400 text-base';
+                        if (label) label.innerText = 'Sincronizar Plaud';
+                        if (btn) btn.disabled = false;
+                    }, 3000);
                 } else {
                     alert('Erro na sincronização: ' + (data.detail || 'Falha'));
                     resetSyncBtn();
@@ -2609,6 +2635,21 @@
                 alert('Erro ao conectar com o Plaud: ' + e.message);
                 resetSyncBtn();
             }
+        }
+
+        function renderDynamicSidebarMeetings(meetings) {
+            const listEl = document.getElementById('recent-meetings-list');
+            if (!listEl) return;
+
+            listEl.innerHTML = meetings.map(m => `
+                <button onclick="selectMeeting('${m.file_id}')" id="sidebar-item-${m.file_id}" 
+                        class="meeting-nav-item w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium text-gray-700 hover:bg-[#ececec] rounded-lg transition text-left group">
+                    <div class="flex items-center gap-2 truncate">
+                        <i class="ph-bold ph-microphone text-xs text-gray-400 group-hover:text-emerald-600"></i>
+                        <span class="truncate">${m.title}</span>
+                    </div>
+                </button>
+            `).join('');
         }
 
         function resetSyncBtn() {
@@ -3235,6 +3276,123 @@
         window.addEventListener('DOMContentLoaded', () => {
             initMentionListeners();
         });
+
+        
+        // ========== ALL STAKEHOLDERS DIRECTORY JS ==========
+        let allDirectoryStakeholders = [];
+
+        async function openAllStakeholdersDirectoryModal() {
+            document.getElementById('stakeholders-directory-modal').classList.remove('hidden');
+            const container = document.getElementById('stk-directory-cards-container');
+            container.innerHTML = `
+                <div class="p-8 text-center text-xs text-gray-400">
+                    <i class="ph-bold ph-spinner animate-spin text-blue-600 text-lg"></i>
+                    <div class="mt-2">Carregando diretório de perfis...</div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch('/api/stakeholders-directory');
+                const data = await res.json();
+                allDirectoryStakeholders = data.stakeholders || [];
+                renderStakeholderDirectoryCards(allDirectoryStakeholders);
+                
+                const totalBadge = document.getElementById('stk-directory-total-badge');
+                if (totalBadge) totalBadge.innerText = `${data.total} profissionais mapeados de forma autônoma`;
+            } catch (e) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
+            }
+        }
+
+        function closeAllStakeholdersDirectoryModal() {
+            document.getElementById('stakeholders-directory-modal').classList.add('hidden');
+        }
+
+        function filterStakeholderDirectory(query) {
+            const q = query.toLowerCase().trim();
+            if (!q) {
+                renderStakeholderDirectoryCards(allDirectoryStakeholders);
+                return;
+            }
+            const filtered = allDirectoryStakeholders.filter(s => 
+                s.name.toLowerCase().includes(q) || 
+                s.company.toLowerCase().includes(q) || 
+                s.role.toLowerCase().includes(q) ||
+                (s.treatment_guidelines || '').toLowerCase().includes(q)
+            );
+            renderStakeholderDirectoryCards(filtered);
+        }
+
+        function renderStakeholderDirectoryCards(list) {
+            const container = document.getElementById('stk-directory-cards-container');
+            if (!container) return;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-xs text-gray-400">
+                        Nenhum profissional encontrado com este filtro.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(s => `
+                <div class="p-4 rounded-2xl bg-gray-50/80 hover:bg-white hover:shadow-xs border border-gray-100 transition space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-2xs">
+                                ${(s.name || 'P').slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-900">${s.name}</div>
+                                <div class="text-xs text-gray-500">${s.role} • <span class="font-semibold text-gray-700">${s.company}</span></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="closeAllStakeholdersDirectoryModal(); triggerChatForStakeholder('${s.name}')" 
+                                    class="px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                                    title="Chamar no Chat com @Menção">
+                                <i class="ph-bold ph-chat-teardrop-dots text-emerald-400"></i>
+                                <span>Chamar no Chat</span>
+                            </button>
+                            <button onclick="closeAllStakeholdersDirectoryModal(); openStakeholder360Modal('${encodeURIComponent(s.name)}')" 
+                                    class="px-2.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-[11px] font-bold transition cursor-pointer"
+                                    title="Ver Dossiê Completo">
+                                <span>Dossiê 360°</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Communication & Psychological Style -->
+                    <div class="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200/60 text-xs space-y-0.5">
+                        <div class="text-[10px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                            <i class="ph-bold ph-brain text-amber-700"></i>
+                            <span>Tom de Tratamento Recomendado:</span>
+                        </div>
+                        <div class="text-[11px] text-amber-950 font-medium leading-relaxed">${s.treatment_guidelines || 'Tratar com foco em resultados e alinhamento executivo.'}</div>
+                    </div>
+
+                    <!-- Meta Tags (Meetings & Tasks) -->
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
+                        <span class="px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 font-semibold">
+                            📅 ${s.meetings.length} Reuniões Registradas
+                        </span>
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold">
+                            ✅ ${s.tasks.length} Compromissos Mapeados
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function triggerChatForStakeholder(name) {
+            const chatInput = document.getElementById('chat-input') || document.querySelector('textarea');
+            if (chatInput) {
+                chatInput.value = `@${name} `;
+                chatInput.focus();
+            }
+        }
 
         function openPlaudSensorInfoModal() {
             document.getElementById('plaud-sensor-info-modal').classList.remove('hidden');
@@ -4634,6 +4792,52 @@ Felipe Donato`);
         <div class="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mencionar Stakeholder:</div>
         <div id="mention-autocomplete-items" class="space-y-0.5 max-h-48 overflow-y-auto">
             <!-- Dynamically populated -->
+        </div>
+    </div>
+
+
+    <!-- 👥 ALL STAKEHOLDERS DIRECTORY MODAL -->
+    <div id="stakeholders-directory-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-3xl rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+            
+            <!-- Modal Header with Search -->
+            <div class="flex items-center justify-between border-b border-gray-100 pb-4 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-2xs">
+                        <i class="ph-bold ph-users-three"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Diretório Geral de Stakeholders & Perfis</h3>
+                        <p class="text-xs text-gray-400">Todos os profissionais identificados nas gravações e calibrados com diretrizes de tratamento</p>
+                    </div>
+                </div>
+                <button onclick="closeAllStakeholdersDirectoryModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-800 transition cursor-pointer">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Search input -->
+            <div class="flex-shrink-0">
+                <div class="relative">
+                    <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
+                    <input type="text" id="stk-directory-search" oninput="filterStakeholderDirectory(this.value)"
+                           class="w-full pl-9 pr-4 py-2 rounded-2xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-blue-500 transition" 
+                           placeholder="Filtrar por nome, empresa, cargo ou palavras-chave...">
+                </div>
+            </div>
+
+            <!-- Directory Cards Scrollable List -->
+            <div class="overflow-y-auto space-y-3 flex-1 pr-1" id="stk-directory-cards-container">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
+                <span id="stk-directory-total-badge" class="font-semibold text-gray-700">Carregando profissionais...</span>
+                <button onclick="closeAllStakeholdersDirectoryModal()" class="px-4 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold transition cursor-pointer">
+                    Fechar
+                </button>
+            </div>
         </div>
     </div>
 
