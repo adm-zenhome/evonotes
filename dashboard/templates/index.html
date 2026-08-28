@@ -2215,7 +2215,7 @@
             }
         }
 
-        function renderTranscriptView() {
+function renderTranscriptView() {
             if (!currentMeetingId) return;
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
@@ -2223,17 +2223,23 @@
             const box = document.getElementById('assistant-summary-box');
             if (!box) return;
 
-            const transcriptText = m.transcription || m.transcript || 'Transcrição do áudio gravado em processamento ou não disponível.';
-            const durationMin = m.duration_seconds ? (m.duration_seconds / 60).toFixed(1) : '28.9';
+            const isWhatsApp = (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
+            const durationSec = m.duration_seconds || (isWhatsApp ? 95 : 1733);
+            const durationMin = (durationSec / 60).toFixed(1);
+
+            const transcriptTitle = isWhatsApp ? '📱 Transcrição de Áudio WhatsApp (Z-API)' : '🎙️ Transcrição Bruta Diarizada';
+            const hardwareLabel = isWhatsApp ? 'Áudio Z-API • Ingerido via Webhook' : 'Sensor MEMS + VCS (Plaud Dual-Sensor)';
+
+            const transcriptText = m.transcription || m.transcript || m.transcript_full || (isWhatsApp ? `[00:02] Áudio recebido via WhatsApp: "${m.executive_summary || 'Mensagem de voz sincronizada.'}"` : 'Transcrição do áudio gravado em processamento ou não disponível.');
 
             box.innerHTML = `
                 <div class="space-y-4 animate-fade-in">
                     <!-- Search & Controls Header for Transcript -->
                     <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                         <div class="flex items-center gap-2 text-gray-700 font-bold">
-                            <i class="ph-bold ph-waveform text-emerald-600 text-base"></i>
-                            <span>Transcrição Bruta Diarizada</span>
-                            <span class="text-[10px] text-gray-400 font-mono">(${durationMin} min • Sensor MEMS + VCS)</span>
+                            <i class="ph-bold ${isWhatsApp ? 'ph-whatsapp-logo text-emerald-600' : 'ph-waveform text-emerald-600'} text-base"></i>
+                            <span>${transcriptTitle}</span>
+                            <span class="text-[10px] text-gray-400 font-mono">(${durationMin} min • ${hardwareLabel})</span>
                         </div>
 
                         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -2263,7 +2269,7 @@ ${transcriptText}
             if (!container || !currentMeetingId) return;
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
-            const raw = m.transcription || m.transcript || '';
+            const raw = m.transcription || m.transcript || m.transcript_full || '';
 
             if (!query.trim()) {
                 container.innerText = raw;
@@ -2280,7 +2286,7 @@ ${transcriptText}
             if (!currentMeetingId) return;
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
-            navigator.clipboard.writeText(m.transcription || m.transcript || '');
+            navigator.clipboard.writeText(m.transcription || m.transcript || m.transcript_full || '');
             alert('📋 Transcrição completa copiada para a área de transferência!');
         }
 

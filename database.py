@@ -179,6 +179,8 @@ class ExecutiveDatabase:
                         m_dict["intelligence"] = {}
                 else:
                     m_dict["intelligence"] = {}
+                m_dict["transcription"] = m_dict.get("transcript_full") or ""
+                m_dict["transcript"] = m_dict.get("transcript_full") or ""
                 meetings.append(m_dict)
             return meetings
 
@@ -203,6 +205,7 @@ class ExecutiveDatabase:
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            t_full = meeting_data.get("transcript_full") or meeting_data.get("transcription") or meeting_data.get("transcript") or ""
             cursor.execute("""
                 INSERT OR REPLACE INTO meetings (
                     file_id, title, category, duration_seconds, start_time,
@@ -212,15 +215,15 @@ class ExecutiveDatabase:
             """, (
                 file_id,
                 intel.get("meeting_title", meeting_data.get("title", "Sem Título")),
-                intel.get("category", "Geral"),
-                meeting_data.get("duration", 0),
-                meeting_data.get("date", datetime.now().isoformat()),
+                intel.get("category", meeting_data.get("category", "Geral")),
+                meeting_data.get("duration_seconds", meeting_data.get("duration", 0)),
+                meeting_data.get("start_time", meeting_data.get("date", datetime.now().isoformat())),
                 meeting_data.get("audio_path", ""),
                 meeting_data.get("audio_url", ""),
                 meeting_data.get("doc_path", ""),
-                intel.get("executive_summary", ""),
+                intel.get("executive_summary", meeting_data.get("executive_summary", "")),
                 json.dumps(intel, ensure_ascii=False),
-                meeting_data.get("transcript_full", ""),
+                t_full,
                 meeting_data.get("custom_notes", "")
             ))
 
