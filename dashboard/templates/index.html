@@ -503,6 +503,8 @@
                     </div>
                 </div>
 
+                <div id="home-dynamic-turns" class="space-y-4"></div>
+
                 <!-- STAKEHOLDERS NETWORK MATRIX -->
                 <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-4 border-0">
                     <div class="flex items-center justify-between">
@@ -1274,6 +1276,10 @@
     <!-- Scripts -->
     <script>
         marked.setOptions({ breaks: true, gfm: true });
+        document.addEventListener('DOMContentLoaded', () => {
+            initSidebarCategories();
+            renderActiveIntegrationsPills();
+        });
 
         let meetingsData = {{ meetings | tojson }};
         let currentMeetingId = null;
@@ -1292,11 +1298,253 @@
 
         let currentKeywords = {{ profile.vocabulary_and_jargon | tojson }};
 
+        // ========== DYNAMIC CATEGORIES & SIDEBAR MANAGEMENT ==========
+        let categoriesState = [
+            { id: 'cat-1', name: 'Pipeline & Deals', icon: 'ph-briefcase', filter: 'Comercial' },
+            { id: 'cat-2', name: 'Mentorias & Estratégia', icon: 'ph-lightbulb', filter: 'Pessoal' },
+            { id: 'cat-3', name: 'Técnico & Arquitetura', icon: 'ph-cpu', filter: 'Técnico' }
+        ];
+        let isCategoriesExpanded = false;
+        let activeFilterCategory = null;
+        let contextMenuCategory = null;
+        let selectedCatIcon = 'ph-briefcase';
+        let categoryActionType = 'create'; // 'create' or 'rename'
+
+        function initSidebarCategories() {
+            const existingFilters = new Set(categoriesState.map(c => c.name.toLowerCase()));
+            (meetingsData || []).forEach(m => {
+                const cat = (m.intelligence && m.intelligence.category) || m.category;
+                if (cat && !existingFilters.has(cat.toLowerCase()) && cat !== 'Geral' && cat !== 'Standard') {
+                    existingFilters.add(cat.toLowerCase());
+                    categoriesState.push({
+                        id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                        name: cat,
+                        icon: 'ph-tag',
+                        filter: cat
+                    });
+                }
+            });
+            renderSidebarCategories();
+        }
+
+        function renderSidebarCategories() {
+            const container = document.getElementById('sidebar-categories-list');
+            const expandWrapper = document.getElementById('sidebar-categories-expand-wrapper');
+            const expandLabel = document.getElementById('label-categories-expand');
+            const expandIcon = document.getElementById('icon-categories-expand');
+            if (!container) return;
+
+            const visibleCategories = isCategoriesExpanded ? categoriesState : categoriesState.slice(0, 3);
+
+            container.innerHTML = visibleCategories.map(cat => {
+                const isActive = (activeFilterCategory === cat.filter) || (activeFilterCategory === cat.name);
+                const count = (meetingsData || []).filter(m => {
+                    const mCat = (m.intelligence && m.intelligence.category) || m.category;
+                    return mCat === cat.filter || mCat === cat.name;
+                }).length;
+
+                return `
+                    <div class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition text-left group relative cursor-pointer ${isActive ? 'bg-[#ececec] font-bold text-black' : 'hover:bg-black/[0.04] text-gray-700 font-medium'}"
+                         id="cat-row-${cat.id}">
+                        <div onclick="filterCategory('${cat.filter || cat.name}')" class="flex items-center gap-2 flex-1 min-w-0">
+                            <i class="ph-bold ${cat.icon || 'ph-tag'} text-sm text-gray-600 flex-shrink-0"></i>
+                            <span class="text-xs truncate">${cat.name}</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <span class="text-[10px] text-gray-400 font-mono px-1 rounded">${count > 0 ? count : ''}</span>
+                            <button onclick="openCategoryContextMenu(event, '${cat.name}')" 
+                                    class="w-5 h-5 rounded hover:bg-gray-200/80 text-gray-400 hover:text-black flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    title="Opções da Categoria">
+                                <i class="ph-bold ph-dots-three text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (expandWrapper) {
+                if (categoriesState.length > 3) {
+                    expandWrapper.classList.remove('hidden');
+                    if (expandLabel) expandLabel.innerText = isCategoriesExpanded ? 'Recolher' : `Ver mais (${categoriesState.length - 3})`;
+                    if (expandIcon) expandIcon.className = isCategoriesExpanded ? 'ph-bold ph-caret-up text-xs' : 'ph-bold ph-caret-down text-xs';
+                } else {
+                    expandWrapper.classList.add('hidden');
+                }
+            }
+        }
+
+        function toggleCategoriesExpansion() {
+            isCategoriesExpanded = !isCategoriesExpanded;
+            renderSidebarCategories();
+        }
+
+        function filterCategory(catName) {
+            if (activeFilterCategory === catName) {
+                activeFilterCategory = null;
+            } else {
+                activeFilterCategory = catName;
+            }
+
+            renderSidebarCategories();
+
+            const meetingItems = document.querySelectorAll('.meeting-nav-item');
+            meetingItems.forEach(item => {
+                const id = item.id.replace('sidebar-item-', '');
+                const m = (meetingsData || []).find(x => x.file_id === id);
+                if (!m) return;
+
+                if (!activeFilterCategory) {
+                    item.style.display = 'flex';
+                } else {
+                    const mCat = (m.intelligence && m.intelligence.category) || m.category;
+                    const matches = (mCat === activeFilterCategory) || 
+                                    (activeFilterCategory === 'Comercial' && (m.title.toLowerCase().includes('pipeline') || m.title.toLowerCase().includes('deals') || m.title.toLowerCase().includes('parceiro') || m.title.toLowerCase().includes('bcr'))) ||
+                                    (activeFilterCategory === 'Pessoal' && (m.title.toLowerCase().includes('mentoria') || m.title.toLowerCase().includes('pessoal')));
+                    item.style.display = matches ? 'flex' : 'none';
+                }
+            });
+
+            if (activeFilterCategory) {
+                showInAppToast(`Filtro ativo: ${activeFilterCategory}`, 'info');
+            } else {
+                showInAppToast(`Exibindo todas as reuniões`, 'info');
+            }
+        }
+
+        function openCategoryContextMenu(event, catName) {
+            event.stopPropagation();
+            contextMenuCategory = catName;
+            const menu = document.getElementById('category-context-menu');
+            const title = document.getElementById('cat-menu-title');
+            if (title) title.innerText = catName;
+
+            const x = Math.min(event.clientX, window.innerWidth - 220);
+            const y = Math.min(event.clientY, window.innerHeight - 120);
+
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            menu.classList.remove('hidden');
+
+            const closeMenuHandler = () => {
+                menu.classList.add('hidden');
+                document.removeEventListener('click', closeMenuHandler);
+            };
+            setTimeout(() => document.addEventListener('click', closeMenuHandler), 10);
+        }
+
+        function openCategoryCreateModal() {
+            categoryActionType = 'create';
+            document.getElementById('cat-modal-heading').innerText = 'Nova Categoria';
+            document.getElementById('cat-name-input').value = '';
+            document.getElementById('category-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('cat-name-input').focus(), 100);
+        }
+
+        function triggerRenameCategory() {
+            if (!contextMenuCategory) return;
+            categoryActionType = 'rename';
+            document.getElementById('cat-modal-heading').innerText = `Renomear '${contextMenuCategory}'`;
+            document.getElementById('cat-name-input').value = contextMenuCategory;
+            document.getElementById('category-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('cat-name-input').focus(), 100);
+        }
+
+        async function triggerDeleteCategory() {
+            if (!contextMenuCategory) return;
+            if (!confirm(`Deseja excluir a categoria '${contextMenuCategory}'? As reuniões associadas serão mantidas.`)) return;
+
+            try {
+                const res = await fetch('/api/categories/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: contextMenuCategory })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    categoriesState = categoriesState.filter(c => c.name !== contextMenuCategory && c.filter !== contextMenuCategory);
+                    if (activeFilterCategory === contextMenuCategory) activeFilterCategory = null;
+                    renderSidebarCategories();
+                    showInAppToast(`🗑️ Categoria '${contextMenuCategory}' excluída!`, 'info');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao excluir categoria: ' + e.message, 'error');
+            }
+        }
+
+        function selectCatIcon(iconClass) {
+            selectedCatIcon = iconClass;
+            const pills = document.querySelectorAll('.cat-icon-pill');
+            pills.forEach(p => {
+                if (p.innerHTML.includes(iconClass)) {
+                    p.className = 'cat-icon-pill p-2 rounded-xl bg-blue-50 text-blue-700 text-base shadow-2xs';
+                } else {
+                    p.className = 'cat-icon-pill p-2 rounded-xl bg-gray-100 text-gray-600 text-base';
+                }
+            });
+        }
+
+        async function saveCategoryAction() {
+            const input = document.getElementById('cat-name-input');
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (categoryActionType === 'create') {
+                try {
+                    const res = await fetch('/api/categories/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, icon: selectedCatIcon })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'SUCCESS') {
+                        categoriesState.push({
+                            id: `cat-${Date.now()}`,
+                            name: name,
+                            icon: selectedCatIcon,
+                            filter: name
+                        });
+                        closeCategoryModal();
+                        renderSidebarCategories();
+                        showInAppToast(`✅ Categoria '${name}' criada com sucesso!`, 'info');
+                    }
+                } catch (e) {
+                    showInAppToast('Erro ao criar categoria: ' + e.message, 'error');
+                }
+            } else if (categoryActionType === 'rename') {
+                try {
+                    const res = await fetch('/api/categories/rename', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ old_name: contextMenuCategory, new_name: name })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'SUCCESS') {
+                        const target = categoriesState.find(c => c.name === contextMenuCategory || c.filter === contextMenuCategory);
+                        if (target) {
+                            target.name = name;
+                            target.filter = name;
+                        }
+                        if (activeFilterCategory === contextMenuCategory) activeFilterCategory = name;
+                        closeCategoryModal();
+                        renderSidebarCategories();
+                        showInAppToast(`✏️ Categoria renomeada para '${name}'!`, 'info');
+                    }
+                } catch (e) {
+                    showInAppToast('Erro ao renomear categoria: ' + e.message, 'error');
+                }
+            }
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('category-modal').classList.add('hidden');
+        }
+
+
         
         // ========== PIPELINE BREAKDOWN & AUDIT MODAL JS ==========
         let currentPipelineDeals = [];
 
-        async 
         // ========== EFFICIENCY BREAKDOWN & AUDIT MODAL JS ==========
         function openEfficiencyBreakdownModal() {
             document.getElementById('efficiency-breakdown-modal').classList.remove('hidden');
@@ -2762,28 +3010,33 @@ ${transcriptText}
 
             input.value = '';
             
-            if (!currentMeetingId) {
-                // If on home dashboard, auto-select first meeting to run prompt
-                if (meetingsData.length > 0) {
-                    selectMeeting(meetingsData[0].file_id);
-                }
-            }
+            // Append User Message to the active view container
             appendUserMessage(text);
             await executeAiPrompt(text);
         }
 
-        function handleKeyDown(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendPrompt();
+        function getActiveChatContainer() {
+            const homeView = document.getElementById('home-dashboard-view');
+            const threadView = document.getElementById('conversation-thread');
+            if (threadView && !threadView.classList.contains('hidden')) {
+                return document.getElementById('dynamic-turns');
             }
+            let homeContainer = document.getElementById('home-dynamic-turns');
+            if (!homeContainer) {
+                homeContainer = document.createElement('div');
+                homeContainer.id = 'home-dynamic-turns';
+                homeContainer.className = 'space-y-4 pt-4';
+                if (homeView) homeView.appendChild(homeContainer);
+            }
+            return homeContainer;
         }
 
         function appendUserMessage(text) {
-            const container = document.getElementById('dynamic-turns');
+            const container = getActiveChatContainer();
+            if (!container) return;
             const userHtml = `
-                <div class="flex justify-end">
-                    <div class="bg-zinc-900 text-white text-sm font-medium px-5 py-3 rounded-3xl max-w-[80%] shadow-sm">
+                <div class="flex justify-end animate-fade-in">
+                    <div class="bg-zinc-950 text-white text-xs sm:text-sm font-medium px-5 py-3 rounded-2xl max-w-[85%] shadow-sm leading-relaxed">
                         ${text}
                     </div>
                 </div>
@@ -2793,14 +3046,15 @@ ${transcriptText}
         }
 
         function appendAssistantLoading() {
-            const container = document.getElementById('dynamic-turns');
+            const container = getActiveChatContainer();
+            if (!container) return 'loading-dummy';
             const loadingId = `loading-${Date.now()}`;
             const loadingHtml = `
                 <div id="${loadingId}" class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 flex items-center gap-3.5 animate-pulse">
-                    <div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-2xs">
                         <i class="ph-bold ph-waveform"></i>
                     </div>
-                    <div class="text-sm font-medium text-gray-500">Processando e raciocinando sobre a reunião...</div>
+                    <div class="text-xs sm:text-sm font-medium text-gray-500">Raciocinando e sintetizando resposta executiva...</div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', loadingHtml);
@@ -2810,9 +3064,10 @@ ${transcriptText}
 
         async function executeAiPrompt(promptText, actionType = 'custom') {
             const loadingId = appendAssistantLoading();
+            const targetEndpoint = currentMeetingId ? `/api/ai-action/${currentMeetingId}` : `/api/ai-action/global`;
 
             try {
-                const res = await fetch(`/api/ai-action/${currentMeetingId}`, {
+                const res = await fetch(targetEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2827,45 +3082,40 @@ ${transcriptText}
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
 
-                const container = document.getElementById('dynamic-turns');
-                const rawMarkdown = data.status === 'SUCCESS' ? data.result : `Erro: ${data.detail || 'Falha ao processar'}`;
-                
-                const modelBadge = {
-                    'gpt-4o-mini': '⚡ GPT-4o Mini',
-                    'gpt-4o': '🧠 GPT-4o Flagship',
-                    'o3-mini': '🔬 O3-Mini',
-                    'gemini-2.5-flash': '💎 Gemini 2.5 Flash',
-                    'gemini-2.5-pro': '💎 Gemini 2.5 Pro'
-                }[data.model || currentAiModel] || (data.model || currentAiModel);
+                const container = getActiveChatContainer();
+                if (!container) return;
+
+                const responseText = data.result || 'Sem resposta disponível.';
+                const parsedMd = marked.parse(responseText);
 
                 const assistantHtml = `
-                    <div class="bg-white p-6 sm:p-7 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3.5 border-0">
-                        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="bg-white p-6 sm:p-7 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 space-y-3 animate-fade-in">
+                        <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
-                                    <i class="ph-bold ph-waveform"></i>
+                                <div class="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
+                                    <i class="ph-bold ph-sparkle text-emerald-400"></i>
                                 </div>
-                                <span class="text-[11px] font-bold text-gray-800">Resposta da IA</span>
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Resposta da IA Executiva</div>
+                                    <div class="text-[10px] text-gray-400 font-mono">Modelo: ${data.model || currentAiModel}</div>
+                                </div>
                             </div>
-                            <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                                ${modelBadge}
-                            </span>
+                            <button onclick="navigator.clipboard.writeText(\`${responseText.replace(/`/g, '\`')}\`); showInAppToast('Texto copiado!', 'info')" 
+                                    class="p-1.5 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition cursor-pointer" title="Copiar resposta">
+                                <i class="ph-bold ph-copy text-xs"></i>
+                            </button>
                         </div>
-                        <div class="markdown-body chat-ai-response text-gray-900 editable-block" contenteditable="true">
-                            ${marked.parse(rawMarkdown)}
-                        </div>
-                        <div class="flex items-center gap-2 pt-2 border-t border-gray-100 text-gray-400">
-                            <button onclick="navigator.clipboard.writeText(\`${rawMarkdown.replace(/`/g, '\\`')}\`); showInAppToast('📋 Copiado!', 'success');" class="p-1.5 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition" title="Copiar"><i class="ph ph-copy text-sm"></i></button>
+                        <div class="markdown-body chat-ai-response text-xs sm:text-sm text-gray-800 leading-relaxed">
+                            ${parsedMd}
                         </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', assistantHtml);
                 scrollToBottom();
-
             } catch (e) {
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
-                showInAppToast(`Erro ao processar: ${e.message}`, 'error')
+                showInAppToast('Erro ao processar resposta da IA: ' + e.message, 'error');
             }
         }
 
