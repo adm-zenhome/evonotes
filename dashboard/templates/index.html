@@ -3718,19 +3718,57 @@ _Enviado via EvoNotes OS_`);
         }
 
 
-        // ========== WHATSAPP REAL CONTACTS EXPLORER JS ==========
+
+        // ========== WHATSAPP REAL CONTACTS EXPLORER & MULTI-SELECT JS ==========
         let allWhatsAppContacts = [];
+        let selectedWhatsAppPhones = new Set();
+        let activeIngestedPhones = new Set(JSON.parse(localStorage.getItem('active_wa_phones') || '[]'));
 
         async function openWhatsAppContactsModal() {
             const syncMenu = document.getElementById('sync-sources-menu');
             if (syncMenu) syncMenu.classList.add('hidden');
 
             document.getElementById('whatsapp-contacts-modal').classList.remove('hidden');
+            selectedWhatsAppPhones.clear();
+            updateBulkActionBar();
             await loadWhatsAppContacts();
         }
 
         function closeWhatsAppContactsModal() {
             document.getElementById('whatsapp-contacts-modal').classList.add('hidden');
+        }
+
+        function toggleSelectAllWhatsAppContacts(checked) {
+            if (checked) {
+                allWhatsAppContacts.forEach(c => selectedWhatsAppPhones.add(c.phone));
+            } else {
+                selectedWhatsAppPhones.clear();
+            }
+            renderWhatsAppContactsList(allWhatsAppContacts);
+            updateBulkActionBar();
+        }
+
+        function toggleContactSelection(phone) {
+            if (selectedWhatsAppPhones.has(phone)) {
+                selectedWhatsAppPhones.delete(phone);
+            } else {
+                selectedWhatsAppPhones.add(phone);
+            }
+            renderWhatsAppContactsList(allWhatsAppContacts);
+            updateBulkActionBar();
+        }
+
+        function updateBulkActionBar() {
+            const bar = document.getElementById('wa-bulk-action-bar');
+            const countLabel = document.getElementById('wa-selected-count-label');
+            if (!bar) return;
+
+            if (selectedWhatsAppPhones.size > 0) {
+                bar.classList.remove('hidden');
+                if (countLabel) countLabel.innerText = `${selectedWhatsAppPhones.size} contato(s) selecionado(s)`;
+            } else {
+                bar.classList.add('hidden');
+            }
         }
 
         async function loadWhatsAppContacts(query = '') {
@@ -3745,71 +3783,144 @@ _Enviado via EvoNotes OS_`);
                 allWhatsAppContacts = data.contacts || [];
                 if (countEl) countEl.innerText = `${allWhatsAppContacts.length} contatos encontrados`;
 
-                if (allWhatsAppContacts.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-8 text-center text-xs text-gray-400 space-y-1">
-                            <i class="ph-bold ph-user-minus text-2xl text-gray-300"></i>
-                            <div>Nenhum contato encontrado para "${query}"</div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = allWhatsAppContacts.map(c => {
-                    const initials = c.name.slice(0, 2).toUpperCase();
-                    const isGroup = c.is_group;
-                    const avatarBg = isGroup ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800';
-                    const icon = isGroup ? '<i class="ph-bold ph-users text-xs"></i>' : initials;
-
-                    return `
-                        <div class="bg-white p-3 rounded-2xl shadow-2xs hover:shadow-xs border-0 transition flex items-center justify-between gap-3 group">
-                            <div class="flex items-center gap-3 truncate min-w-0 flex-1">
-                                <div class="w-8 h-8 rounded-xl ${avatarBg} flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-2xs">
-                                    ${icon}
-                                </div>
-                                <div class="truncate leading-tight flex-1">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${c.name}</div>
-                                    <div class="text-[10px] text-gray-400 font-mono truncate">${c.phone}</div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center gap-1.5 flex-shrink-0">
-                                <button onclick="selectContactForIngest('${c.phone}', '${encodeURIComponent(c.name)}')" 
-                                        class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition active:scale-95 flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-download-simple"></i>
-                                    <span>Ingerir Áudios</span>
-                                </button>
-                                <a href="https://web.whatsapp.com/send?phone=${c.phone}" target="_blank" 
-                                   class="p-1.5 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Abrir Conversa no WhatsApp">
-                                    <i class="ph-bold ph-arrow-square-out text-sm"></i>
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
+                renderWhatsAppContactsList(allWhatsAppContacts);
             } catch (e) {
                 container.innerHTML = `<div class="p-8 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
             }
         }
 
-        let waSearchTimeout = null;
-        function searchWhatsAppContacts(query) {
-            clearTimeout(waSearchTimeout);
-            waSearchTimeout = setTimeout(() => {
-                loadWhatsAppContacts(query);
-            }, 250);
+        function renderWhatsAppContactsList(contacts) {
+            const container = document.getElementById('wa-contacts-container');
+            if (!container) return;
+
+            if (contacts.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center text-xs text-gray-400 space-y-1">
+                        <i class="ph-bold ph-user-minus text-2xl text-gray-300"></i>
+                        <div>Nenhum contato encontrado.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = contacts.map(c => {
+                const isSelected = selectedWhatsAppPhones.has(c.phone);
+                const isActive = activeIngestedPhones.has(c.phone);
+                const initials = (c.name || 'C').slice(0, 2).toUpperCase();
+                const isGroup = c.is_group;
+                const avatarBg = isGroup ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800';
+                const icon = isGroup ? '<i class="ph-bold ph-users text-xs"></i>' : initials;
+
+                return `
+                    <div class="p-3.5 rounded-2xl ${isSelected ? 'bg-emerald-50/70 border border-emerald-300' : (isActive ? 'bg-emerald-50/30 border border-emerald-200' : 'bg-white border border-gray-100')} shadow-2xs hover:shadow-xs transition flex items-center justify-between gap-3 group">
+                        
+                        <!-- Checkbox & Contact Info -->
+                        <div class="flex items-center gap-3 truncate min-w-0 flex-1 cursor-pointer" onclick="toggleContactSelection('${c.phone}')">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                                   class="w-4 h-4 rounded-md text-emerald-600 focus:ring-0 cursor-pointer flex-shrink-0"
+                                   onclick="event.stopPropagation(); toggleContactSelection('${c.phone}')">
+
+                            <div class="w-8 h-8 rounded-xl ${avatarBg} flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-2xs">
+                                ${icon}
+                            </div>
+                            <div class="truncate leading-tight flex-1">
+                                <div class="text-xs font-bold text-gray-900 truncate flex items-center gap-1.5">
+                                    <span>${c.name}</span>
+                                    ${isActive ? '<span class="px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold">🟢 Ingestão Ativa</span>' : ''}
+                                </div>
+                                <div class="text-[10px] text-gray-400 font-mono truncate">${c.phone}</div>
+                            </div>
+                        </div>
+
+                        <!-- 1-Click Action Buttons -->
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button onclick="activateAndSyncSingleContact('${c.phone}', '${encodeURIComponent(c.name)}')" 
+                                    class="px-3 py-1.5 rounded-xl ${isActive ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-emerald-600 text-white hover:bg-emerald-700'} text-[11px] font-bold transition active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                                <i class="ph-bold ${isActive ? 'ph-check-circle text-emerald-600' : 'ph-lightning'}"></i>
+                                <span>${isActive ? 'Sincronizar Último' : 'Ativar Ingestão'}</span>
+                            </button>
+                            <a href="https://web.whatsapp.com/send?phone=${c.phone}" target="_blank" 
+                               class="p-1.5 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Abrir Conversa no WhatsApp">
+                                <i class="ph-bold ph-arrow-square-out text-sm"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function selectContactForIngest(phone, encodedName) {
+        async function activateAndSyncSingleContact(phone, encodedName) {
             const name = decodeURIComponent(encodedName);
-            alert(`📥 Canal ativado para ${name} (${phone})!
-Todos os áudios e mensagens deste contato são capturados pelo Webhook Z-API e sintetizados automaticamente.`);
-            closeWhatsAppContactsModal();
+            await executeWhatsAppActivation([ { phone: phone, name: name } ]);
         }
 
+        async function activateSelectedWhatsAppContacts() {
+            if (selectedWhatsAppPhones.size === 0) return;
+            const contactsToActivate = allWhatsAppContacts
+                .filter(c => selectedWhatsAppPhones.has(c.phone))
+                .map(c => ({ phone: c.phone, name: c.name }));
 
-        // ========== PARTICIPANTS EDITING JS ==========
+            await executeWhatsAppActivation(contactsToActivate);
+        }
+
+        async function executeWhatsAppActivation(contactsList) {
+            showInAppToast(`⚡ Ativando ${contactsList.length} contato(s) e puxando último áudio...`);
+            
+            try {
+                const res = await fetch('/api/whatsapp/activate-and-sync-latest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contacts: contactsList })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    contactsList.forEach(c => activeIngestedPhones.add(c.phone));
+                    localStorage.setItem('active_wa_phones', JSON.stringify(Array.from(activeIngestedPhones)));
+
+                    showInAppToast(`✅ Ingestão ativada para ${contactsList.length} contato(s)! Último áudio processado.`, 'success');
+
+                    if (data.all_meetings) {
+                        meetingsData = data.all_meetings;
+                        renderDynamicSidebarMeetings(meetingsData);
+                    }
+
+                    renderWhatsAppContactsList(allWhatsAppContacts);
+                    selectedWhatsAppPhones.clear();
+                    updateBulkActionBar();
+                } else {
+                    showInAppToast('Erro ao ativar: ' + data.detail, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na ativação: ' + e.message, 'error');
+            }
+        }
+
+        function showInAppToast(message, type = 'info') {
+            let toast = document.getElementById('in-app-toast-banner');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'in-app-toast-banner';
+                toast.className = 'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold transition-all duration-300 flex items-center gap-2 transform translate-y-0 opacity-100';
+                document.body.appendChild(toast);
+            }
+
+            if (type === 'success') {
+                toast.className = 'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl bg-emerald-950 text-emerald-100 border border-emerald-700 text-xs font-bold transition-all duration-300 flex items-center gap-2 transform translate-y-0 opacity-100';
+            } else if (type === 'error') {
+                toast.className = 'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl bg-red-950 text-red-100 border border-red-700 text-xs font-bold transition-all duration-300 flex items-center gap-2 transform translate-y-0 opacity-100';
+            } else {
+                toast.className = 'fixed top-5 right-5 z-[9999] px-4 py-3 rounded-2xl shadow-xl bg-zinc-900 text-white border border-zinc-700 text-xs font-bold transition-all duration-300 flex items-center gap-2 transform translate-y-0 opacity-100';
+            }
+
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
         async function saveParticipantField(index, field, value) {
             if (!currentMeetingId) return;
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
