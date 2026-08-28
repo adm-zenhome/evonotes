@@ -665,12 +665,12 @@
 
                     <!-- Right: Model Selector Dropdown & Send Button -->
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <select id="chat-model-selector" onchange="changeChatModel(this.value)" class="text-xs bg-gray-100 hover:bg-gray-200/80 rounded-full px-3 py-1.5 text-gray-800 font-semibold focus:outline-none cursor-pointer border-0 transition">
-                            <option value="gpt-4o-mini" selected>⚡ GPT-4o Mini</option>
-                            <option value="gpt-4o">🧠 GPT-4o Flagship</option>
-                            <option value="o3-mini">🔬 O3-Mini</option>
-                            <option value="gemini-2.5-flash">💎 Gemini 2.5 Flash</option>
-                            <option value="gemini-2.5-pro">💎 Gemini 2.5 Pro</option>
+                        <select id="chat-model-selector" onchange="changeChatModel(this.value)" class="text-xs bg-gray-100 hover:bg-gray-200/80 rounded-full px-3 py-1.5 text-gray-800 font-semibold focus:outline-none cursor-pointer border-0 transition max-w-[280px] sm:max-w-xs truncate" title="Escolha a forma de entrega de IA">
+                            <option value="gpt-4o-mini" selected>⚡ Síntese Rápida (Dailies & Rotina)</option>
+                            <option value="gpt-4o">🧠 Estratégia C-Level (Deals & Negociação)</option>
+                            <option value="o3-mini">🔬 Raciocínio Profundo (Técnico & Arquitetura)</option>
+                            <option value="gemini-2.5-flash">💎 Visão 360° (Consultas & Workshops)</option>
+                            <option value="gemini-2.5-pro">🏛️ Planejamento Master (Mentorias & QBR)</option>
                         </select>
                         <button onclick="sendPrompt()" id="btn-send" class="w-8 h-8 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center transition disabled:opacity-40 shadow-xs border-0">
                             <i class="ph-bold ph-arrow-up text-sm"></i>
@@ -2123,108 +2123,114 @@
                         currentMeetingId = null;
                         showHomeDashboard();
 
-        // ========== 100% FLUID DRAGGABLE WIDGET ENGINE ==========
-        (function initDraggablePlaudWidget() {
-            const widget = document.getElementById('draggable-plaud-widget');
-            const btn = document.getElementById('btn-floating-sync');
-            if (!widget || !btn) return;
+        // ========== CLEAN NON-BLOCKING DRAGGABLE WIDGET ENGINE ==========
+        function initDraggableWidgetClean() {
+            const el = document.getElementById('draggable-plaud-widget');
+            if (!el) return;
 
-            let isDragging = false;
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             let hasMoved = false;
-            let startX = 0, startY = 0;
-            let initialLeft = 0, initialTop = 0;
 
-            // Restore saved position from localStorage
+            // Restore position from localStorage if saved
             const savedX = localStorage.getItem('plaud_widget_x');
             const savedY = localStorage.getItem('plaud_widget_y');
             if (savedX !== null && savedY !== null) {
-                widget.style.left = `${Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX)))}px`;
-                widget.style.top = `${Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY)))}px`;
-                widget.style.right = 'auto';
-                widget.style.bottom = 'auto';
+                el.style.left = Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX))) + 'px';
+                el.style.top = Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY))) + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
             }
 
-            function onPointerDown(e) {
-                // Ignore right click
-                if (e.button && e.button !== 0) return;
-
-                isDragging = true;
+            el.onmousedown = function(e) {
+                if (e.button !== 0) return;
                 hasMoved = false;
-                
-                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
 
-                const rect = widget.getBoundingClientRect();
-                startX = clientX;
-                startY = clientY;
-                initialLeft = rect.left;
-                initialTop = rect.top;
-
-                widget.style.transition = 'none';
-                widget.classList.add('cursor-grabbing', 'scale-105');
-
-                window.addEventListener('pointermove', onPointerMove, { passive: false });
-                window.addEventListener('pointerup', onPointerUp);
-                window.addEventListener('touchmove', onPointerMove, { passive: false });
-                window.addEventListener('touchend', onPointerUp);
-            }
-
-            function onPointerMove(e) {
-                if (!isDragging) return;
-                
-                const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
-
-                const deltaX = clientX - startX;
-                const deltaY = clientY - startY;
-
+            function elementDrag(e) {
+                const deltaX = pos3 - e.clientX;
+                const deltaY = pos4 - e.clientY;
                 if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
                     hasMoved = true;
-                    if (e.cancelable) e.preventDefault();
                 }
+                pos3 = e.clientX;
+                pos4 = e.clientY;
 
-                const widgetWidth = widget.offsetWidth || 160;
-                const widgetHeight = widget.offsetHeight || 44;
+                let newTop = el.offsetTop - deltaY;
+                let newLeft = el.offsetLeft - deltaX;
 
-                let newLeft = initialLeft + deltaX;
-                let newTop = initialTop + deltaY;
+                // Screen boundaries
+                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
+                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
 
-                // Boundary Clamping (never escape screen viewport)
-                newLeft = Math.max(10, Math.min(window.innerWidth - widgetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - widgetHeight - 10, newTop));
-
-                widget.style.left = `${newLeft}px`;
-                widget.style.top = `${newTop}px`;
-                widget.style.right = 'auto';
-                widget.style.bottom = 'auto';
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
             }
 
-            function onPointerUp(e) {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                widget.classList.remove('cursor-grabbing', 'scale-105');
-                widget.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
-
-                window.removeEventListener('pointermove', onPointerMove);
-                window.removeEventListener('pointerup', onPointerUp);
-                window.removeEventListener('touchmove', onPointerMove);
-                window.removeEventListener('touchend', onPointerUp);
-
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
                 if (hasMoved) {
-                    // Save final coordinates to localStorage
-                    const rect = widget.getBoundingClientRect();
-                    localStorage.setItem('plaud_widget_x', Math.round(rect.left));
-                    localStorage.setItem('plaud_widget_y', Math.round(rect.top));
+                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
+                    localStorage.setItem('plaud_widget_y', el.offsetTop);
                 } else {
-                    // It was a quick tap/click -> Trigger Plaud Sync
                     openPlaudSyncChoiceModal();
                 }
             }
 
-            widget.addEventListener('pointerdown', onPointerDown);
-            widget.addEventListener('touchstart', onPointerDown, { passive: true });
-        })();
+            // Touch support for trackpad / touch screens
+            el.ontouchstart = function(e) {
+                hasMoved = false;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeTouchDrag;
+                document.ontouchmove = touchDrag;
+            };
+
+            function touchDrag(e) {
+                const deltaX = pos3 - e.touches[0].clientX;
+                const deltaY = pos4 - e.touches[0].clientY;
+                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                    hasMoved = true;
+                }
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+
+                let newTop = el.offsetTop - deltaY;
+                let newLeft = el.offsetLeft - deltaX;
+
+                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
+                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
+
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+            }
+
+            function closeTouchDrag() {
+                document.ontouchend = null;
+                document.ontouchmove = null;
+                if (hasMoved) {
+                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
+                    localStorage.setItem('plaud_widget_y', el.offsetTop);
+                } else {
+                    openPlaudSyncChoiceModal();
+                }
+            }
+        }
+
+        // Initialize after DOM load
+        window.addEventListener('DOMContentLoaded', initDraggableWidgetClean);
+        setTimeout(initDraggableWidgetClean, 500);
+
+
+        
 
                     }
                     alert('🗑️ Gravação excluída com sucesso!');
@@ -2801,108 +2807,114 @@ ${transcriptText}
         // Show Home Dashboard by default
         showHomeDashboard();
 
-        // ========== 100% FLUID DRAGGABLE WIDGET ENGINE ==========
-        (function initDraggablePlaudWidget() {
-            const widget = document.getElementById('draggable-plaud-widget');
-            const btn = document.getElementById('btn-floating-sync');
-            if (!widget || !btn) return;
+        // ========== CLEAN NON-BLOCKING DRAGGABLE WIDGET ENGINE ==========
+        function initDraggableWidgetClean() {
+            const el = document.getElementById('draggable-plaud-widget');
+            if (!el) return;
 
-            let isDragging = false;
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             let hasMoved = false;
-            let startX = 0, startY = 0;
-            let initialLeft = 0, initialTop = 0;
 
-            // Restore saved position from localStorage
+            // Restore position from localStorage if saved
             const savedX = localStorage.getItem('plaud_widget_x');
             const savedY = localStorage.getItem('plaud_widget_y');
             if (savedX !== null && savedY !== null) {
-                widget.style.left = `${Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX)))}px`;
-                widget.style.top = `${Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY)))}px`;
-                widget.style.right = 'auto';
-                widget.style.bottom = 'auto';
+                el.style.left = Math.min(window.innerWidth - 180, Math.max(10, parseInt(savedX))) + 'px';
+                el.style.top = Math.min(window.innerHeight - 60, Math.max(10, parseInt(savedY))) + 'px';
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
             }
 
-            function onPointerDown(e) {
-                // Ignore right click
-                if (e.button && e.button !== 0) return;
-
-                isDragging = true;
+            el.onmousedown = function(e) {
+                if (e.button !== 0) return;
                 hasMoved = false;
-                
-                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            };
 
-                const rect = widget.getBoundingClientRect();
-                startX = clientX;
-                startY = clientY;
-                initialLeft = rect.left;
-                initialTop = rect.top;
-
-                widget.style.transition = 'none';
-                widget.classList.add('cursor-grabbing', 'scale-105');
-
-                window.addEventListener('pointermove', onPointerMove, { passive: false });
-                window.addEventListener('pointerup', onPointerUp);
-                window.addEventListener('touchmove', onPointerMove, { passive: false });
-                window.addEventListener('touchend', onPointerUp);
-            }
-
-            function onPointerMove(e) {
-                if (!isDragging) return;
-                
-                const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
-
-                const deltaX = clientX - startX;
-                const deltaY = clientY - startY;
-
+            function elementDrag(e) {
+                const deltaX = pos3 - e.clientX;
+                const deltaY = pos4 - e.clientY;
                 if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
                     hasMoved = true;
-                    if (e.cancelable) e.preventDefault();
                 }
+                pos3 = e.clientX;
+                pos4 = e.clientY;
 
-                const widgetWidth = widget.offsetWidth || 160;
-                const widgetHeight = widget.offsetHeight || 44;
+                let newTop = el.offsetTop - deltaY;
+                let newLeft = el.offsetLeft - deltaX;
 
-                let newLeft = initialLeft + deltaX;
-                let newTop = initialTop + deltaY;
+                // Screen boundaries
+                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
+                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
 
-                // Boundary Clamping (never escape screen viewport)
-                newLeft = Math.max(10, Math.min(window.innerWidth - widgetWidth - 10, newLeft));
-                newTop = Math.max(10, Math.min(window.innerHeight - widgetHeight - 10, newTop));
-
-                widget.style.left = `${newLeft}px`;
-                widget.style.top = `${newTop}px`;
-                widget.style.right = 'auto';
-                widget.style.bottom = 'auto';
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
             }
 
-            function onPointerUp(e) {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                widget.classList.remove('cursor-grabbing', 'scale-105');
-                widget.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
-
-                window.removeEventListener('pointermove', onPointerMove);
-                window.removeEventListener('pointerup', onPointerUp);
-                window.removeEventListener('touchmove', onPointerMove);
-                window.removeEventListener('touchend', onPointerUp);
-
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
                 if (hasMoved) {
-                    // Save final coordinates to localStorage
-                    const rect = widget.getBoundingClientRect();
-                    localStorage.setItem('plaud_widget_x', Math.round(rect.left));
-                    localStorage.setItem('plaud_widget_y', Math.round(rect.top));
+                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
+                    localStorage.setItem('plaud_widget_y', el.offsetTop);
                 } else {
-                    // It was a quick tap/click -> Trigger Plaud Sync
                     openPlaudSyncChoiceModal();
                 }
             }
 
-            widget.addEventListener('pointerdown', onPointerDown);
-            widget.addEventListener('touchstart', onPointerDown, { passive: true });
-        })();
+            // Touch support for trackpad / touch screens
+            el.ontouchstart = function(e) {
+                hasMoved = false;
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+                document.ontouchend = closeTouchDrag;
+                document.ontouchmove = touchDrag;
+            };
+
+            function touchDrag(e) {
+                const deltaX = pos3 - e.touches[0].clientX;
+                const deltaY = pos4 - e.touches[0].clientY;
+                if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                    hasMoved = true;
+                }
+                pos3 = e.touches[0].clientX;
+                pos4 = e.touches[0].clientY;
+
+                let newTop = el.offsetTop - deltaY;
+                let newLeft = el.offsetLeft - deltaX;
+
+                newLeft = Math.max(10, Math.min(window.innerWidth - el.offsetWidth - 10, newLeft));
+                newTop = Math.max(10, Math.min(window.innerHeight - el.offsetHeight - 10, newTop));
+
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
+                el.style.right = 'auto';
+                el.style.bottom = 'auto';
+            }
+
+            function closeTouchDrag() {
+                document.ontouchend = null;
+                document.ontouchmove = null;
+                if (hasMoved) {
+                    localStorage.setItem('plaud_widget_x', el.offsetLeft);
+                    localStorage.setItem('plaud_widget_y', el.offsetTop);
+                } else {
+                    openPlaudSyncChoiceModal();
+                }
+            }
+        }
+
+        // Initialize after DOM load
+        window.addEventListener('DOMContentLoaded', initDraggableWidgetClean);
+        setTimeout(initDraggableWidgetClean, 500);
+
+
+        
 
     
 
