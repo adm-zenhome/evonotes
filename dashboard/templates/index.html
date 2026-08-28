@@ -397,13 +397,25 @@
                             <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold">100% Autônomo</span>
                         </div>
                         <div class="grid grid-cols-2 gap-3 pt-1">
-                            <div>
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight" id="metric-hours-saved">{{ analytics.bifocal.hours_saved }}h</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Horas Economizadas</div>
+                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as reuniões e horas economizadas">
+                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-emerald-700 transition" id="metric-hours-saved">
+                                    <span>{{ analytics.bifocal.hours_saved }}h</span>
+                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <span>Horas Economizadas</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">Auditar</span>
+                                </div>
                             </div>
-                            <div>
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight" id="metric-calls-count">{{ analytics.bifocal.meetings_processed }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">Calls Processadas</div>
+                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as reuniões e horas economizadas">
+                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-emerald-700 transition" id="metric-calls-count">
+                                    <span>{{ analytics.bifocal.meetings_processed }}</span>
+                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                    <span>Calls Processadas</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">Auditar</span>
+                                </div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed">
@@ -1283,6 +1295,84 @@
         
         // ========== PIPELINE BREAKDOWN & AUDIT MODAL JS ==========
         let currentPipelineDeals = [];
+
+        async 
+        // ========== EFFICIENCY BREAKDOWN & AUDIT MODAL JS ==========
+        function openEfficiencyBreakdownModal() {
+            document.getElementById('efficiency-breakdown-modal').classList.remove('hidden');
+            const container = document.getElementById('efficiency-calls-list-container');
+            const meetings = meetingsData || [];
+
+            const totalHours = (meetings.length * 0.8).toFixed(1);
+            const totalBadge = document.getElementById('efficiency-modal-total-badge');
+            if (totalBadge) totalBadge.innerText = `${totalHours}h Salvas`;
+
+            const countLabel = document.getElementById('efficiency-modal-count-label');
+            if (countLabel) countLabel.innerText = `${meetings.length} reunião(ões) processada(s)`;
+
+            if (!container) return;
+
+            if (meetings.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center space-y-2">
+                        <div class="w-10 h-10 rounded-2xl bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-xl">
+                            <i class="ph-bold ph-waveform"></i>
+                        </div>
+                        <div class="text-xs font-bold text-gray-800">Nenhuma reunião processada ainda</div>
+                        <div class="text-[11px] text-gray-400">Sincronize gravações do Plaud ou WhatsApp para calcular as horas economizadas.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = meetings.map(m => {
+                const title = (m.intelligence && m.intelligence.meeting_title) || m.title || 'Reunião Executiva';
+                const durationMin = (m.duration_seconds ? (m.duration_seconds / 60).toFixed(0) : '30');
+                const category = (m.intelligence && m.intelligence.category) || m.category || 'Geral';
+                const dateStr = m.date || (m.start_time ? m.start_time.split(' ')[0] : 'Recente');
+
+                return `
+                    <div onclick="closeEfficiencyBreakdownModal(); selectMeeting('${m.file_id}')" 
+                         class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100 hover:border-gray-200 shadow-2xs hover:shadow-xs transition space-y-2 group cursor-pointer">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                    <i class="ph-bold ph-waveform"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-700 transition truncate">${title}</div>
+                                    <div class="text-[10px] text-gray-400 font-mono truncate flex items-center gap-2">
+                                        <span>📅 ${dateStr}</span>
+                                        <span>•</span>
+                                        <span>🏷️ ${category}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600 font-mono text-[10px]">
+                                    ~${durationMin} min
+                                </span>
+                                <span class="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-mono text-xs font-bold flex items-center gap-1">
+                                    <i class="ph-bold ph-lightning text-emerald-600"></i> +0.8h salva
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-gray-500 bg-white p-2 rounded-xl border border-gray-100/60 flex items-center justify-between text-[10px]">
+                            <span>✨ Síntese C-Level + Transcrição + Follow-up gerados sem digitação manual</span>
+                            <span class="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                Abrir nota <i class="ph-bold ph-arrow-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeEfficiencyBreakdownModal() {
+            document.getElementById('efficiency-breakdown-modal').classList.add('hidden');
+        }
 
         async function openPipelineBreakdownModal() {
             document.getElementById('pipeline-breakdown-modal').classList.remove('hidden');
@@ -5464,6 +5554,46 @@ Felipe Donato`);
                     Salvar
                 </button>
             </div>
+        </div>
+    </div>
+
+
+    <!-- ⚡ EFFICIENCY & CALLS AUDIT BREAKDOWN MODAL (Central Card + Esmaece o Fundo + Base Viva) -->
+    <div id="efficiency-breakdown-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[85vh] flex flex-col border-0">
+            
+            <!-- Header with Total Counter & Close Button -->
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl font-bold shadow-2xs">
+                        <i class="ph-bold ph-lightning"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight flex items-center gap-2">
+                            <span>Auditoria de Eficiência & Horas Salvas</span>
+                            <span id="efficiency-modal-total-badge" class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">0.0h Salvas</span>
+                        </h3>
+                        <p class="text-[11px] text-gray-500">Histórico vivo de tempo economizado por sínteses, atas e follow-ups autônomos</p>
+                    </div>
+                </div>
+                <button onclick="closeEfficiencyBreakdownModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition cursor-pointer">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Calls List (Scrollable) -->
+            <div id="efficiency-calls-list-container" class="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[220px]">
+                <div class="p-8 text-center text-xs text-gray-400">Carregando histórico de reuniões processadas...</div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0 text-xs">
+                <span class="text-[11px] text-gray-400" id="efficiency-modal-count-label">0 reuniões processadas</span>
+                <button onclick="closeEfficiencyBreakdownModal()" class="px-5 py-2.5 rounded-full bg-zinc-950 hover:bg-black text-white font-bold shadow-md transition active:scale-95 cursor-pointer">
+                    Fechar Auditoria
+                </button>
+            </div>
+
         </div>
     </div>
 
