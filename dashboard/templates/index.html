@@ -3077,6 +3077,13 @@ ${transcriptText}
                                 <i class="ph-bold ph-google-logo text-xs"></i>
                             </button>
 
+                            <!-- 1-Click Gmail Executive Follow-up Composer -->
+                            <button onclick="openGmailFollowupForTask(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.owner || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(t.meeting_title || '')}')" 
+                                    class="w-7 h-7 rounded-xl bg-[#f4f5f7] hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0" 
+                                    title="Criar E-mail de Follow-up Executivo no Gmail">
+                                <i class="ph-bold ph-envelope-simple text-xs"></i>
+                            </button>
+
                             <!-- Status Dropdown Menu -->
                             <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
                                 <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ Pendente</option>
@@ -3229,6 +3236,33 @@ ${transcriptText}
 
         
         // ========== GOOGLE WORKSPACE (GMAIL & CALENDAR) HELPERS ==========
+        
+        async function openGmailFollowupForTask(taskId, encodedAction, encodedOwner, encodedDeadline, encodedMeeting) {
+            const action = decodeURIComponent(encodedAction);
+            const owner = decodeURIComponent(encodedOwner);
+            const deadline = decodeURIComponent(encodedDeadline) || 'Hoje';
+            const meeting = decodeURIComponent(encodedMeeting);
+
+            try {
+                const res = await fetch('/api/google/task-followup-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: action,
+                        owner: owner,
+                        deadline: deadline,
+                        meeting_title: meeting
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.compose_url) {
+                    window.open(data.compose_url, '_blank');
+                }
+            } catch (e) {
+                console.error('Error opening Gmail follow-up:', e);
+            }
+        }
+
         async function scheduleTaskInGoogleCalendar(taskId, encodedAction, encodedDeadline, encodedMeeting) {
             const action = decodeURIComponent(encodedAction);
             const deadline = decodeURIComponent(encodedDeadline) || 'amanhã 10h';

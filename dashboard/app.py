@@ -1000,3 +1000,68 @@ async def api_get_all_stakeholders_directory():
         "total": len(results),
         "stakeholders": results
     })
+
+
+@app.post("/api/google/task-followup-email")
+async def api_google_task_followup_email(payload: dict = Body(...)):
+    """Generates a deep, contextual C-Level follow-up email for a specific task and returns Gmail Web URL."""
+    action = payload.get("action", "").strip()
+    owner = payload.get("owner", "Stakeholder").strip()
+    deadline = payload.get("deadline", "Hoje").strip()
+    meeting_title = payload.get("meeting_title", "Reunião Executiva").strip()
+    
+    # Clean up meeting title
+    clean_title = meeting_title.replace("🏢", "").replace("💡", "").replace("📊", "").replace("🎯", "").strip()
+    
+    subject = f"Follow-up Executivo • {clean_title} — Próximos Passos"
+    
+    # Map stakeholder email if known
+    email_map = {
+        "bruno rodrigues": "bruno@bcr.com.br",
+        "daniela reis": "daniela.reis@zendesk.com",
+        "valéria": "valeria@zendesk.com",
+        "mineiro": "mineiro@zendesk.com",
+        "rafa": "rafael@juridico.com.br",
+        "max": "max@blue3investimentos.com.br",
+        "caio": "caio@zendesk.com"
+    }
+    
+    to_email = ""
+    for k, v in email_map.items():
+        if k in owner.lower():
+            to_email = v
+            break
+
+    # Deep, objective and intelligent executive body text
+    body = f"""Olá {owner},
+
+Espero que esteja bem.
+
+Em continuidade à nossa reunião executiva ({clean_title}), formalizo abaixo o alinhamento do compromisso registrado:
+
+📌 Ação Acordada:
+{action}
+
+📅 Prazo / Cronograma Previsto:
+{deadline}
+
+🎯 Objetivo Estratégico:
+Assegurar o alinhamento de escopo e destravar os próximos passos com agilidade e foco em resultados. Caso haja qualquer necessidade de apoio ou ajuste de premissas, estou à disposição para alinharmos de imediato.
+
+Seguimos avançando com prioridade.
+
+Abraços,
+
+Felipe Donato
+Enterprise AE / Liderança Comercial
+Zendesk Ecosystem"""
+
+    compose_url = google_bridge.generate_gmail_compose_url(to_email, subject, body)
+    
+    return JSONResponse({
+        "status": "SUCCESS",
+        "to_email": to_email,
+        "subject": subject,
+        "body": body,
+        "compose_url": compose_url
+    })
