@@ -3120,6 +3120,90 @@
         }
 
 
+        
+        // ========== @MENTION AUTOCOMPLETE ENGINE ==========
+        const AVAILABLE_STAKEHOLDERS = [
+            { name: "Bruno Rodrigues", role: "CEO BCR", avatar: "BR" },
+            { name: "Daniela Reis", role: "Head Parcerias Zendesk", avatar: "DR" },
+            { name: "Valéria (Val)", role: "Enterprise AE", avatar: "VA" },
+            { name: "Mineiro", role: "Voice Specialist", avatar: "MI" },
+            { name: "Max", role: "Sponsor Blue3", avatar: "MA" },
+            { name: "Rafa", role: "Jurídico / Comitê", avatar: "RA" },
+            { name: "Caio", role: "Especialista ZX", avatar: "CA" }
+        ];
+
+        function initMentionListeners() {
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => {
+                if (input.id.includes('chat') || input.id.includes('input') || input.id.includes('prompt')) {
+                    input.addEventListener('keyup', (e) => handleMentionInput(e, input));
+                }
+            });
+        }
+
+        let activeMentionInput = null;
+
+        function handleMentionInput(e, input) {
+            const val = input.value;
+            const cursorPos = input.selectionStart;
+            const textBeforeCursor = val.slice(0, cursorPos);
+            const lastAt = textBeforeCursor.lastIndexOf('@');
+
+            const popup = document.getElementById('mention-autocomplete-popup');
+            if (!popup) return;
+
+            if (lastAt !== -1 && (lastAt === 0 || textBeforeCursor[lastAt - 1] === ' ')) {
+                const query = textBeforeCursor.slice(lastAt + 1).toLowerCase();
+                const matched = AVAILABLE_STAKEHOLDERS.filter(s => s.name.toLowerCase().includes(query));
+
+                if (matched.length > 0) {
+                    activeMentionInput = input;
+                    const itemsContainer = document.getElementById('mention-autocomplete-items');
+                    itemsContainer.innerHTML = matched.map(s => `
+                        <button onclick="insertMention('@${s.name}', ${lastAt})" 
+                                class="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-emerald-50 hover:text-emerald-950 flex items-center justify-between gap-2 transition cursor-pointer text-xs group">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold flex items-center justify-center flex-shrink-0">${s.avatar}</span>
+                                <span class="font-bold text-gray-900 group-hover:text-emerald-900 truncate">@${s.name}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400 truncate">${s.role}</span>
+                        </button>
+                    `).join('');
+
+                    const rect = input.getBoundingClientRect();
+                    popup.style.left = `${Math.min(window.innerWidth - 270, Math.max(10, rect.left))}px`;
+                    popup.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                    popup.classList.remove('hidden');
+                    return;
+                }
+            }
+            popup.classList.add('hidden');
+        }
+
+        function insertMention(mentionTag, atIndex) {
+            if (!activeMentionInput) return;
+            const val = activeMentionInput.value;
+            const textBefore = val.slice(0, atIndex);
+            const textAfter = val.slice(activeMentionInput.selectionStart);
+            activeMentionInput.value = textBefore + mentionTag + ' ' + textAfter;
+            
+            const popup = document.getElementById('mention-autocomplete-popup');
+            if (popup) popup.classList.add('hidden');
+            activeMentionInput.focus();
+        }
+
+        document.addEventListener('click', (e) => {
+            const popup = document.getElementById('mention-autocomplete-popup');
+            if (popup && !popup.contains(e.target) && (!activeMentionInput || !activeMentionInput.contains(e.target))) {
+                popup.classList.add('hidden');
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initMentionListeners();
+        });
+
         function openPlaudSensorInfoModal() {
             document.getElementById('plaud-sensor-info-modal').classList.remove('hidden');
         }
@@ -3470,6 +3554,11 @@ Todos os áudios e mensagens deste contato são capturados pelo Webhook Z-API e 
                 document.getElementById('stk-meetings-count').innerText = `${data.total_meetings} reuniões`;
                 document.getElementById('stk-tasks-count').innerText = `${data.total_tasks} compromissos`;
                 document.getElementById('stk-referral-input').value = data.referral_link;
+                
+                const commEl = document.getElementById('stk-comm-style');
+                if (commEl) commEl.innerText = data.communication_style || 'C-Level Executivo';
+                const treatEl = document.getElementById('stk-treatment-text');
+                if (treatEl) treatEl.innerText = data.treatment_guidelines || 'Tratar com postura executiva e foco em entregas.';
 
                 // Render Meetings
                 const meetingsList = document.getElementById('stk-meetings-list');
@@ -4504,6 +4593,15 @@ Felipe Donato`);
                     <span>Sintetizar Novo Take (1 Crédito)</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+
+    <!-- Floating @ Mention Autocomplete Popup -->
+    <div id="mention-autocomplete-popup" class="fixed z-50 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 w-64 hidden space-y-0.5 animate-scale-up">
+        <div class="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mencionar Stakeholder:</div>
+        <div id="mention-autocomplete-items" class="space-y-0.5 max-h-48 overflow-y-auto">
+            <!-- Dynamically populated -->
         </div>
     </div>
 

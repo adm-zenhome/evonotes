@@ -382,6 +382,30 @@ SOLICITAÇÃO DO EXECUTIVO:
 
     user_instruction = specific_instructions.get(action_type, custom_prompt)
 
+    # Scan for @mentions in user prompt
+    mentioned_stakeholders = re.findall(r'@([A-Za-zÀ-ÿ0-9_ ]+)', custom_prompt)
+    stakeholder_context_block = ""
+    
+    if mentioned_stakeholders:
+        from ..database import get_stakeholder_profile_data
+        for s_name in mentioned_stakeholders:
+            s_prof = get_stakeholder_profile_data(s_name)
+            # Find tasks & meetings for this stakeholder
+            all_stk_tasks = [t.get('action') for t in db.get_all_tasks() if s_name.lower() in (t.get('owner') or '').lower()]
+            
+            stakeholder_context_block += f"""
+=== DOSSIÊ DO STAKEHOLDER MENCIONADO (@{s_prof.get('name')}) ===
+• Nome Oficial: {s_prof.get('name')}
+• Empresa / Cargo: {s_prof.get('company')} — {s_prof.get('role')}
+• ESTILO DE COMUNICAÇÃO: {s_prof.get('communication_style')}
+• DIRETRIZES DE TRATAMENTO & TOM DE VOZ (OBRIGATÓRIO SEGUIR):
+  {s_prof.get('treatment_guidelines')}
+• Tópicos de Interesse & Deals: {', '.join(s_prof.get('key_topics', []))}
+• Tarefas Atribuídas no Sistema: {json.dumps(all_stk_tasks, ensure_ascii=False)}
+=== FIM DO DOSSIÊ DO STAKEHOLDER ===
+"""
+
+
     prompt_text = f"""=== DOSSIÊ COMPLETO DA REUNIÃO ===
 Título Oficial: {meeting.get('title', 'Reunião')}
 Categoria: {meeting.get('category', 'Comercial')}
@@ -405,6 +429,7 @@ Duração: {round(meeting.get('duration_seconds', 0)/60, 1) if meeting.get('dura
 
 SOLICITAÇÃO DO EXECUTIVO:
 {user_instruction}
+{stakeholder_context_block}
 """
 
     try:
@@ -629,8 +654,11 @@ async def api_update_participants(file_id: str, payload: dict = Body(...)):
 
 @app.get("/api/stakeholders/{name}")
 async def api_get_stakeholder_360(name: str):
-    """Fetches 360 profile of a participant with all related meetings and commitments."""
+    """Fetches rich 360 profile of a participant with treatment style, meetings and commitments."""
     decoded_name = urllib.parse.unquote(name).strip()
+    from ..database import get_stakeholder_profile_data
+    profile_info = get_stakeholder_profile_data(decoded_name)
+    
     meetings = db.get_all_meetings()
     related_meetings = []
     
@@ -643,28 +671,28 @@ async def api_get_stakeholder_360(name: str):
                     'file_id': m.get('file_id'),
                     'title': m.get('title'),
                     'start_time': m.get('start_time'),
-                    'role_in_meeting': p.get('role'),
-                    'stance': p.get('key_stance')
+                    'role_in_meeting': p.get('role', profile_info.get('role')),
+                    'stance': p.get('key_stance', 'Decisor / Alinhado')
                 })
                 break
                 
-    # Get all tasks for this person
     all_tasks = db.get_all_tasks()
     related_tasks = [
         t for t in all_tasks 
         if decoded_name.lower() in (t.get('owner') or '').lower() or (t.get('owner') or '').lower() in decoded_name.lower()
     ]
     
-    # Generate referral link
     slug = re.sub(r'[^a-zA-Z0-9]+', '-', decoded_name.lower()).strip('-')
     referral_link = f"https://evonotes.ai/join/{slug}?ref=felipe_donato"
     
     return JSONResponse({
         'status': 'SUCCESS',
-        'name': decoded_name,
-        'company': 'Zendesk' if 'zendesk' in str(related_meetings).lower() else 'Parceiro / Cliente',
-        'role': related_meetings[0]['role_in_meeting'] if related_meetings else 'Stakeholder Executivo',
-        'communication_style': 'C-Level Executivo (Foco em ROI, Margem e Velocidade)',
+        'name': profile_info.get('name', decoded_name),
+        'company': profile_info.get('company', 'Parceiro / Cliente'),
+        'role': profile_info.get('role', 'Stakeholder Executivo'),
+        'communication_style': profile_info.get('communication_style'),
+        'treatment_guidelines': profile_info.get('treatment_guidelines'),
+        'key_topics': profile_info.get('key_topics', []),
         'referral_link': referral_link,
         'commission_rate': '25% Recorrente',
         'total_meetings': len(related_meetings),
