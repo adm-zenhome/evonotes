@@ -406,8 +406,8 @@
                                 <div class="text-xs text-gray-500 mt-0.5">Deals & Parcerias</div>
                             </div>
                         </div>
-                        <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed">
-                            Monitoramento ativo de contas Enterprise (BCR, Blue3, ZAMP, Britânia) e aceleração de fechamentos.
+                        <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed" id="metric-pipeline-description">
+                            Monitoramento inteligente de contas e oportunidades mapeadas nas gravações de reuniões.
                         </div>
                     </div>
 
@@ -2218,7 +2218,7 @@
                     localStorage.setItem('plaud_widget_y', Math.round(rect.top));
                 } else {
                     // It was a quick tap/click -> Trigger Plaud Sync
-                    triggerPlaudSync();
+                    openPlaudSyncChoiceModal();
                 }
             }
 
@@ -2896,7 +2896,7 @@ ${transcriptText}
                     localStorage.setItem('plaud_widget_y', Math.round(rect.top));
                 } else {
                     // It was a quick tap/click -> Trigger Plaud Sync
-                    triggerPlaudSync();
+                    openPlaudSyncChoiceModal();
                 }
             }
 
@@ -3793,6 +3793,15 @@ ${transcriptText}
                 chatInput.value = `@${name} `;
                 chatInput.focus();
             }
+        }
+
+        
+        function openPlaudSyncChoiceModal() {
+            document.getElementById('plaud-sync-choice-modal').classList.remove('hidden');
+        }
+
+        function closePlaudSyncChoiceModal() {
+            document.getElementById('plaud-sync-choice-modal').classList.add('hidden');
         }
 
         function openPlaudSensorInfoModal() {
@@ -5351,6 +5360,72 @@ Felipe Donato`);
                 <button onclick="closeAllStakeholdersDirectoryModal()" class="px-4 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold transition cursor-pointer">
                     Fechar
                 </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 🎙️ PLAUD SYNC CHOICE MODAL (Últimas vs Todas) -->
+    <div id="plaud-sync-choice-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5 animate-scale-up border-0">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                        <i class="ph-bold ph-waveform"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Sincronização Plaud Cloud</h3>
+                        <p class="text-xs text-gray-400">Escolha o modo de ingestão do seu Plaud Note Pro</p>
+                    </div>
+                </div>
+                <button onclick="closePlaudSyncChoiceModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-800 transition cursor-pointer">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Sync Options -->
+            <div class="space-y-3">
+                
+                <!-- Option 1: Incremental Sync (Últimas) -->
+                <button onclick="closePlaudSyncChoiceModal(); triggerPlaudSync('incremental')" 
+                        class="w-full p-4 rounded-2xl bg-gray-50/80 hover:bg-emerald-50/50 border border-gray-200/80 hover:border-emerald-500 text-left transition flex items-center justify-between gap-3 group cursor-pointer shadow-2xs">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-2xl bg-white text-emerald-700 flex items-center justify-center text-lg shadow-xs group-hover:scale-105 transition flex-shrink-0">
+                            <i class="ph-bold ph-arrows-clockwise"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-950">Sincronizar Última Gravação</div>
+                            <div class="text-[11px] text-gray-500 leading-tight mt-0.5">Puxa apenas os áudios mais recentes não importados.</div>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-arrow-right text-gray-400 group-hover:text-emerald-700 text-xs transition"></i>
+                </button>
+
+                <!-- Option 2: Full Sync (Todas as 7 Gravações) -->
+                <button onclick="closePlaudSyncChoiceModal(); triggerPlaudSync('full')" 
+                        class="w-full p-4 rounded-2xl bg-zinc-950 hover:bg-black text-white text-left transition flex items-center justify-between gap-3 group cursor-pointer shadow-lg">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-2xl bg-zinc-800 text-emerald-400 flex items-center justify-center text-lg shadow-xs group-hover:scale-105 transition flex-shrink-0">
+                            <i class="ph-bold ph-lightning"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>Sincronizar Todas as Gravações</span>
+                                <span class="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[9px] font-bold">Full Cloud Sync</span>
+                            </div>
+                            <div class="text-[11px] text-gray-400 leading-tight mt-0.5">Força o reprocessamento de todos os áudios da conta Plaud.</div>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-arrow-right text-emerald-400 group-hover:translate-x-1 transition text-xs"></i>
+                </button>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-2 text-center">
+                <span class="text-[10px] text-gray-400">Plaud Note Pro conectado via Sensor VCS & Nuvem S3</span>
             </div>
         </div>
     </div>
