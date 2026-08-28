@@ -1733,18 +1733,18 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5">
-                                <span>🎙️ Briefing Executivo em Áudio</span>
+                                <span>🎙️ Briefing em Áudio</span>
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">60s</span>
                             </div>
                             <div class="text-[11px] text-gray-500 leading-normal truncate">
-                                Sintetizar mini-podcast com as decisões e prazos desta reunião.
+                                Sintetizar briefing em áudio com as decisões desta conversa.
                             </div>
                         </div>
                     </div>
 
                     <button onclick="openAudioDirectorModal('${fileId}')" class="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer">
                         <i class="ph-bold ph-sparkle text-emerald-400 text-xs"></i>
-                        <span>Gerar Áudio</span>
+                        <span>Gerar Briefing de Áudio</span>
                         <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">1 Crédito</span>
                     </button>
                 </div>
@@ -1758,7 +1758,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-sm"></i>
-                            <span class="text-xs font-bold text-gray-900">Sintetizando áudio executivo (1 Crédito)...</span>
+                            <span class="text-xs font-bold text-gray-900">Sintetizando briefing de áudio (1 Crédito)...</span>
                         </div>
                         <span class="text-xs font-mono font-bold text-emerald-600" id="gen-countdown">~08s</span>
                     </div>
@@ -1827,7 +1827,7 @@
                         </button>
                         <div class="min-w-0 flex-1">
                             <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5 truncate">
-                                <span>🎙️ Briefing Executivo em Áudio</span>
+                                <span>🎙️ Briefing em Áudio</span>
                                 ${versionSelectorHtml}
                             </div>
                             <div class="text-[11px] text-gray-500 leading-normal flex items-center gap-1.5 truncate">
@@ -2402,26 +2402,33 @@ ${transcriptText}
                         </button>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="participants-list-container">
-                        ${intel.participants.map((p, idx) => `
-                            <div class="bg-[#f8f9fa] hover:bg-white rounded-2xl p-3 shadow-2xs hover:shadow-xs border-0 transition space-y-1 group relative">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2 truncate">
-                                        <div onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition" title="Abrir Dossiê 360°">
-                                            ${(p.name || 'P').slice(0, 2).toUpperCase()}
+                        ${intel.participants.map((p, idx) => {
+                            const actBadge = getStakeholderActivityBadge(p.name);
+                            return `
+                                <div class="bg-[#f8f9fa] hover:bg-white rounded-2xl p-3.5 shadow-2xs hover:shadow-xs border-0 transition space-y-1.5 group relative">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2.5 truncate">
+                                            <div onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition" title="Abrir Dossiê 360°">
+                                                ${(p.name || 'P').slice(0, 2).toUpperCase()}
+                                            </div>
+                                            <div class="font-bold text-xs text-gray-900 outline-none p-0.5 rounded focus:bg-emerald-50 truncate" contenteditable="true" onblur="saveParticipantField(${idx}, 'name', this.innerText)" title="Clique para editar o nome">
+                                                ${p.name}
+                                            </div>
                                         </div>
-                                        <div class="font-bold text-xs text-gray-900 outline-none p-0.5 rounded focus:bg-emerald-50 truncate" contenteditable="true" onblur="saveParticipantField(${idx}, 'name', this.innerText)" title="Clique para editar o nome">
-                                            ${p.name}
-                                        </div>
+
+                                        <button onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-800 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer flex-shrink-0">
+                                            <span>${actBadge}</span>
+                                        </button>
                                     </div>
-                                    <span class="text-[10px] text-gray-500 font-medium outline-none p-0.5 rounded focus:bg-emerald-50 flex-shrink-0" contenteditable="true" onblur="saveParticipantField(${idx}, 'role', this.innerText)" title="Clique para editar o cargo">
-                                        ${p.role || 'Participante'}
-                                    </span>
+
+                                    ${p.key_stance && p.key_stance !== '(Sem posicionamento)' ? `
+                                        <div class="text-[11px] text-gray-600 leading-snug outline-none p-0.5 rounded focus:bg-emerald-50" contenteditable="true" onblur="saveParticipantField(${idx}, 'key_stance', this.innerText)">
+                                            ${p.key_stance}
+                                        </div>
+                                    ` : ''}
                                 </div>
-                                <div class="text-[11px] text-gray-600 leading-snug outline-none p-0.5 rounded focus:bg-emerald-50" contenteditable="true" onblur="saveParticipantField(${idx}, 'key_stance', this.innerText)" title="Clique para editar a postura">
-                                    ${p.key_stance || '(Sem posicionamento)'}
-                                </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             ` : '';
@@ -2809,6 +2816,38 @@ ${transcriptText}
 
         // ========== UNIFIED TASKS MANAGEMENT JS ==========
         let currentTasksList = [];
+
+        function getStakeholderActivityBadge(name) {
+            if (!name) return '1ª interação';
+            const first = name.split(' ')[0].toLowerCase();
+            
+            let participated = 0;
+            let mentioned = 0;
+            
+            meetingsData.forEach(m => {
+                const intel = m.intelligence || {};
+                const parts = (intel.participants || []).map(p => (p.name || '').toLowerCase());
+                if (parts.some(p => p.includes(first))) {
+                    participated++;
+                } else {
+                    const txt = ((m.title || '') + ' ' + (intel.executive_summary || '')).toLowerCase();
+                    if (txt.includes(first)) {
+                        mentioned++;
+                    }
+                }
+            });
+
+            if (participated > 0 && mentioned > 0) {
+                return `👥 ${participated} call${participated > 1 ? 's' : ''} • 🗣️ ${mentioned}x citado`;
+            } else if (participated > 0) {
+                return `👥 ${participated} call${participated > 1 ? 's' : ''} no histórico`;
+            } else if (mentioned > 0) {
+                return `🗣️ ${mentioned}x citado(a) nas conversas`;
+            } else {
+                return `📅 1ª interação registrada`;
+            }
+        }
+
 
         function updateAllTaskBadges() {
             const myPendingCount = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status === 'PENDING').length;
