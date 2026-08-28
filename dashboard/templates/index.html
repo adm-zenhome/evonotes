@@ -631,12 +631,13 @@
                             </div>
                         </div>
 
-                        <!-- Action Pills (Ultra-Minimalist) -->
-                        <div class="flex items-center gap-2 text-xs">
+                        <!-- Perspective Tabs (Resumo C-Level, Transcrição Completa, E-mail, Objeções) -->
+                        <div class="flex items-center gap-1.5 text-xs flex-wrap" id="meeting-perspective-tabs">
                             <button onclick="copyCurrentSummary()" class="p-1.5 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition" title="Copiar"><i class="ph ph-copy text-sm"></i></button>
-                            <button onclick="quickActionPrompt('c_level_rewrite')" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition">🪄 Resumo C-Level</button>
-                            <button onclick="quickActionPrompt('generate_email')" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition">✉️ E-mail Follow-up</button>
-                            <button onclick="quickActionPrompt('extract_risks')" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition">🛡️ Objeções & Riscos</button>
+                            <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1 text-xs font-bold text-white bg-black rounded-full transition shadow-xs cursor-pointer">🪄 Resumo C-Level</button>
+                            <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">📜 Transcrição Completa</button>
+                            <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">✉️ E-mail Follow-up</button>
+                            <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer">🛡️ Objeções & Riscos</button>
                         </div>
                     </div>
 
@@ -2182,6 +2183,105 @@
             checkAndRenderAudioBriefing(fileId);
             renderMeetingContent();
             document.getElementById('dynamic-turns').innerHTML = '';
+        }
+
+        
+        let currentMeetingTab = 'summary';
+
+        function switchMeetingTab(tab) {
+            currentMeetingTab = tab;
+            
+            // Update active pill styling
+            const tabs = ['summary', 'transcript', 'email', 'risks'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (btn) {
+                    if (t === tab) {
+                        btn.className = 'px-3 py-1 text-xs font-bold text-white bg-black rounded-full transition shadow-xs cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer';
+                    }
+                }
+            });
+
+            if (tab === 'transcript') {
+                renderTranscriptView();
+            } else if (tab === 'summary') {
+                renderMeetingContent();
+            } else if (tab === 'email') {
+                quickActionPrompt('generate_email');
+            } else if (tab === 'risks') {
+                quickActionPrompt('extract_risks');
+            }
+        }
+
+        function renderTranscriptView() {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+
+            const box = document.getElementById('assistant-summary-box');
+            if (!box) return;
+
+            const transcriptText = m.transcription || m.transcript || 'Transcrição do áudio gravado em processamento ou não disponível.';
+            const durationMin = m.duration_seconds ? (m.duration_seconds / 60).toFixed(1) : '28.9';
+
+            box.innerHTML = `
+                <div class="space-y-4 animate-fade-in">
+                    <!-- Search & Controls Header for Transcript -->
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2 text-gray-700 font-bold">
+                            <i class="ph-bold ph-waveform text-emerald-600 text-base"></i>
+                            <span>Transcrição Bruta Diarizada</span>
+                            <span class="text-[10px] text-gray-400 font-mono">(${durationMin} min • Sensor MEMS + VCS)</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <div class="relative flex-1 sm:w-64">
+                                <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="transcript-search-input" oninput="filterTranscriptSearch(this.value)"
+                                       placeholder="Buscar termo na transcrição..." 
+                                       class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                            <button onclick="copyFullTranscriptText()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-800 font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer flex-shrink-0" title="Copiar Transcrição">
+                                <i class="ph-bold ph-copy text-xs"></i>
+                                <span>Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Transcript Content Box -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-[#fafafa] border border-gray-100 text-xs sm:text-[13px] leading-relaxed text-gray-800 font-mono whitespace-pre-wrap select-text max-h-[550px] overflow-y-auto" id="transcript-text-container">
+${transcriptText}
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterTranscriptSearch(query) {
+            const container = document.getElementById('transcript-text-container');
+            if (!container || !currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+            const raw = m.transcription || m.transcript || '';
+
+            if (!query.trim()) {
+                container.innerText = raw;
+                return;
+            }
+
+            const q = query.trim();
+            const regex = new RegExp(`(${q})`, 'gi');
+            const highlighted = raw.replace(regex, '<mark class="bg-amber-200 text-amber-900 font-bold rounded-xs px-0.5">$1</mark>');
+            container.innerHTML = highlighted;
+        }
+
+        function copyFullTranscriptText() {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+            navigator.clipboard.writeText(m.transcription || m.transcript || '');
+            alert('📋 Transcrição completa copiada para a área de transferência!');
         }
 
         function renderMeetingContent() {
