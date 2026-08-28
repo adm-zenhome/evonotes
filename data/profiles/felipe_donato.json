@@ -1,0 +1,96 @@
+{
+  "user_id": "felipe_donato",
+  "user_name": "Felipe Donato",
+  "company": "Zendesk",
+  "preferred_voice_tone": "Executivo Direto, Confiante e Sofisticado",
+  "elevenlabs_voice_id": "JBFqnCBsd6RMkjVDRZzb",
+  "calibration_meetings_processed": 6,
+  "calibration_target": 10,
+  "calibration_status": "CALIBRATED",
+  "vocabulary_and_jargon": [
+    "Aktie Now",
+    "BCR",
+    "Blue3",
+    "Cacau Show",
+    "ZCC",
+    "ZIS",
+    "Gong.io",
+    "Meta WhatsApp API",
+    "Zendesk AI Agents",
+    "ARs",
+    "Resell",
+    "Deal Size",
+    "Finder's Fee",
+    "Showcase",
+    "Salesforce",
+    "Dani",
+    "Zendesk Contact Center"
+  ],
+  "stakeholders": [
+    {
+      "name": "Dani",
+      "role": "Diretora / Zendesk",
+      "relationship": "Liderança Direta"
+    },
+    {
+      "name": "Valéria (Val)",
+      "role": "Enterprise AE / Zendesk",
+      "relationship": "Parceira Interna (Conta Cacau Show)"
+    },
+    {
+      "name": "Mineiro",
+      "role": "Enterprise AE / Zendesk",
+      "relationship": "Parceiro Interno (Contas Enterprise)"
+    },
+    {
+      "name": "Bruno Rodrigues",
+      "role": "CEO / BCR",
+      "relationship": "Parceiro Estratégico ZCC"
+    },
+    {
+      "name": "Felipe Bastos",
+      "role": "Executivo / BCR",
+      "relationship": "Parceiro Estratégico"
+    },
+    {
+      "name": "Max",
+      "role": "Líder / Blue3 Investimentos",
+      "relationship": "Cliente / Prospect Enterprise"
+    },
+    {
+      "name": "Caio",
+      "role": "Especialista ZX / Zendesk",
+      "relationship": "Time Técnico"
+    },
+    {
+      "name": "Pablo Marçal",
+      "role": "Mentor / Palestrante",
+      "relationship": "Mentoria Externa"
+    },
+    {
+      "name": "Rafa",
+      "role": "BDR / Zendesk",
+      "relationship": "Colaboração em prospecção e análise de contas"
+    },
+    {
+      "name": "Jean",
+      "role": "Representante / AirDev",
+      "relationship": "Negociação de propostas e soluções"
+    }
+  ],
+  "style_preferences": {
+    "bullet_format": "Conciso e orientado a decisões",
+    "email_tone": "Profissional, elegante, focado em próximos passos",
+    "risk_sensitivity": "ALTA"
+  },
+  "learned_insights": [
+    "Felipe prioriza agilidade de fechamento e proteção de margem/preço.",
+    "Prefere resumos em tópicos diretos e matriz clara de compromissos.",
+    "Identifica e separa automaticamente reuniões executivas concorrentes/paralelas.",
+    "Felipe valoriza a integração de IA nas soluções para manter competitividade.",
+    "Enfatiza a importância de parcerias estratégicas para alavancar negócios futuros.",
+    "Felipe demonstra liderança ativa na revisão de propostas importantes, garantindo clareza e alinhamento antes do fechamento.",
+    "Valoriza reuniões de alinhamento para assegurar que as expectativas de todas as partes sejam atendidas."
+  ],
+  "last_updated": "2026-08-28T16:50:03.524057"
+}
