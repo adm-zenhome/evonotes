@@ -493,38 +493,61 @@
             <!-- 📋 CENTRAL DE TAREFAS & AÇÕES CONSOLIDADA (Borderless + Floating Cards) -->
             <div id="tasks-central-view" class="space-y-6 hidden">
                 
-                <!-- Header Banner -->
-                <div class="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph-bold ph-check-square-offset"></i>
+                <!-- Header Banner with Executive KPIs & Tabs -->
+                <div class="bg-white rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                    <i class="ph-bold ph-check-square-offset"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-base font-bold text-gray-900">Central de Tarefas & Ações Executivas</h2>
+                                    <p class="text-xs text-gray-400">Compromissos extraídos das reuniões categorizados por atribuição e prazos.</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 class="text-base font-bold text-gray-900">Central de Tarefas & Ações Executivas</h2>
-                                <p class="text-xs text-gray-400">Compromissos extraídos das reuniões com controle de status e prazos linha a linha.</p>
-                            </div>
+                        </div>
+
+                        <!-- Filter Tabs: Starts at "Minhas Tarefas" -->
+                        <div class="inline-flex rounded-xl bg-gray-200/70 p-1 border-0 text-xs font-medium self-start sm:self-auto shadow-inner" id="task-filter-tabs">
+                            <button onclick="filterTasksView('MY_TASKS')" id="tab-task-my_tasks" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-gray-900 shadow-xs font-bold transition cursor-pointer">
+                                <i class="ph-bold ph-user-check text-xs text-emerald-600"></i>
+                                <span>Minhas Tarefas</span>
+                                <span id="my-tasks-count-pill" class="ml-1 px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">0</span>
+                            </button>
+                            <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                                <i class="ph-bold ph-list-dashes text-xs"></i>
+                                <span>Todas</span>
+                            </button>
+                            <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                                <i class="ph-bold ph-user-switch text-xs text-blue-600"></i>
+                                <span>Delegadas / Time</span>
+                            </button>
+                            <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">
+                                <i class="ph-bold ph-check-circle text-xs text-emerald-600"></i>
+                                <span>Concluídas</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Filter Pills (Matching Clean Phosphor Icons, No Harsh Border) -->
-                    <div class="inline-flex rounded-xl bg-gray-200/70 p-1 border-0 text-xs font-medium self-start sm:self-auto shadow-inner" id="task-filter-tabs">
-                        <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-gray-900 shadow-xs font-bold transition">
-                            <i class="ph-bold ph-list-dashes text-xs"></i>
-                            <span>Todas</span>
-                        </button>
-                        <button onclick="filterTasksView('PENDING')" id="tab-task-pending" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition">
-                            <i class="ph-bold ph-hourglass-simple-medium text-xs text-amber-600"></i>
-                            <span>Pendentes</span>
-                        </button>
-                        <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition">
-                            <i class="ph-bold ph-user-switch text-xs text-blue-600"></i>
-                            <span>Delegadas</span>
-                        </button>
-                        <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-gray-600 hover:text-black transition">
-                            <i class="ph-bold ph-check-circle text-xs text-emerald-600"></i>
-                            <span>Concluídas</span>
-                        </button>
+                    <!-- Stakeholder Segmentation Pills & Report View Toggle -->
+                    <div class="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center gap-2 flex-wrap" id="tasks-stakeholder-pills">
+                            <span class="text-gray-400 text-[11px] font-bold uppercase tracking-wider">Filtrar por:</span>
+                            <button onclick="filterByStakeholder('ALL')" class="px-2.5 py-1 rounded-lg bg-black text-white text-[11px] font-semibold transition cursor-pointer" id="pill-owner-all">Todos</button>
+                            <button onclick="filterByStakeholder('Felipe Donato')" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] font-semibold transition cursor-pointer" id="pill-owner-felipe">Felipe Donato</button>
+                            <button onclick="filterByStakeholder('Daniela Reis')" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] font-semibold transition cursor-pointer" id="pill-owner-daniela">Daniela Reis</button>
+                            <button onclick="filterByStakeholder('Bruno Rodrigues')" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] font-semibold transition cursor-pointer" id="pill-owner-bruno">Bruno Rodrigues</button>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                            <button onclick="setTasksGroupMode('list')" id="tasks-view-btn-list" class="px-2.5 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs text-[11px] transition cursor-pointer">
+                                <i class="ph-bold ph-list text-xs"></i> Lista
+                            </button>
+                            <button onclick="setTasksGroupMode('meeting')" id="tasks-view-btn-meeting" class="px-2.5 py-1 rounded-lg text-gray-600 hover:text-black font-semibold text-[11px] transition cursor-pointer">
+                                <i class="ph-bold ph-folders text-xs"></i> Por Reunião
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2531,7 +2554,7 @@
 
         // ========== UNIFIED TASKS MANAGEMENT JS ==========
         let currentTasksList = [];
-        let currentTaskFilter = 'ALL';
+
 
         async function loadAndRenderTasks(filter = 'ALL') {
             currentTaskFilter = filter;
@@ -2550,6 +2573,21 @@
             }
         }
 
+
+        let currentTaskFilter = 'MY_TASKS'; // Default to "Minhas Tarefas"
+        let currentStakeholderFilter = 'ALL';
+        let currentTasksGroupMode = 'list';
+
+        function showTasksView() {
+            document.getElementById('home-dashboard-view').classList.add('hidden');
+            document.getElementById('conversation-thread').classList.add('hidden');
+            document.getElementById('tasks-central-view').classList.remove('hidden');
+            document.getElementById('topbar-title').innerText = 'Central de Tarefas • Execução & Ações';
+            
+            // Set active default tab to Minhas Tarefas
+            filterTasksView('MY_TASKS');
+        }
+
         function filterTasksView(filter) {
             currentTaskFilter = filter;
             document.querySelectorAll('#task-filter-tabs button').forEach(b => {
@@ -2564,13 +2602,57 @@
             renderTasksList();
         }
 
+        function filterByStakeholder(owner) {
+            currentStakeholderFilter = owner;
+            document.querySelectorAll('#tasks-stakeholder-pills button').forEach(b => {
+                b.className = 'px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-[11px] font-semibold transition cursor-pointer';
+            });
+            const activePill = document.getElementById(owner === 'ALL' ? 'pill-owner-all' : (owner.includes('Felipe') ? 'pill-owner-felipe' : (owner.includes('Daniela') ? 'pill-owner-daniela' : 'pill-owner-bruno')));
+            if (activePill) {
+                activePill.className = 'px-2.5 py-1 rounded-lg bg-black text-white text-[11px] font-semibold transition cursor-pointer';
+            }
+            renderTasksList();
+        }
+
+        function setTasksGroupMode(mode) {
+            currentTasksGroupMode = mode;
+            const btnList = document.getElementById('tasks-view-btn-list');
+            const btnMeeting = document.getElementById('tasks-view-btn-meeting');
+            if (mode === 'list') {
+                btnList.className = 'px-2.5 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs text-[11px] transition cursor-pointer';
+                btnMeeting.className = 'px-2.5 py-1 rounded-lg text-gray-600 hover:text-black font-semibold text-[11px] transition cursor-pointer';
+            } else {
+                btnList.className = 'px-2.5 py-1 rounded-lg text-gray-600 hover:text-black font-semibold text-[11px] transition cursor-pointer';
+                btnMeeting.className = 'px-2.5 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs text-[11px] transition cursor-pointer';
+            }
+            renderTasksList();
+        }
+
         function renderTasksList() {
             const container = document.getElementById('tasks-cards-container');
             if (!container) return;
 
+            // Update Minhas Tarefas count pill
+            const myTasksTotal = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'DONE').length;
+            const countPill = document.getElementById('my-tasks-count-pill');
+            if (countPill) countPill.innerText = myTasksTotal;
+
             let filtered = currentTasksList;
-            if (currentTaskFilter !== 'ALL') {
-                filtered = currentTasksList.filter(t => t.status === currentTaskFilter);
+
+            // Apply Tab Filter
+            if (currentTaskFilter === 'MY_TASKS') {
+                filtered = filtered.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'DONE');
+            } else if (currentTaskFilter === 'DELEGATED') {
+                filtered = filtered.filter(t => !(t.owner || '').toLowerCase().includes('felipe') || t.status === 'DELEGATED');
+            } else if (currentTaskFilter === 'DONE') {
+                filtered = filtered.filter(t => t.status === 'DONE');
+            } else if (currentTaskFilter === 'PENDING') {
+                filtered = filtered.filter(t => t.status === 'PENDING');
+            }
+
+            // Apply Stakeholder Pill Filter
+            if (currentStakeholderFilter !== 'ALL') {
+                filtered = filtered.filter(t => (t.owner || '').toLowerCase().includes(currentStakeholderFilter.toLowerCase().split(' ')[0]));
             }
 
             if (filtered.length === 0) {
@@ -2580,102 +2662,123 @@
                             <i class="ph-bold ph-check"></i>
                         </div>
                         <div class="text-sm font-bold text-gray-900">Nenhuma tarefa encontrada neste filtro!</div>
-                        <div class="text-xs text-gray-400">Todos os compromissos estão em dia ou foram concluídos.</div>
+                        <div class="text-xs text-gray-400">Todos os compromissos selecionados estão concluídos ou não há pendências atribuídas.</div>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = filtered.map(t => {
-                const isDone = t.status === 'DONE';
-                const isDelegated = t.status === 'DELEGATED';
-                const isCancelled = t.status === 'CANCELLED';
+            // Render Grouped by Meeting or Linear List
+            if (currentTasksGroupMode === 'meeting') {
+                const grouped = {};
+                filtered.forEach(t => {
+                    const mTitle = t.meeting_title || 'Tarefas Avulsas / Diretas';
+                    if (!grouped[mTitle]) grouped[mTitle] = [];
+                    grouped[mTitle].push(t);
+                });
 
-                let statusIcon = '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 text-xl transition"></i>';
-                let cardBg = 'bg-white';
-                let textClass = 'text-gray-900 font-semibold';
-
-                if (isDone) {
-                    statusIcon = '<i class="ph-fill ph-check-circle text-emerald-500 text-xl transition"></i>';
-                    textClass = 'text-gray-400 line-through';
-                    cardBg = 'bg-gray-50/70 opacity-80';
-                } else if (isDelegated) {
-                    statusIcon = '<i class="ph-fill ph-user-switch text-blue-500 text-xl transition"></i>';
-                    cardBg = 'bg-blue-50/30';
-                } else if (isCancelled) {
-                    statusIcon = '<i class="ph-fill ph-x-circle text-red-400 text-xl transition"></i>';
-                    textClass = 'text-gray-400 line-through';
-                    cardBg = 'bg-gray-50/50 opacity-60';
+                let htmlContent = '';
+                for (const [mTitle, tasks] of Object.entries(grouped)) {
+                    htmlContent += `
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center gap-2 px-2 py-1 text-xs font-bold text-gray-800">
+                                <i class="ph-bold ph-folder text-emerald-600"></i>
+                                <span>${mTitle}</span>
+                                <span class="text-[10px] text-gray-400 font-normal">(${tasks.length} tarefas)</span>
+                            </div>
+                            ${tasks.map(t => renderSingleTaskCard(t)).join('')}
+                        </div>
+                    `;
                 }
+                container.innerHTML = htmlContent;
+            } else {
+                container.innerHTML = filtered.map(t => renderSingleTaskCard(t)).join('');
+            }
+        }
 
-                return `
-                    <div class="${cardBg} rounded-xl p-3 sm:p-3.5 shadow-2xs hover:shadow-xs border-0 transition-all space-y-2 group" id="task-card-${t.id}">
-                        <div class="flex items-center justify-between gap-3">
+        function renderSingleTaskCard(t) {
+            const isDone = t.status === 'DONE';
+            const isDelegated = t.status === 'DELEGATED';
+            const isCancelled = t.status === 'CANCELLED';
+
+            let statusIcon = '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 text-xl transition"></i>';
+            let cardBg = 'bg-white';
+            let textClass = 'text-gray-900 font-semibold';
+
+            if (isDone) {
+                statusIcon = '<i class="ph-fill ph-check-circle text-emerald-500 text-xl transition"></i>';
+                textClass = 'text-gray-400 line-through';
+                cardBg = 'bg-gray-50/70 opacity-80';
+            } else if (isDelegated) {
+                statusIcon = '<i class="ph-fill ph-user-switch text-blue-500 text-xl transition"></i>';
+                cardBg = 'bg-blue-50/30';
+            } else if (isCancelled) {
+                statusIcon = '<i class="ph-fill ph-x-circle text-red-400 text-xl transition"></i>';
+                textClass = 'text-gray-400 line-through';
+                cardBg = 'bg-gray-50/50 opacity-60';
+            }
+
+            return `
+                <div class="${cardBg} rounded-xl p-3 sm:p-3.5 shadow-2xs hover:shadow-xs border-0 transition-all space-y-2 group" id="task-card-${t.id}">
+                    <div class="flex items-center justify-between gap-3">
+                        
+                        <!-- Left: Status Icon + Task Description (Compact & Editable) -->
+                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                            <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="flex-shrink-0 cursor-pointer" title="Alternar Status">
+                                ${statusIcon}
+                            </button>
                             
-                            <!-- Left: Status Icon + Task Description (Compact & Editable) -->
-                            <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                                <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="flex-shrink-0 cursor-pointer" title="Alternar Status">
-                                    ${statusIcon}
-                                </button>
+                            <div class="flex-1 min-w-0 space-y-1">
+                                <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
+                                     class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-lg transition" title="Clique para editar a descrição completa">
+                                    ${t.action || '(Tarefa sem descrição - clique para editar)'}
+                                </div>
                                 
-                                <div class="flex-1 min-w-0 space-y-1">
-                                    <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
-                                         class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-lg transition" title="Clique para editar a descrição completa">
-                                        ${t.action || '(Tarefa sem descrição - clique para editar)'}
-                                    </div>
-                                    
-                                    <div class="flex items-center gap-2 text-[10px]">
-                                        <!-- Meeting Source Badge -->
-                                        ${t.meeting_title ? `
-                                            <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[200px]" title="Abrir Reunião de Origem">
-                                                <i class="ph-bold ph-chats-circle text-[9px]"></i>
-                                                <span class="truncate">${t.meeting_title}</span>
-                                            </span>
-                                        ` : ''}
-
-                                        <!-- Owner Badge (Editable) -->
-                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
-                                            <span contenteditable="true" onblur="saveTaskOwner(${t.id}, this.innerText)" class="outline-none">${t.owner || 'Felipe Donato'}</span>
+                                <div class="flex items-center gap-2 text-[10px]">
+                                    <!-- Meeting Source Badge -->
+                                    ${t.meeting_title ? `
+                                        <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[200px]" title="Abrir Reunião de Origem">
+                                            <i class="ph-bold ph-chats-circle text-[9px]"></i>
+                                            <span class="truncate">${t.meeting_title}</span>
                                         </span>
-                                    </div>
+                                    ` : ''}
+
+                                    <!-- Owner Badge (Editable) -->
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
+                                        <span contenteditable="true" onblur="saveTaskOwner(${t.id}, this.innerText)" class="outline-none">${t.owner || 'Felipe Donato'}</span>
+                                    </span>
                                 </div>
                             </div>
-
-                            <!-- Right Controls: Date/Time Line-by-Line + Execute Button + Status Menu -->
-                            <div class="flex items-center gap-2 flex-shrink-0">
-                                
-                                <!-- Line-by-Line Date & Time Badge (Click to open Beautiful DatePicker) -->
-                                <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
-                                        class="flex items-center gap-1.5 bg-[#f4f5f7] hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer flex-shrink-0 group" 
-                                        title="Clique para abrir o calendário e definir o prazo">
-                                    <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs transition"></i>
-                                    <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
-                                </button>
-
-                                <!-- Status Dropdown Menu -->
-                                <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
-                                    <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ Pendente</option>
-                                    <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>✅ Concluído</option>
-                                    <option value="DELEGATED" ${t.status === 'DELEGATED' ? 'selected' : ''}>👥 Delegado</option>
-                                    <option value="CANCELLED" ${t.status === 'CANCELLED' ? 'selected' : ''}>✕ Cancelado</option>
-                                </select>
-
-                                <!-- Execute Task Button (Voice & Action) -->
-                                <button onclick="openExecuteTaskModal(${t.id})" class="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-black text-white text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition active:scale-95" title="Executar tarefa via voz ou follow-up">
-                                    <i class="ph-bold ph-play text-[9px] text-emerald-400"></i>
-                                    <span>Executar</span>
-                                </button>
-
-                                <!-- Delete Button -->
-                                <button onclick="deleteSingleTask(${t.id})" class="w-6 h-6 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition opacity-0 group-hover:opacity-100" title="Excluir Tarefa">
-                                    <i class="ph-bold ph-trash text-xs"></i>
-                                </button>
-                            </div>
-
                         </div>
+
+                        <!-- Right Controls: Date/Time Line-by-Line + Status Dropdown (Executar Button Removed!) -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            
+                            <!-- Line-by-Line Date & Time Badge (Click to open DatePicker) -->
+                            <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
+                                    class="flex items-center gap-1.5 bg-[#f4f5f7] hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer flex-shrink-0 group" 
+                                    title="Clique para abrir o calendário e definir o prazo">
+                                <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs transition"></i>
+                                <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
+                            </button>
+
+                            <!-- Status Dropdown Menu -->
+                            <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
+                                <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ Pendente</option>
+                                <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>✅ Concluído</option>
+                                <option value="DELEGATED" ${t.status === 'DELEGATED' ? 'selected' : ''}>👥 Delegado</option>
+                                <option value="CANCELLED" ${t.status === 'CANCELLED' ? 'selected' : ''}>✕ Cancelado</option>
+                            </select>
+
+                            <!-- Delete Button -->
+                            <button onclick="deleteSingleTask(${t.id})" class="w-6 h-6 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer" title="Excluir Tarefa">
+                                <i class="ph-bold ph-trash text-xs"></i>
+                            </button>
+                        </div>
+
                     </div>
-                `;
-            }).join('');
+                </div>
+            `;
         }
 
         async function toggleSingleTaskStatus(taskId, currentStatus) {
