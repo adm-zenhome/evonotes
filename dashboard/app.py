@@ -370,7 +370,14 @@ async def api_rename_meeting(file_id: str, payload: dict = Body(...)):
 @app.delete("/api/meetings/{file_id}")
 async def api_delete_meeting(file_id: str):
     db.delete_meeting(file_id)
-    return JSONResponse({"status": "SUCCESS", "file_id": file_id, "message": "Reunião excluída com sucesso."})
+    analytics = get_keyword_analytics("felipe_donato")
+    return JSONResponse({
+        "status": "SUCCESS", 
+        "file_id": file_id, 
+        "message": "Reunião excluída com sucesso.",
+        "analytics": analytics,
+        "remaining_meetings": len(db.get_all_meetings())
+    })
 
 def execute_multi_llm(model: str, sys_prompt: str, user_prompt: str) -> str:
     """Executes prompt across OpenAI (gpt-4o, gpt-4o-mini, o3-mini) or Google Gemini (gemini-2.5-flash, gemini-2.5-pro)."""

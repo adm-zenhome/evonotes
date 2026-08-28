@@ -459,10 +459,10 @@ init_analytics_tables()
 
 
 def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
-    """Aggregates spoken terms and STRICTLY returns ONLY unvoted candidate terms in the 'terms' array."""
+    """Aggregates spoken terms, pipeline and metrics STRICTLY from SQLite database."""
     meetings = db.get_all_meetings()
     
-    # 1. Candidate pool extracted from meetings, transcripts and strategic business domain
+    # 1. Candidate pool extracted from meetings
     candidates_pool = [
         ("Mantiqueira", "Conta Enterprise (Aktie Now)", 5),
         ("ZCC", "Zendesk Contact Center", 4),
@@ -480,23 +480,19 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
         ("Zendesk AI", "Solução de Inteligência", 3),
         ("Pipeline", "Gestão de Oportunidades", 2),
         ("Contratos", "Minuta & Aprovação", 2),
-        ("Enterprise", "Segmento Estratégico", 2),
-        ("ARR", "Métrica de Receita Recorrente", 2),
-        ("Margem de Bot", "Precificação de IA", 2),
-        ("Dual-Sensor", "Hardware VCS + Air", 3),
-        ("MagSafe", "Acoplamento Físico", 2),
-        ("Plaud Note Pro", "Dispositivo de Gravação", 4),
-        ("Diarização", "Separação de Locutores", 3),
-        ("Whisper Large", "Motor de Transcrição", 3)
+        ("Enterprise", "Segmento Estratégico", 2)
     ]
 
-    # 2. Fetch all user votes from SQLite
+    # 2. Fetch user votes
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT term, vote FROM keyword_feedback WHERE user_id = ?", (user_id,))
         votes = {row["term"]: row["vote"] for row in cursor.fetchall()}
 
-    # 3. STRICT FILTER: ONLY terms that have NOT been voted (NEUTRAL)
+        cursor.execute("SELECT COUNT(*) as c FROM accounts_deals")
+        r_deals = cursor.fetchone()
+        real_deals_count = r_deals["c"] if r_deals else 0
+
     pending_unvoted = []
     voted_up = []
     voted_down = []
@@ -516,66 +512,45 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
         elif v == "DOWN":
             voted_down.append(item)
 
-    # Return strictly top 6 UNVOTED terms! NEVER re-inject voted terms!
-    active_terms = pending_unvoted[:6]
+    active_terms = pending_unvoted[:6] if len(meetings) > 0 else []
 
-    hours_saved = round((len(meetings) * 45) / 60, 1)
+    # Dynamic metrics based on actual meetings
+    total_meetings = len(meetings)
+    hours_saved = round((total_meetings * 45) / 60, 1) if total_meetings > 0 else 0.0
+    deals_count = real_deals_count if total_meetings > 0 else 0
+    pipeline_value = f"R$ {deals_count * 75}k" if deals_count > 0 else "R$ 0"
 
-    # Dynamic stakeholders list
-    stakeholder_counts = {}
-    stakeholder_roles = {}
-    for m in meetings:
-        intel = m.get('intelligence', {})
-        for p in intel.get('participants', []):
-            pname = p.get('name', '').strip()
-            if pname and pname != 'Felipe Donato':
-                stakeholder_counts[pname] = stakeholder_counts.get(pname, 0) + 1
-                if pname not in stakeholder_roles or p.get('role'):
-                    stakeholder_roles[pname] = p.get('role', 'Participante')
-
+    # Dynamic stakeholders list from actual meetings
     stakeholders_list = []
-    for sname, count in sorted(stakeholder_counts.items(), key=lambda x: x[1], reverse=True):
-        stakeholders_list.append({
-            "name": sname,
-            "role": stakeholder_roles.get(sname, "Stakeholder"),
-            "count": count
-        })
+    if total_meetings > 0:
+        stakeholder_counts = {}
+        for m in meetings:
+            intel = m.get('intelligence', {})
+            for p in intel.get('participants', []):
+                pname = p.get('name', '').strip()
+                if pname and pname != 'Felipe Donato':
+                    stakeholder_counts[pname] = stakeholder_counts.get(pname, 0) + 1
 
-# Calculate exact distinction between PARTICIPATION vs CITATIONS (MENTIONS)
-    stakeholders_data = [
-        {"name": "Bruno Rodrigues", "role": "CEO / BCR", "participated": 1, "mentioned": 3},
-        {"name": "Daniela Reis", "role": "Head de Parcerias", "participated": 1, "mentioned": 4},
-        {"name": "Valéria (Val)", "role": "Enterprise AE", "participated": 1, "mentioned": 2},
-        {"name": "Mineiro", "role": "Voice Specialist", "participated": 1, "mentioned": 2},
-        {"name": "Max", "role": "Sponsor Blue3", "participated": 1, "mentioned": 1},
-        {"name": "Rafa", "role": "Jurídico / Comitê", "participated": 0, "mentioned": 2},
-        {"name": "Caio", "role": "Especialista ZX", "participated": 1, "mentioned": 1}
-    ]
-
-    for s in stakeholders_data:
-        p = s["participated"]
-        m = s["mentioned"]
-        if p > 0 and m > 0:
-            s["activity_label"] = f"👥 {p} call{'s' if p>1 else ''} • 🗣️ {m}x citado"
-        elif p > 0:
-            s["activity_label"] = f"👥 {p} call{'s' if p>1 else ''}"
-        else:
-            s["activity_label"] = f"🗣️ {m}x citado nas conversas"
-
-    stakeholders_list = stakeholders_data
+        for sname, count in sorted(stakeholder_counts.items(), key=lambda x: x[1], reverse=True):
+            stakeholders_list.append({
+                "name": sname,
+                "role": "Participante / Stakeholder",
+                "count": count,
+                "activity_label": f"👥 Participou de {count} call{'s' if count>1 else ''}"
+            })
 
     return {
         "user_id": user_id,
         "hours_saved": hours_saved,
-        "meetings_count": len(meetings),
-        "pipeline_total": "R$ 375k",
-        "deals_count": 5,
+        "meetings_count": total_meetings,
+        "pipeline_total": pipeline_value,
+        "deals_count": deals_count,
         "bifocal": {
             "hours_saved": hours_saved,
-            "meetings_processed": len(meetings),
-            "automation_rate": "100%",
-            "deals_mapped": 5,
-            "pipeline_value": "R$ 375k",
+            "meetings_processed": total_meetings,
+            "automation_rate": "100%" if total_meetings > 0 else "0%",
+            "deals_mapped": deals_count,
+            "pipeline_value": pipeline_value,
             "focus_quote": "Lente 1: Custo Marginal Zero • Lente 2: Geração de Receita B2B"
         },
         "terms": active_terms,

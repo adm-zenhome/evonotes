@@ -2817,6 +2817,20 @@ ${transcriptText}
         // ========== UNIFIED TASKS MANAGEMENT JS ==========
         let currentTasksList = [];
 
+        function updateBifocalMetricsInDOM(bifocal) {
+            if (!bifocal) return;
+            const hEl = document.getElementById('metric-hours-saved');
+            const cEl = document.getElementById('metric-calls-count');
+            const pEl = document.getElementById('metric-pipeline-val');
+            const dEl = document.getElementById('metric-deals-count');
+
+            if (hEl) hEl.innerText = `${bifocal.hours_saved || 0}h`;
+            if (cEl) cEl.innerText = `${bifocal.meetings_processed || 0}`;
+            if (pEl) pEl.innerText = `${bifocal.pipeline_value || 'R$ 0'}`;
+            if (dEl) dEl.innerText = `${bifocal.deals_mapped || 0}`;
+        }
+
+
         function getStakeholderActivityBadge(name) {
             if (!name) return '1ª interação';
             const first = name.split(' ')[0].toLowerCase();
