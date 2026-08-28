@@ -469,18 +469,18 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
                         {% for s in analytics.stakeholders %}
-                        <div class="p-3.5 rounded-2xl border-0 bg-[#f8f9fa] hover:bg-[#f2f4f7] flex items-center justify-between transition-all">
+                        <div onclick="openStakeholder360Modal('{{ s.name }}')" class="p-3.5 rounded-2xl border-0 bg-[#f8f9fa] hover:bg-white hover:shadow-xs flex items-center justify-between transition-all cursor-pointer group shadow-2xs">
                             <div class="flex items-center gap-3 truncate pr-2">
-                                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0 group-hover:scale-105 transition shadow-2xs">
                                     {{ s.name[:2]|upper }}
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">{{ s.name }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ s.role }} • {{ s.count }} menções</div>
+                                    <div class="text-xs font-bold text-gray-900 truncate group-hover:text-emerald-700">{{ s.name }}</div>
+                                    <div class="text-[10px] text-gray-500 truncate">{{ s.role }} • {{ s.count }}x em reuniões</div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 flex-shrink-0">
-                                <button onclick="voteTerm('{{ s.name }}', 'UP', 'stk-{{ loop.index }}')" class="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Relevante"><i class="ph-bold ph-thumbs-up text-xs"></i></button>
+                                <i class="ph-bold ph-arrow-right text-gray-300 group-hover:text-black text-xs transition"></i>
                             </div>
                         </div>
                         {% endfor %}
@@ -558,29 +558,29 @@
             <!-- 📝 INDIVIDUAL MEETING VIEW -->
             <div id="conversation-thread" class="space-y-6 hidden">
                 
-                <!-- Top Split Row: [Fontes & Contextos] + [Briefing em Áudio] (Side by Side!) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                <!-- Top Split Row: [Gravação Original Bruta] + [Briefing Executivo] (Same Height & Same Structure!) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
                     
-                    <!-- Left: Sleek Sources & Cross-Meeting Linking Card -->
-                    <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between space-y-3 border-0 h-full">
+                    <!-- Left: Raw Original Audio Player Card -->
+                    <div class="bg-white p-3.5 sm:p-4 rounded-2xl shadow-2xs hover:shadow-xs border-0 transition flex flex-col justify-between h-full min-h-[88px] space-y-2">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 text-xs font-bold text-gray-800">
-                                <i class="ph-bold ph-link text-emerald-600"></i>
-                                <span>Fontes & Contextos</span>
+                            <div class="flex items-center gap-2 text-xs font-bold text-gray-900 leading-normal">
+                                <i class="ph-bold ph-waveform text-emerald-600 text-sm"></i>
+                                <span>Gravação Original (Áudio Bruto)</span>
                             </div>
-                            <button onclick="openLinkSourceModal()" class="px-3 py-1.5 rounded-full bg-gray-100 hover:bg-black hover:text-white text-[11px] font-semibold text-gray-700 flex items-center gap-1.5 transition">
-                                <i class="ph-bold ph-plus"></i> Conectar / @
+                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-black hover:text-white text-[11px] font-semibold text-gray-700 flex items-center gap-1 transition cursor-pointer">
+                                <i class="ph-bold ph-plus text-xs"></i> <span>Conectar / @</span>
                             </button>
                         </div>
 
-                        <!-- Linked sources list -->
-                        <div id="meeting-sources-list" class="flex flex-wrap items-center gap-2 pt-1 flex-1">
+                        <!-- Raw audio player content -->
+                        <div id="meeting-sources-list" class="flex-1 flex items-center">
                             <!-- Injected by JS -->
                         </div>
                     </div>
 
                     <!-- Right: On-Demand Audio Briefing Section -->
-                    <div id="audio-briefing-section" class="h-full"></div>
+                    <div id="audio-briefing-section" class="h-full min-h-[88px]"></div>
 
                 </div>
 
@@ -987,6 +987,29 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Mercado Livre Official Affiliate Card -->
+                <div class="bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-transparent p-4 rounded-2xl border border-amber-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-[#ffe600] text-slate-900 flex items-center justify-center text-xl font-black shadow-2xs flex-shrink-0">
+                            <i class="ph-bold ph-shopping-bag-open"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                                <span>Adquira o Plaud Note Pro no Mercado Livre</span>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-900 border border-yellow-300">Pronta Entrega BR</span>
+                            </div>
+                            <div class="text-[11px] text-gray-600 truncate mt-0.5">
+                                Envio Full expresso para todo o Brasil, parcelamento sem juros e garantia nacional.
+                            </div>
+                        </div>
+                    </div>
+                    <a href="https://lista.mercadolivre.com.br/plaud-note-pro" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-[#ffe600] hover:bg-[#edd600] text-slate-900 font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer text-center">
+                        <i class="ph-bold ph-shopping-cart text-xs"></i>
+                        <span>Comprar no Mercado Livre</span>
+                        <i class="ph-bold ph-arrow-up-right text-xs"></i>
+                    </a>
+                </div>
             </div>
 
             <!-- TAB 2: Canais & Webhooks (WhatsApp, Gmail, CRM) -->
@@ -1079,10 +1102,16 @@
                             <div class="font-bold text-gray-900">Motor de IA</div>
                             <div class="text-gray-400 text-[11px]">Selecione a IA para sínteses e perguntas</div>
                         </div>
-                        <select id="setting-ai-model" onchange="updateModelSelection()" class="bg-gray-100 border-0 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none cursor-pointer">
-                            <option value="gpt-4o-mini" selected>⚡ GPT-4o Mini (Ultra-Rápido)</option>
-                            <option value="gpt-4o">🧠 GPT-4o (Análise Profunda)</option>
-                        </select>
+                        <div class="flex items-center gap-2">
+                            <select id="setting-ai-model" onchange="updateModelSelection()" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none cursor-pointer transition">
+                                <option value="gpt-4o-mini" selected>⚡ GPT-4o Mini (Ultra-Rápido • Dia a Dia)</option>
+                                <option value="gpt-4o">🧠 GPT-4o (Análise Estratégica & Deals)</option>
+                                <option value="gemini-2.5-flash">🔮 Gemini 2.5 Flash (Contexto Longo 200k)</option>
+                            </select>
+                            <button onclick="openAiModelsInfoModal()" class="p-2 rounded-xl bg-gray-100 hover:bg-emerald-50 text-gray-500 hover:text-emerald-700 transition" title="Entenda os 3 Motores">
+                                <i class="ph-bold ph-info text-sm"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
@@ -1202,23 +1231,99 @@
             }
         }
 
+        let isRawAudioPlaying = false;
+        let rawPlaybackSpeed = 1.0;
+
         async function loadMeetingSources(fileId) {
             const listEl = document.getElementById('meeting-sources-list');
             if (!listEl) return;
 
-            try {
-                const res = await fetch(`/api/meetings/${fileId}/sources`);
-                const sources = await res.json();
-                
-                listEl.innerHTML = sources.map(s => `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f4f4f4] border border-gray-200 text-xs font-medium text-gray-800 shadow-xs">
-                        <i class="ph-bold ${s.source_type === 'PLAUD' ? 'ph-waveform text-emerald-600' : 'ph-link text-blue-600'} text-xs"></i>
-                        <span>${s.source_title}</span>
-                    </span>
-                `).join('');
-            } catch (e) {
-                console.error('Error loading sources:', e);
+            const m = meetingsData.find(item => item.file_id === fileId);
+            const durationMin = m && m.duration_seconds ? (m.duration_seconds / 60).toFixed(1) : '28.9';
+
+            listEl.innerHTML = `
+                <div class="w-full flex items-center justify-between gap-3 bg-[#f8f9fa] hover:bg-white p-2 rounded-xl transition shadow-2xs">
+                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                        <button onclick="toggleRawAudio('${fileId}')" id="btn-raw-play-pause" class="w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center text-xs transition shadow-2xs flex-shrink-0 cursor-pointer">
+                            <i id="raw-play-icon" class="ph-fill ph-play"></i>
+                        </button>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-gray-900 truncate leading-tight flex items-center gap-1.5">
+                                <span>Plaud Note Pro (Original)</span>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">~${durationMin} min</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 font-mono leading-tight mt-0.5 flex items-center gap-1.5 truncate">
+                                <span id="raw-audio-time">0:00 / ${durationMin}m</span>
+                                <span>•</span>
+                                <span class="text-gray-400">Microfone MEMS + VCS</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button onclick="toggleRawPlaybackSpeed()" id="btn-raw-speed" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white hover:bg-gray-100 text-gray-700 transition cursor-pointer shadow-2xs">
+                            1.0x
+                        </button>
+                        <audio id="raw-meeting-audio-player" src="/api/meetings/${fileId}/raw-audio" ontimeupdate="updateRawAudioProgress()" onended="onRawAudioEnded()"></audio>
+                    </div>
+                </div>
+            `;
+            isRawAudioPlaying = false;
+        }
+
+        function toggleRawAudio(fileId) {
+            const player = document.getElementById('raw-meeting-audio-player');
+            const icon = document.getElementById('raw-play-icon');
+            if (!player) return;
+
+            // Pause briefing player if playing
+            const briefingPlayer = document.getElementById('briefing-audio-player');
+            if (briefingPlayer && !briefingPlayer.paused) {
+                toggleAudioBriefing();
             }
+
+            if (isRawAudioPlaying) {
+                player.pause();
+                if (icon) icon.className = 'ph-fill ph-play';
+                isRawAudioPlaying = false;
+            } else {
+                player.play().then(() => {
+                    if (icon) icon.className = 'ph-fill ph-pause';
+                    isRawAudioPlaying = true;
+                }).catch(e => {
+                    console.log('Audio autoplay blocked or error:', e);
+                });
+            }
+        }
+
+        function updateRawAudioProgress() {
+            const player = document.getElementById('raw-meeting-audio-player');
+            const timeEl = document.getElementById('raw-audio-time');
+            if (!player || !timeEl) return;
+
+            const curMin = Math.floor(player.currentTime / 60);
+            const curSec = Math.floor(player.currentTime % 60).toString().padStart(2, '0');
+            const durMin = Math.floor(player.duration / 60) || 0;
+            const durSec = Math.floor(player.duration % 60 || 0).toString().padStart(2, '0');
+            
+            timeEl.innerText = `${curMin}:${curSec} / ${durMin}:${durSec}`;
+        }
+
+        function onRawAudioEnded() {
+            const icon = document.getElementById('raw-play-icon');
+            if (icon) icon.className = 'ph-fill ph-play';
+            isRawAudioPlaying = false;
+        }
+
+        function toggleRawPlaybackSpeed() {
+            const player = document.getElementById('raw-meeting-audio-player');
+            const btn = document.getElementById('btn-raw-speed');
+            if (!player || !btn) return;
+
+            const speeds = [1.0, 1.25, 1.5, 2.0];
+            const nextIdx = (speeds.indexOf(rawPlaybackSpeed) + 1) % speeds.length;
+            rawPlaybackSpeed = speeds[nextIdx];
+            player.playbackRate = rawPlaybackSpeed;
+            btn.innerText = `${rawPlaybackSpeed}x`;
         }
 
         function renderKeywordsPills() {
@@ -1333,15 +1438,45 @@
         }
 
         function setTextSize(size) {
-            document.documentElement.style.setProperty('--app-font-size', size);
             localStorage.setItem('user_font_size', size);
+            
+            // Dynamic Font Style Injection
+            let styleEl = document.getElementById('dynamic-font-override');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'dynamic-font-override';
+                document.head.appendChild(styleEl);
+            }
+            
+            styleEl.innerHTML = `
+                .editable-block, 
+                #conversation-thread p, 
+                #conversation-thread li, 
+                .task-description-text,
+                #conversation-thread span {
+                    font-size: ${size} !important;
+                }
+            `;
+
             ['14', '16', '18'].forEach(s => {
                 const btn = document.getElementById(`size-btn-${s}`);
-                if (btn) btn.className = 'px-3 py-1 rounded-md text-xs text-gray-700 hover:text-black';
+                if (btn) {
+                    btn.className = 'px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black transition cursor-pointer';
+                }
             });
             const activeKey = size.replace('px', '');
             const activeBtn = document.getElementById(`size-btn-${activeKey}`);
-            if (activeBtn) activeBtn.className = 'px-3 py-1 rounded-md text-xs bg-white text-gray-900 shadow-sm font-semibold';
+            if (activeBtn) {
+                activeBtn.className = 'px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer';
+            }
+        }
+
+        function openAiModelsInfoModal() {
+            document.getElementById('ai-models-info-modal').classList.remove('hidden');
+        }
+
+        function closeAiModelsInfoModal() {
+            document.getElementById('ai-models-info-modal').classList.add('hidden');
         }
 
         function setConversationWidth(mode) {
@@ -1379,47 +1514,31 @@
             document.getElementById('settings-modal').classList.add('hidden');
         }
 
-        // --- ON-DEMAND AUDIO BRIEFING RENDERER ---
-        async function checkAndRenderAudioBriefing(fileId) {
-            const section = document.getElementById('audio-briefing-section');
-            if (!section) return;
 
-            try {
-                const res = await fetch(`/api/audio-briefing-status/${fileId}`);
-                const data = await res.json();
-                if (data.has_audio) {
-                    renderAudioPlayer(fileId);
-                } else {
-                    renderGenerateAudioButton(fileId);
-                }
-            } catch (e) {
-                renderGenerateAudioButton(fileId);
-            }
-        }
 
         function renderGenerateAudioButton(fileId) {
             const section = document.getElementById('audio-briefing-section');
             section.innerHTML = `
-                <div class="bg-white rounded-3xl p-5 flex items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 h-full">
-                    <div class="flex items-center gap-3.5">
-                        <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl shadow-2xs">
+                <div class="bg-white rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs border-0 transition">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base flex-shrink-0 shadow-2xs">
                             <i class="ph-bold ph-waveform"></i>
                         </div>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5">
                                 <span>🎙️ Briefing Executivo em Áudio</span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">ElevenLabs</span>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">60s</span>
                             </div>
-                            <div class="text-[11px] text-gray-500 mt-0.5">
-                                Sintetize um mini-podcast falado de 60s com as principais decisões da call.
+                            <div class="text-[11px] text-gray-500 leading-normal truncate">
+                                Sintetizar mini-podcast com as decisões e prazos desta reunião.
                             </div>
                         </div>
                     </div>
 
-                    <button onclick="requestAudioGeneration('${fileId}')" class="px-4 py-2 rounded-full bg-zinc-900 text-white hover:bg-black text-xs font-semibold flex items-center gap-2 shadow-xs transition flex-shrink-0">
-                        <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                    <button onclick="requestAudioGeneration('${fileId}')" class="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer">
+                        <i class="ph-bold ph-sparkle text-emerald-400 text-xs"></i>
                         <span>Gerar Áudio</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono">1 Crédito</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">1 Crédito</span>
                     </button>
                 </div>
             `;
@@ -1428,20 +1547,16 @@
         function renderAudioGeneratingState(fileId) {
             const section = document.getElementById('audio-briefing-section');
             section.innerHTML = `
-                <div class="bg-white rounded-3xl p-5 space-y-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 h-full flex flex-col justify-center animate-pulse">
+                <div class="bg-white rounded-2xl p-3.5 sm:p-4 space-y-2 shadow-2xs border-0 flex flex-col justify-center animate-pulse">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2.5">
-                            <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-base"></i>
-                            <span class="text-xs font-bold text-gray-900">Sintetizando voz com ElevenLabs...</span>
+                        <div class="flex items-center gap-2">
+                            <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-sm"></i>
+                            <span class="text-xs font-bold text-gray-900">Sintetizando áudio executivo (1 Crédito)...</span>
                         </div>
                         <span class="text-xs font-mono font-bold text-emerald-600" id="gen-countdown">~08s</span>
                     </div>
                     <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-emerald-500 h-full rounded-full animate-[pulse_1s_infinite]" style="width: 75%;"></div>
-                    </div>
-                    <div class="text-[11px] text-gray-500 flex items-center justify-between">
-                        <span>Roteirizando decisões executivas e aplicando perfil de voz...</span>
-                        <span class="text-gray-400">Tempo estimado: 8 a 10 segundos</span>
+                        <div class="bg-emerald-500 h-full rounded-full animate-[pulse_1s_infinite]" style="width: 80%;"></div>
                     </div>
                 </div>
             `;
@@ -1455,38 +1570,93 @@
             }, 1000);
         }
 
+        let currentAudioVersions = [];
+        let selectedAudioVersion = null;
+
+        async function checkAndRenderAudioBriefing(fileId) {
+            const section = document.getElementById('audio-briefing-section');
+            if (!section) return;
+
+            try {
+                const res = await fetch(`/api/audio-briefing-status/${fileId}`);
+                const data = await res.json();
+                currentAudioVersions = data.versions || [];
+                selectedAudioVersion = currentAudioVersions.length > 0 ? currentAudioVersions[currentAudioVersions.length - 1].version : null;
+
+                if (data.has_audio) {
+                    renderAudioPlayer(fileId);
+                } else {
+                    renderGenerateAudioButton(fileId);
+                }
+            } catch (e) {
+                renderGenerateAudioButton(fileId);
+            }
+        }
+
         function renderAudioPlayer(fileId) {
             const section = document.getElementById('audio-briefing-section');
+            const totalVersions = currentAudioVersions.length;
+            const currentV = selectedAudioVersion || totalVersions || 1;
+            const audioSrc = currentV > 1 ? `/api/audio-briefing/${fileId}?v=${currentV}` : `/api/audio-briefing/${fileId}`;
+
+            const versionSelectorHtml = totalVersions > 1 ? `
+                <select onchange="switchAudioVersion('${fileId}', this.value)" 
+                        class="text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border-0 focus:outline-none cursor-pointer">
+                    ${currentAudioVersions.map(v => `
+                        <option value="${v.version}" ${v.version === currentV ? 'selected' : ''}>Take ${v.version} (${v.created_at || 'Salvo'})</option>
+                    `).join('')}
+                </select>
+            ` : `
+                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 flex-shrink-0">Take ${currentV}</span>
+            `;
+
             section.innerHTML = `
-                <div class="bg-white rounded-3xl p-5 flex items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 h-full">
-                    <div class="flex items-center gap-3.5">
-                        <button onclick="toggleAudioBriefing()" id="btn-play-pause" class="w-11 h-11 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center text-lg transition shadow-xs">
+                <div class="bg-white rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs border-0 transition">
+                    
+                    <!-- Left: Play/Pause Button + Clean Title & Version Selector -->
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <button onclick="toggleAudioBriefing()" id="btn-play-pause" class="w-9 h-9 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center text-sm transition shadow-xs flex-shrink-0 cursor-pointer">
                             <i id="play-icon" class="ph-fill ph-play"></i>
                         </button>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5 truncate">
                                 <span>🎙️ Briefing Executivo em Áudio</span>
+                                ${versionSelectorHtml}
                             </div>
-                            <div class="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
-                                <span id="audio-time">0:00 / ~1:15</span>
+                            <div class="text-[11px] text-gray-500 leading-normal flex items-center gap-1.5 truncate">
+                                <span id="audio-time" class="font-mono font-semibold">0:00 / ~1:15</span>
                                 <span>•</span>
                                 <span class="text-gray-400">Voz: Jarvis Executivo</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <button onclick="togglePlaybackSpeed()" id="btn-speed" class="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition border-0">
+                    <!-- Right Controls: Speed + Regenerate Button -->
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button onclick="togglePlaybackSpeed()" id="btn-speed" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition border-0 cursor-pointer">
                             1.0x
                         </button>
-                        <button onclick="requestAudioGeneration('${fileId}')" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-black hover:bg-gray-100 transition border-0" title="Regerar Áudio">
-                            <i class="ph ph-arrows-clockwise text-sm"></i>
+                        <button onclick="confirmRegenerateAudio('${fileId}')" class="p-1.5 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition border-0 cursor-pointer" title="Regerar Novo Take (Preserva Anteriores)">
+                            <i class="ph-bold ph-arrows-clockwise text-xs"></i>
                         </button>
-                        <audio id="briefing-audio-player" src="/api/audio-briefing/${fileId}" ontimeupdate="updateAudioProgress()" onended="onAudioEnded()"></audio>
+                        <audio id="briefing-audio-player" src="${audioSrc}" ontimeupdate="updateAudioProgress()" onended="onAudioEnded()"></audio>
                     </div>
+
                 </div>
             `;
             isPlaying = false;
+        }
+
+        function switchAudioVersion(fileId, versionNum) {
+            selectedAudioVersion = parseInt(versionNum);
+            renderAudioPlayer(fileId);
+            setTimeout(() => { toggleAudioBriefing(); }, 200);
+        }
+
+        function confirmRegenerateAudio(fileId) {
+            if (confirm('Deseja regerar um novo take de áudio briefing (1 Crédito)?\nTodos os takes anteriores serão mantidos no seu histórico.')) {
+                requestAudioGeneration(fileId);
+            }
         }
 
         async function requestAudioGeneration(fileId) {
@@ -2334,9 +2504,9 @@
                                     ${statusIcon}
                                 </button>
                                 
-                                <div class="flex-1 min-w-0 space-y-0.5">
+                                <div class="flex-1 min-w-0 space-y-1">
                                     <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
-                                         class="text-xs ${textClass} truncate leading-tight outline-none focus:bg-emerald-50/50 p-0.5 rounded transition" title="Clique para editar">
+                                         class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-lg transition" title="Clique para editar a descrição completa">
                                         ${t.action || '(Tarefa sem descrição - clique para editar)'}
                                     </div>
                                     
@@ -2360,14 +2530,13 @@
                             <!-- Right Controls: Date/Time Line-by-Line + Execute Button + Status Menu -->
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 
-                                <!-- Line-by-Line Date & Time Badge -->
-                                <div class="flex items-center gap-1 bg-[#f4f5f7] px-2.5 py-1 rounded-lg text-[11px] font-semibold text-gray-700 hover:bg-gray-200/80 transition">
-                                    <i class="ph-bold ph-calendar-blank text-gray-400 text-xs"></i>
-                                    <input type="text" value="${t.deadline_or_context || 'A definir'}" 
-                                           onchange="saveTaskDeadline(${t.id}, this.value)"
-                                           class="bg-transparent border-0 text-[11px] font-bold text-gray-800 focus:outline-none w-20 text-center cursor-pointer" 
-                                           title="Clique para alterar data e horário">
-                                </div>
+                                <!-- Line-by-Line Date & Time Badge (Click to open Beautiful DatePicker) -->
+                                <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
+                                        class="flex items-center gap-1.5 bg-[#f4f5f7] hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer flex-shrink-0 group" 
+                                        title="Clique para abrir o calendário e definir o prazo">
+                                    <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs transition"></i>
+                                    <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
+                                </button>
 
                                 <!-- Status Dropdown Menu -->
                                 <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
@@ -2956,6 +3125,123 @@ Felipe Donato`);
             window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`, '_blank');
         }
 
+
+        // ========== EXECUTIVE DATEPICKER MODAL JS ==========
+        let dpActiveTaskId = null;
+        let dpSelectedDate = new Date(2026, 7, 28); // Current date: Aug 28, 2026
+        let dpSelectedTime = '14:00';
+        let dpCurrentMonth = 7; // August (0-indexed)
+        let dpCurrentYear = 2026;
+
+        const monthNames = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+        function openExecutiveDatePicker(taskId, encodedDeadline, encodedAction) {
+            dpActiveTaskId = taskId;
+            const currentDeadline = decodeURIComponent(encodedDeadline);
+            const actionText = decodeURIComponent(encodedAction);
+            
+            document.getElementById('dp-task-preview').innerText = actionText ? (actionText.slice(0, 40) + '...') : 'Definir prazo máximo';
+            document.getElementById('dp-custom-output').value = currentDeadline !== 'A definir' ? currentDeadline : 'Hoje 14h';
+
+            renderDatePickerCalendar();
+            document.getElementById('executive-datepicker-modal').classList.remove('hidden');
+        }
+
+        function closeExecutiveDatePicker() {
+            document.getElementById('executive-datepicker-modal').classList.add('hidden');
+            dpActiveTaskId = null;
+        }
+
+        function renderDatePickerCalendar() {
+            const monthLabel = document.getElementById('dp-month-label');
+            const grid = document.getElementById('dp-days-grid');
+            
+            monthLabel.innerText = `${monthNames[dpCurrentMonth]} ${dpCurrentYear}`;
+            
+            const firstDay = new Date(dpCurrentYear, dpCurrentMonth, 1).getDay();
+            const daysInMonth = new Date(dpCurrentYear, dpCurrentMonth + 1, 0).getDate();
+            
+            let html = '';
+            // Empty slots for previous month
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="p-1.5 text-gray-200"></div>';
+            }
+            
+            // Days of month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const isSelected = dpSelectedDate.getDate() === day && dpSelectedDate.getMonth() === dpCurrentMonth && dpSelectedDate.getFullYear() === dpCurrentYear;
+                const isToday = (day === 28 && dpCurrentMonth === 7 && dpCurrentYear === 2026);
+                
+                let dayClasses = 'p-1.5 rounded-xl font-semibold cursor-pointer transition text-gray-700 hover:bg-emerald-50 hover:text-emerald-900';
+                if (isSelected) {
+                    dayClasses = 'p-1.5 rounded-xl font-bold bg-zinc-900 text-white shadow-xs';
+                } else if (isToday) {
+                    dayClasses = 'p-1.5 rounded-xl font-bold text-emerald-700 bg-emerald-50';
+                }
+                
+                html += `<div onclick="selectDatePickerDay(${day})" class="${dayClasses}">${day}</div>`;
+            }
+            
+            grid.innerHTML = html;
+        }
+
+        function changeDatePickerMonth(delta) {
+            dpCurrentMonth += delta;
+            if (dpCurrentMonth < 0) {
+                dpCurrentMonth = 11;
+                dpCurrentYear--;
+            } else if (dpCurrentMonth > 11) {
+                dpCurrentMonth = 0;
+                dpCurrentYear++;
+            }
+            renderDatePickerCalendar();
+        }
+
+        function selectDatePickerDay(day) {
+            dpSelectedDate = new Date(dpCurrentYear, dpCurrentMonth, day);
+            renderDatePickerCalendar();
+            updateDatePickerOutput();
+        }
+
+        function selectDatePickerTime(timeStr) {
+            dpSelectedTime = timeStr;
+            document.querySelectorAll('.dp-time-pill').forEach(btn => {
+                btn.className = 'dp-time-pill px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-gray-700 font-semibold shadow-2xs transition cursor-pointer';
+                if (btn.innerText === timeStr || (timeStr === 'Fim do Dia' && btn.innerText === 'Dia Todo')) {
+                    btn.className = 'dp-time-pill px-2.5 py-1 rounded-lg bg-zinc-900 text-white font-bold shadow-xs transition cursor-pointer';
+                }
+            });
+            updateDatePickerOutput();
+        }
+
+        function updateDatePickerOutput() {
+            const dayOfWeek = dayNames[dpSelectedDate.getDay()];
+            const formattedDate = `${dpSelectedDate.getDate().toString().padStart(2, '0')}/${(dpSelectedDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            
+            let result = `${dayOfWeek.split('-')[0]} (${formattedDate}) ${dpSelectedTime}`;
+            if (dpSelectedTime === 'Fim do Dia') {
+                result = `${dayOfWeek.split('-')[0]} (${formattedDate})`;
+            }
+            document.getElementById('dp-custom-output').value = result;
+        }
+
+        function selectQuickDate(shortcut) {
+            document.getElementById('dp-custom-output').value = shortcut;
+            applyDatePickerSelection();
+        }
+
+        async function applyDatePickerSelection() {
+            if (!dpActiveTaskId) return;
+            const finalVal = document.getElementById('dp-custom-output').value.trim() || 'A definir';
+            await saveTaskDeadline(dpActiveTaskId, finalVal);
+            closeExecutiveDatePicker();
+        }
+
 </script>
 
     <!-- PERSISTENT FLOATING PLAUD SYNC BUTTON (ACROSS ALL SCREENS) -->
@@ -3194,9 +3480,14 @@ Felipe Donato`);
 
             </div>
 
-            <!-- Footer Action Button -->
-            <div class="flex items-center justify-end pt-1">
-                <button onclick="closePlaudSensorInfoModal()" class="px-6 py-2.5 rounded-full bg-black text-white hover:bg-gray-800 text-xs font-semibold shadow-md transition active:scale-95">
+            <!-- Footer Action Buttons: Mercado Livre Buy Link + Close -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2 border-t border-gray-200/60">
+                <a href="https://lista.mercadolivre.com.br/plaud-note-pro" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#ffe600] hover:bg-[#edd600] text-slate-900 text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                    <i class="ph-bold ph-shopping-bag text-xs"></i>
+                    <span>Comprar Plaud Note Pro no Mercado Livre (Pronta Entrega)</span>
+                    <i class="ph-bold ph-arrow-up-right text-xs"></i>
+                </a>
+                <button onclick="closePlaudSensorInfoModal()" class="w-full sm:w-auto px-6 py-2 rounded-xl bg-black text-white hover:bg-gray-800 text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer">
                     Entendi
                 </button>
             </div>
@@ -3431,6 +3722,159 @@ Felipe Donato`);
                 </button>
                 <button onclick="closeStakeholder360Modal()" class="px-5 py-2 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-semibold text-gray-800 transition">
                     Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Modal Comparativo dos 3 Motores de IA (Cinza Claro & Sem Bordas) -->
+    <div id="ai-models-info-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[90] flex items-center justify-center p-4 sm:p-6 hidden select-none">
+        <div class="bg-[#f8f9fa] rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] border-0 transition-all">
+            
+            <div class="flex items-center justify-between pb-2 border-b border-gray-200/60">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                        <i class="ph-bold ph-cpu"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900 leading-tight">Os 3 Motores de Inteligência</h3>
+                        <p class="text-[11px] text-gray-500 font-medium">Escolha o melhor modelo para sua demanda</p>
+                    </div>
+                </div>
+                <button onclick="closeAiModelsInfoModal()" class="w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-200/80 flex items-center justify-center transition">
+                    <i class="ph-bold ph-x text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2.5 text-xs">
+                <!-- Modelo 1 -->
+                <div class="bg-white p-3.5 rounded-2xl shadow-2xs space-y-1">
+                    <div class="font-bold text-gray-900 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-emerald-700"><i class="ph-bold ph-lightning"></i> 1. GPT-4o Mini (Padrão)</span>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Ultra-Rápido (~2s)</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 leading-relaxed">
+                        Ideal para o fluxo diário de reuniões de 30-60 min. Gera atas, compromissos e rascunhos de e-mail instantaneamente com custo marginal zero.
+                    </p>
+                </div>
+
+                <!-- Modelo 2 -->
+                <div class="bg-white p-3.5 rounded-2xl shadow-2xs space-y-1">
+                    <div class="font-bold text-gray-900 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-blue-700"><i class="ph-bold ph-brain"></i> 2. GPT-4o (Raciocínio Profundo)</span>
+                        <span class="text-[10px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full font-bold">Alta Complexidade</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 leading-relaxed">
+                        Recomendado para negociações de grande porte (Enterprise Deals), comitês de diretoria e análises de objeções comerciais complexas.
+                    </p>
+                </div>
+
+                <!-- Modelo 3 -->
+                <div class="bg-white p-3.5 rounded-2xl shadow-2xs space-y-1">
+                    <div class="font-bold text-gray-900 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-purple-700"><i class="ph-bold ph-sparkle"></i> 3. Gemini 2.5 Flash</span>
+                        <span class="text-[10px] bg-purple-50 text-purple-800 px-2 py-0.5 rounded-full font-bold">200k Tokens</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 leading-relaxed">
+                        Excelente para reuniões longas (2 a 4 horas contínuas) ou para cruzamento de múltiplas gravações simultâneas em um único briefing.
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeAiModelsInfoModal()" class="px-5 py-2 rounded-full bg-zinc-900 text-white text-xs font-semibold hover:bg-black transition">
+                    Entendi
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Modal DatePicker Executivo Minimalista (Design Linear/macOS) -->
+    <div id="executive-datepicker-modal" class="fixed inset-0 bg-black/35 backdrop-blur-sm z-[95] flex items-center justify-center p-4 hidden select-none">
+        <div class="bg-[#f8f9fa] rounded-3xl max-w-sm w-full p-5 sm:p-6 space-y-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border-0 transition-all">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-2 border-b border-gray-200/60">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                        <i class="ph-bold ph-calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 leading-tight">Data & Prazo de Conclusão</h3>
+                        <p class="text-[10px] text-gray-500 font-medium" id="dp-task-preview">Selecione o prazo máximo</p>
+                    </div>
+                </div>
+                <button onclick="closeExecutiveDatePicker()" class="w-6 h-6 rounded-full text-gray-400 hover:text-black hover:bg-gray-200/80 flex items-center justify-center transition">
+                    <i class="ph-bold ph-x text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Quick Shortcuts (1-Click) -->
+            <div class="space-y-1.5">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Atalhos Rápidos:</div>
+                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    <button onclick="selectQuickDate('Hoje 18h')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-900 text-gray-700 font-semibold shadow-2xs transition text-left flex items-center justify-between">
+                        <span>⚡ Hoje</span> <span class="text-[10px] text-gray-400">18:00</span>
+                    </button>
+                    <button onclick="selectQuickDate('Amanhã 12h')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-900 text-gray-700 font-semibold shadow-2xs transition text-left flex items-center justify-between">
+                        <span>🌅 Amanhã</span> <span class="text-[10px] text-gray-400">12:00</span>
+                    </button>
+                    <button onclick="selectQuickDate('Segunda-feira 09h')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-900 text-gray-700 font-semibold shadow-2xs transition text-left flex items-center justify-between">
+                        <span>📅 Próx. Segunda</span> <span class="text-[10px] text-gray-400">09:00</span>
+                    </button>
+                    <button onclick="selectQuickDate('Fim da Semana (Sex)')" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-900 text-gray-700 font-semibold shadow-2xs transition text-left flex items-center justify-between">
+                        <span>⏳ Sexta-feira</span> <span class="text-[10px] text-gray-400">18:00</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Mini Month Calendar -->
+            <div class="bg-white p-3.5 rounded-2xl shadow-2xs space-y-2.5">
+                <div class="flex items-center justify-between px-1">
+                    <button onclick="changeDatePickerMonth(-1)" class="w-6 h-6 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition">
+                        <i class="ph-bold ph-caret-left text-xs"></i>
+                    </button>
+                    <span class="text-xs font-bold text-gray-900" id="dp-month-label">Agosto 2026</span>
+                    <button onclick="changeDatePickerMonth(1)" class="w-6 h-6 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition">
+                        <i class="ph-bold ph-caret-right text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Days of Week Header -->
+                <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400">
+                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+                </div>
+
+                <!-- Days Grid -->
+                <div id="dp-days-grid" class="grid grid-cols-7 gap-1 text-center text-xs">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Time Picker Row -->
+            <div class="space-y-1.5">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Horário Sugerido:</div>
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    <button onclick="selectDatePickerTime('09:00')" class="dp-time-pill px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-gray-700 font-semibold shadow-2xs transition">09:00</button>
+                    <button onclick="selectDatePickerTime('12:00')" class="dp-time-pill px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-gray-700 font-semibold shadow-2xs transition">12:00</button>
+                    <button onclick="selectDatePickerTime('14:00')" class="dp-time-pill px-2.5 py-1 rounded-lg bg-zinc-900 text-white font-bold shadow-xs transition">14:00</button>
+                    <button onclick="selectDatePickerTime('18:00')" class="dp-time-pill px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-gray-700 font-semibold shadow-2xs transition">18:00</button>
+                    <button onclick="selectDatePickerTime('Fim do Dia')" class="dp-time-pill px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 text-gray-700 font-semibold shadow-2xs transition">Dia Todo</button>
+                </div>
+            </div>
+
+            <!-- Custom Input & Save Actions -->
+            <div class="pt-2 border-t border-gray-200/60 flex items-center justify-between gap-2">
+                <input type="text" id="dp-custom-output" 
+                       class="bg-white border border-gray-200 text-xs font-bold text-gray-900 px-3 py-2 rounded-xl flex-1 focus:outline-none focus:border-emerald-500 shadow-2xs"
+                       placeholder="Ex: Terça-feira 14h">
+                
+                <button onclick="applyDatePickerSelection()" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-xs transition active:scale-95 flex-shrink-0">
+                    Definir
                 </button>
             </div>
 

@@ -313,8 +313,13 @@ class ExecutiveDatabase:
                 data = [m for m in data if m.get("file_id") != file_id]
                 with open(DATABASE_FILE, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # Clean audio briefings
+            briefing_file = DATA_DIR.parent / "cache" / "audio_briefings" / f"{file_id}_briefing.mp3"
+            if briefing_file.exists():
+                briefing_file.unlink()
         except Exception as e:
-            logging.error(f"Error deleting meeting from JSON: {e}")
+            logging.error(f"Error deleting meeting files/JSON: {e}")
 
 
     def get_all_tasks(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -479,23 +484,47 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
     # Lente 2: Receita & Pipeline
     estimated_pipeline_k = 380 # Zendesk ZCC + BCR deals mapped
 
+    # Dynamically extract and aggregate real stakeholders across all meetings in SQLite
+    stakeholder_counts = {}
+    stakeholder_roles = {}
+    for m in meetings:
+        intel = m.get('intelligence', {})
+        for p in intel.get('participants', []):
+            pname = p.get('name', '').strip()
+            if pname and pname != 'Felipe Donato':
+                stakeholder_counts[pname] = stakeholder_counts.get(pname, 0) + 1
+                if pname not in stakeholder_roles or p.get('role'):
+                    stakeholder_roles[pname] = p.get('role', 'Participante')
+                    
+    stakeholders_list = []
+    for sname, count in sorted(stakeholder_counts.items(), key=lambda x: x[1], reverse=True):
+        stakeholders_list.append({
+            "name": sname,
+            "role": stakeholder_roles.get(sname, "Stakeholder"),
+            "count": count,
+            "vote": votes.get(sname, "UP")
+        })
+
+    # Dynamically count deals from accounts_deals table
+    deals_count = 0
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM accounts_deals")
+        deals_count = cursor.fetchone()[0]
+
+    estimated_pipeline_k = deals_count * 75 # R$ 75k ticket médio por conta mapeada
+
     return {
         "bifocal": {
             "hours_saved": hours_saved,
             "meetings_processed": len(meetings),
             "automation_rate": f"{automation_rate}%",
-            "deals_mapped": total_deals_count or 4,
+            "deals_mapped": deals_count,
             "pipeline_value": f"R$ {estimated_pipeline_k}k",
             "focus_quote": "Lente 1: Automação Total (Zero digitação) • Lente 2: Foco Implacável em Vendas B2B"
         },
         "terms": terms_list[:16],
-        "stakeholders": [
-            {"name": "Bruno Rodrigues", "role": "CEO BCR", "count": 6, "vote": votes.get("Bruno Rodrigues", "UP")},
-            {"name": "Dani", "role": "Diretora Zendesk", "count": 5, "vote": votes.get("Dani", "UP")},
-            {"name": "Max", "role": "Blue3", "count": 4, "vote": votes.get("Max", "UP")},
-            {"name": "Pablo Marçal", "role": "Mentoria", "count": 5, "vote": votes.get("Pablo Marçal", "UP")},
-            {"name": "Mineiro", "role": "Enterprise AE", "count": 3, "vote": votes.get("Mineiro", "NEUTRAL")}
-        ]
+        "stakeholders": stakeholders_list[:12]
     }
 
 def record_keyword_vote(user_id: str, term: str, vote: str):

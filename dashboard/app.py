@@ -28,6 +28,8 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 
+@app.get("/app", response_class=HTMLResponse)
+@app.get("/app/", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     meetings = db.get_all_meetings()
@@ -152,14 +154,40 @@ async def api_remove_keyword(payload: dict = Body(...)):
 async def api_audio_briefing_status(file_id: str):
     audio_path = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
     exists = audio_path.exists() and audio_path.stat().st_size > 1000
+    
+    versions_file = AUDIO_BRIEFING_DIR / f"{file_id}_versions.json"
+    versions = []
+    if versions_file.exists():
+        try:
+            with open(versions_file, "r", encoding="utf-8") as f:
+                versions = json.load(f)
+        except Exception:
+            versions = []
+            
+    if not versions and exists:
+        versions = [{
+            "version": 1,
+            "filename": f"{file_id}_briefing.mp3",
+            "created_at": "Take 1",
+            "url": f"/api/audio-briefing/{file_id}?v=1",
+            "is_latest": True
+        }]
+        
     return JSONResponse({
         "file_id": file_id,
         "has_audio": exists,
+        "total_versions": len(versions),
+        "versions": versions,
         "audio_url": f"/api/audio-briefing/{file_id}" if exists else None
     })
 
 @app.get("/api/audio-briefing/{file_id}")
-async def api_audio_briefing(file_id: str):
+async def api_audio_briefing(file_id: str, v: Optional[int] = None):
+    if v:
+        ver_path = AUDIO_BRIEFING_DIR / f"{file_id}_briefing_v{v}.mp3"
+        if ver_path.exists():
+            return FileResponse(str(ver_path), media_type="audio/mpeg")
+            
     audio_path = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
     if audio_path.exists():
         return FileResponse(str(audio_path), media_type="audio/mpeg")
@@ -183,13 +211,14 @@ async def api_generate_audio_briefing(file_id: str, payload: dict = Body(default
         audio_path = voice_engine.create_audio_briefing(
             file_id=file_id,
             intelligence=intel,
-            user_profile=profile
+            user_profile=profile,
+            force_new_take=True
         )
         if audio_path and audio_path.exists():
             return JSONResponse({
                 "status": "SUCCESS",
                 "audio_url": f"/api/audio-briefing/{file_id}",
-                "message": "Briefing em áudio sintetizado com sucesso!"
+                "message": "Novo take em áudio sintetizado e preservado no histórico!"
             })
         else:
             raise HTTPException(status_code=500, detail="Failed to synthesize audio file")
@@ -438,12 +467,12 @@ async def api_create_task(payload: dict = Body(...)):
     meeting_id = payload.get("meeting_id") or "general"
     action = payload.get("action", "").strip()
     owner = payload.get("owner", "Felipe Donato")
-    deadline = payload.get("deadline_or_context", "Hoje")
+    deadline = payload.get("deadline_or_context") or payload.get("deadline") or "Hoje"
     if not action:
         raise HTTPException(status_code=400, detail="Action text is required")
     
     new_id = db.create_task(meeting_id, action, owner, deadline)
-    return JSONResponse({"status": "SUCCESS", "id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline})
+    return JSONResponse({"status": "SUCCESS", "id": new_id, "task_id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline})
 
 @app.delete("/api/tasks/{task_id}")
 async def api_delete_task(task_id: int):
@@ -574,3 +603,29 @@ async def api_get_stakeholder_360(name: str):
         'total_tasks': len(related_tasks),
         'tasks': related_tasks
     })
+
+
+@app.get("/api/meetings/{file_id}/raw-audio")
+async def api_meeting_raw_audio(file_id: str):
+    """Streams raw original meeting audio recorded by Plaud or uploaded."""
+    candidates = [
+        CACHE_DIR / f"{file_id}.mp3",
+        CACHE_DIR / file_id / "compressed.mp3",
+        CACHE_DIR / file_id / "chunks" / "chunk_000.mp3",
+        DATA_DIR.parent / "cache" / f"{file_id}.mp3"
+    ]
+    for p in candidates:
+        if p.exists() and p.stat().st_size > 1000:
+            return FileResponse(str(p), media_type="audio/mpeg")
+            
+    meeting = db.get_meeting(file_id)
+    if meeting and meeting.get("audio_path"):
+        ap = Path(meeting["audio_path"])
+        if ap.exists():
+            return FileResponse(str(ap), media_type="audio/mpeg")
+            
+    briefing_file = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
+    if briefing_file.exists():
+        return FileResponse(str(briefing_file), media_type="audio/mpeg")
+        
+    raise HTTPException(status_code=404, detail="Raw audio file not found")

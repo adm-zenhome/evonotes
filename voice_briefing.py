@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from pathlib import Path
+from datetime import datetime
 from typing import Dict, Any, Optional
 from openai import OpenAI
 
@@ -54,14 +55,42 @@ Contas: {json.dumps(accounts, ensure_ascii=False)}
         )
         return response.choices[0].message.content.strip()
 
-    def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None) -> Optional[Path]:
-        """Generates script and synthesizes MP3 via ElevenLabs."""
+def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, force_new_take: bool = False) -> Optional[Path]:
+        """Generates script and synthesizes MP3 via ElevenLabs, preserving historical versions."""
+        versions_file = AUDIO_BRIEFING_DIR / f"{file_id}_versions.json"
+        versions = []
+        if versions_file.exists():
+            try:
+                with open(versions_file, "r", encoding="utf-8") as f:
+                    versions = json.load(f)
+            except Exception:
+                versions = []
+
         output_file = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
-        if output_file.exists() and output_file.stat().st_size > 1000:
+
+        # If audio already exists and not forced, return existing
+        if output_file.exists() and output_file.stat().st_size > 1000 and not force_new_take:
             logging.info(f"Audio briefing already exists: {output_file}")
             return output_file
 
-        logging.info("Generating executive audio briefing script...")
+        # If forcing new take, archive the existing audio as v1, v2, etc.
+        if output_file.exists() and force_new_take:
+            v_num = len(versions) + 1
+            archived_file = AUDIO_BRIEFING_DIR / f"{file_id}_briefing_v{v_num}.mp3"
+            try:
+                import shutil
+                shutil.copy2(output_file, archived_file)
+                if not any(v.get("version") == v_num for v in versions):
+                    versions.append({
+                        "version": v_num,
+                        "filename": archived_file.name,
+                        "created_at": datetime.now().strftime("%d/%m %H:%M"),
+                        "url": f"/api/audio-briefing/{file_id}?v={v_num}"
+                    })
+            except Exception as e:
+                logging.error(f"Error archiving version {v_num}: {e}")
+
+        logging.info("Generating executive audio briefing script with ElevenLabs...")
         script = self.generate_briefing_script(intelligence, user_profile)
         logging.info(f"Script generated ({len(script)} chars): {script[:100]}...")
 
@@ -70,35 +99,35 @@ Contas: {json.dumps(accounts, ensure_ascii=False)}
         with open(script_file, "w", encoding="utf-8") as f:
             f.write(script)
 
-        # Select Voice ID
-        voice_id = (user_profile or {}).get("elevenlabs_voice_id", DEFAULT_VOICES.get("jarvis", "JBFqnCBsd6RMkjVDRZzb"))
+        # Synthesize audio with ElevenLabs
+        voice_id = (user_profile or {}).get("elevenlabs_voice_id", "JBFqnCBsd6RMkjVDRZzb")
+        audio_bytes = self.eleven_client.text_to_speech(script, voice_id=voice_id)
 
-        logging.info(f"Synthesizing audio via ElevenLabs (Voice: {voice_id})...")
-        if self.eleven_client.is_configured():
-            audio_bytes = self.eleven_client.text_to_speech(
-                text=script,
-                voice_id=voice_id,
-                model_id="eleven_multilingual_v2"
-            )
-            if audio_bytes:
-                with open(output_file, "wb") as f:
-                    f.write(audio_bytes)
-                logging.info(f"🎉 Audio briefing generated successfully: {output_file} ({len(audio_bytes)} bytes)")
-                return output_file
-        
-        # Fallback to OpenAI TTS if ElevenLabs key is not set or throttled
-        logging.warning("ElevenLabs not active or failed; using OpenAI TTS HD fallback...")
-        try:
-            response = self.openai_client.audio.speech.create(
-                model="tts-1-hd",
-                voice="onyx",
-                input=script
-            )
-            response.stream_to_file(str(output_file))
-            logging.info(f"🎉 Audio briefing generated with OpenAI TTS: {output_file}")
+        if audio_bytes:
+            with open(output_file, "wb") as f:
+                f.write(audio_bytes)
+            
+            # Register new current version
+            latest_v = len(versions) + 1
+            latest_archived = AUDIO_BRIEFING_DIR / f"{file_id}_briefing_v{latest_v}.mp3"
+            with open(latest_archived, "wb") as f:
+                f.write(audio_bytes)
+
+            versions.append({
+                "version": latest_v,
+                "filename": latest_archived.name,
+                "created_at": datetime.now().strftime("%d/%m %H:%M"),
+                "url": f"/api/audio-briefing/{file_id}?v={latest_v}",
+                "is_latest": True
+            })
+
+            with open(versions_file, "w", encoding="utf-8") as f:
+                json.dump(versions, f, indent=2, ensure_ascii=False)
+
+            logging.info(f"Executive audio briefing saved successfully: {output_file} (Version {latest_v})")
             return output_file
-        except Exception as e:
-            logging.error(f"Failed to generate audio briefing: {e}")
+        else:
+            logging.error("Failed to generate ElevenLabs audio bytes")
             return None
 
 if __name__ == "__main__":
