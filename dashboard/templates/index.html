@@ -93,6 +93,43 @@
             }
         }
 
+    
+        let currentLayoutWidth = localStorage.getItem('evonotes_layout_width') || 'default';
+        let verboseThinking = localStorage.getItem('evonotes_verbose_thinking') === 'true';
+
+        function setLayoutWidth(width) {
+            currentLayoutWidth = width;
+            localStorage.setItem('evonotes_layout_width', width);
+
+            const container = document.getElementById('chat-stream-container');
+            if (container) {
+                container.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl', 'w-full');
+                if (width === 'narrow') {
+                    container.classList.add('max-w-2xl');
+                } else if (width === 'wide') {
+                    container.classList.add('max-w-7xl');
+                } else {
+                    container.classList.add('max-w-4xl');
+                }
+            }
+
+            ['default', 'narrow', 'wide'].forEach(w => {
+                const btn = document.getElementById(`width-btn-${w}`);
+                if (btn) {
+                    if (w === width) {
+                        btn.className = 'px-3 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer';
+                    }
+                }
+            });
+        }
+
+        function toggleVerboseThinking(checked) {
+            verboseThinking = checked;
+            localStorage.setItem('evonotes_verbose_thinking', checked ? 'true' : 'false');
+        }
+
     </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web">
@@ -183,6 +220,43 @@
             }
         }
 
+    
+        let currentLayoutWidth = localStorage.getItem('evonotes_layout_width') || 'default';
+        let verboseThinking = localStorage.getItem('evonotes_verbose_thinking') === 'true';
+
+        function setLayoutWidth(width) {
+            currentLayoutWidth = width;
+            localStorage.setItem('evonotes_layout_width', width);
+
+            const container = document.getElementById('chat-stream-container');
+            if (container) {
+                container.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl', 'w-full');
+                if (width === 'narrow') {
+                    container.classList.add('max-w-2xl');
+                } else if (width === 'wide') {
+                    container.classList.add('max-w-7xl');
+                } else {
+                    container.classList.add('max-w-4xl');
+                }
+            }
+
+            ['default', 'narrow', 'wide'].forEach(w => {
+                const btn = document.getElementById(`width-btn-${w}`);
+                if (btn) {
+                    if (w === width) {
+                        btn.className = 'px-3 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer';
+                    }
+                }
+            });
+        }
+
+        function toggleVerboseThinking(checked) {
+            verboseThinking = checked;
+            localStorage.setItem('evonotes_verbose_thinking', checked ? 'true' : 'false');
+        }
+
     </script>
     <!-- Marked.js (Markdown Renderer) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
@@ -271,6 +345,43 @@
             } catch (e) {
                 alert('Erro ao conectar: ' + e.message);
             }
+        }
+
+    
+        let currentLayoutWidth = localStorage.getItem('evonotes_layout_width') || 'default';
+        let verboseThinking = localStorage.getItem('evonotes_verbose_thinking') === 'true';
+
+        function setLayoutWidth(width) {
+            currentLayoutWidth = width;
+            localStorage.setItem('evonotes_layout_width', width);
+
+            const container = document.getElementById('chat-stream-container');
+            if (container) {
+                container.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl', 'w-full');
+                if (width === 'narrow') {
+                    container.classList.add('max-w-2xl');
+                } else if (width === 'wide') {
+                    container.classList.add('max-w-7xl');
+                } else {
+                    container.classList.add('max-w-4xl');
+                }
+            }
+
+            ['default', 'narrow', 'wide'].forEach(w => {
+                const btn = document.getElementById(`width-btn-${w}`);
+                if (btn) {
+                    if (w === width) {
+                        btn.className = 'px-3 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer';
+                    }
+                }
+            });
+        }
+
+        function toggleVerboseThinking(checked) {
+            verboseThinking = checked;
+            localStorage.setItem('evonotes_verbose_thinking', checked ? 'true' : 'false');
         }
 
     </script>
@@ -1428,10 +1539,35 @@
                             <div class="text-gray-400 text-[11px]">Tamanho do texto nas notas e sínteses</div>
                         </div>
                         <div class="inline-flex rounded-xl bg-gray-200/80 p-1 font-semibold">
-                            <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black">14px</button>
-                            <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs">16px</button>
-                            <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black">18px</button>
+                            <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">14px</button>
+                            <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">16px</button>
+                            <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">18px</button>
                         </div>
+                    </div>
+
+                    <!-- Conversation Width (Default / Narrow / Wide) Segmented Control -->
+                    <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+                        <div>
+                            <div class="font-bold text-gray-900">Conversation Width</div>
+                            <div class="text-gray-400 text-[11px]">Configure the maximum width of the conversation panel</div>
+                        </div>
+                        <div class="inline-flex rounded-xl bg-gray-200/80 p-1 font-semibold text-xs shadow-inner" id="width-selector-group">
+                            <button onclick="setLayoutWidth('default')" id="width-btn-default" class="px-3 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer">Default</button>
+                            <button onclick="setLayoutWidth('narrow')" id="width-btn-narrow" class="px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">Narrow</button>
+                            <button onclick="setLayoutWidth('wide')" id="width-btn-wide" class="px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">Wide</button>
+                        </div>
+                    </div>
+
+                    <!-- Verbose Agent Chat Toggle Switch -->
+                    <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+                        <div>
+                            <div class="font-bold text-gray-900">Verbose Agent Chat</div>
+                            <div class="text-gray-400 text-[11px]">Display and preserve intermediate thinking steps</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="verbose-thinking-toggle" onchange="toggleVerboseThinking(this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -3636,6 +3772,43 @@ Felipe Donato`);
             } catch (e) {
                 alert('Erro ao conectar: ' + e.message);
             }
+        }
+
+    
+        let currentLayoutWidth = localStorage.getItem('evonotes_layout_width') || 'default';
+        let verboseThinking = localStorage.getItem('evonotes_verbose_thinking') === 'true';
+
+        function setLayoutWidth(width) {
+            currentLayoutWidth = width;
+            localStorage.setItem('evonotes_layout_width', width);
+
+            const container = document.getElementById('chat-stream-container');
+            if (container) {
+                container.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl', 'w-full');
+                if (width === 'narrow') {
+                    container.classList.add('max-w-2xl');
+                } else if (width === 'wide') {
+                    container.classList.add('max-w-7xl');
+                } else {
+                    container.classList.add('max-w-4xl');
+                }
+            }
+
+            ['default', 'narrow', 'wide'].forEach(w => {
+                const btn = document.getElementById(`width-btn-${w}`);
+                if (btn) {
+                    if (w === width) {
+                        btn.className = 'px-3 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs transition cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer';
+                    }
+                }
+            });
+        }
+
+        function toggleVerboseThinking(checked) {
+            verboseThinking = checked;
+            localStorage.setItem('evonotes_verbose_thinking', checked ? 'true' : 'false');
         }
 
     </script>
