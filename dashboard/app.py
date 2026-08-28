@@ -209,6 +209,7 @@ async def api_generate_audio_briefing(file_id: str, payload: dict = Body(default
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
+    direction = payload.get("direction") or payload.get("prompt_direction") or ""
     profile = learning_engine.get_or_create_profile("felipe_donato")
     intel = meeting.get("intelligence", {})
     if not intel:
@@ -222,12 +223,14 @@ async def api_generate_audio_briefing(file_id: str, payload: dict = Body(default
             file_id=file_id,
             intelligence=intel,
             user_profile=profile,
-            force_new_take=True
+            force_new_take=True,
+            custom_direction=direction
         )
         if audio_path and audio_path.exists():
             return JSONResponse({
                 "status": "SUCCESS",
                 "audio_url": f"/api/audio-briefing/{file_id}",
+                "direction": direction,
                 "message": "Novo take em áudio sintetizado e preservado no histórico!"
             })
         else:

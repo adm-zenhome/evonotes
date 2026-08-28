@@ -21,8 +21,8 @@ class VoiceBriefingEngine:
         self.eleven_client = ElevenLabsClient(api_key=eleven_key)
         self.openai_client = OpenAI(api_key=openai_key)
 
-    def generate_briefing_script(self, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None) -> str:
-        """Generates high-impact spoken audio script structured in 3 Pillars: Pontos de Atenção, Detalhes Percebidos e Próximos Passos."""
+    def generate_briefing_script(self, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, custom_direction: Optional[str] = None) -> str:
+        """Generates high-impact spoken audio script structured in 3 Pillars, with optional executive customization."""
         title = intelligence.get("meeting_title", "Reunião Executiva")
         summary = intelligence.get("executive_summary", "")
         commitments = intelligence.get("commitments_and_promises", [])
@@ -31,17 +31,22 @@ class VoiceBriefingEngine:
         voice_style = (user_profile or {}).get("preferred_voice_tone", "Executivo Direto, Estratégico e Sofisticado")
         user_name = (user_profile or {}).get("user_name", "Felipe")
 
+        custom_block = f"""
+DIRETRIZ PRIORITÁRIA DO EXECUTIVO (MOLDE O ÁUDIO COM ESTE FOCO):
+{custom_direction}
+""" if custom_direction else ""
+
         prompt = f"""Você é o Narrador Executivo de Inteligência do EvoNotes OS.
 Gere um roteiro de áudio falado de exatamente 60 a 80 segundos em tom {voice_style} para o executivo {user_name}.
-
-ESTRUTURA OBRIGATÓRIA DO ÁUDIO NARRADO (3 PILARES):
+{custom_block}
+ESTRUTURA OBRIGATÓRIA DO ÁUDIO NARRADO:
 1. ABERTURA & PONTOS DE ATENÇÃO:
    - Comece direto: "Fala {user_name}, briefing executivo de {title}..."
    - Aponte imediatamente o principal PONTO DE ATENÇÃO ou risco de fechamento/concorrência identificado na conversa.
 2. DETALHES & NUANCES PERCEBIDAS:
-   - Destaque o que foi percebido nas entrelinhas (postura dos decisores, menções a concorrentes como Aktie Now, modelo de pricing FNR ou objeções de telefonia ZCC).
+   - Destaque o que foi percebido nas entrelinhas (postura dos decisores, menções a concorrentes, modelo de pricing FNR ou objeções de telefonia ZCC).
 3. PRÓXIMOS PASSOS & DONOS:
-   - Dicte com clareza cirúrgica as 2 ou 3 ações imediatas com seus respectivos donos e prazos combinados.
+   - Dicte com clareza cirúrgica as ações imediatas com seus respectivos donos e prazos combinados.
    - Encerramento de alta performance.
 
 REGRAS DE FORMATAÇÃO DE VOZ:
@@ -62,8 +67,8 @@ Contas e Deals: {json.dumps(accounts, ensure_ascii=False)}
         )
         return response.choices[0].message.content.strip()
 
-def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, force_new_take: bool = False) -> Optional[Path]:
-        """Generates script and synthesizes MP3 via ElevenLabs, preserving historical versions."""
+    def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, force_new_take: bool = False, custom_direction: Optional[str] = None) -> Optional[Path]:
+        """Generates script and synthesizes MP3 via ElevenLabs/OpenAI, preserving historical versions."""
         versions_file = AUDIO_BRIEFING_DIR / f"{file_id}_versions.json"
         versions = []
         if versions_file.exists():
@@ -79,6 +84,63 @@ def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user
         if output_file.exists() and output_file.stat().st_size > 1000 and not force_new_take:
             logging.info(f"Audio briefing already exists: {output_file}")
             return output_file
+
+        # If forcing new take, archive the existing audio as v1, v2, etc.
+        if output_file.exists() and force_new_take:
+            v_num = len(versions) + 1
+            archived_file = AUDIO_BRIEFING_DIR / f"{file_id}_briefing_v{v_num}.mp3"
+            try:
+                import shutil
+                shutil.copy2(output_file, archived_file)
+                if not any(v.get("version") == v_num for v in versions):
+                    versions.append({
+                        "version": v_num,
+                        "filename": archived_file.name,
+                        "created_at": datetime.now().strftime("%d/%m %H:%M"),
+                        "url": f"/api/audio-briefing/{file_id}?v={v_num}",
+                        "direction": custom_direction or "Padrão (3 Pilares)"
+                    })
+            except Exception as e:
+                logging.error(f"Error archiving version {v_num}: {e}")
+
+        logging.info(f"Generating executive audio briefing script (Custom Direction: {custom_direction})...")
+        script = self.generate_briefing_script(intelligence, user_profile, custom_direction=custom_direction)
+        logging.info(f"Script generated ({len(script)} chars): {script[:100]}...")
+
+        # Save text script
+        script_file = AUDIO_BRIEFING_DIR / f"{file_id}_script.txt"
+        with open(script_file, "w", encoding="utf-8") as f:
+            f.write(script)
+
+        # Synthesize audio with ElevenLabs (or fallback to OpenAI TTS HD)
+        voice_id = (user_profile or {}).get("elevenlabs_voice_id", "JBFqnCBsd6RMkjVDRZzb")
+        try:
+            audio_bytes = self.eleven_client.generate_audio(text=script, voice_id=voice_id)
+        except Exception as e:
+            logging.warning(f"ElevenLabs synthesis error, falling back to OpenAI TTS HD: {e}")
+            tts_res = self.openai_client.audio.speech.create(
+                model="tts-1-hd",
+                voice="onyx",
+                input=script
+            )
+            audio_bytes = tts_res.content
+
+        with open(output_file, "wb") as f:
+            f.write(audio_bytes)
+
+        # Update latest take in versions json
+        versions.append({
+            "version": len(versions) + 1,
+            "filename": output_file.name,
+            "created_at": "Take Atual",
+            "url": f"/api/audio-briefing/{file_id}",
+            "direction": custom_direction or "Padrão (3 Pilares)"
+        })
+        with open(versions_file, "w", encoding="utf-8") as f:
+            json.dump(versions, f, ensure_ascii=False, indent=2)
+
+        return output_file
+
 
         # If forcing new take, archive the existing audio as v1, v2, etc.
         if output_file.exists() and force_new_take:
