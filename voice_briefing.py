@@ -22,30 +22,37 @@ class VoiceBriefingEngine:
         self.openai_client = OpenAI(api_key=openai_key)
 
     def generate_briefing_script(self, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None) -> str:
-        """Generates high-impact spoken audio script for ElevenLabs narration."""
+        """Generates high-impact spoken audio script structured in 3 Pillars: Pontos de Atenção, Detalhes Percebidos e Próximos Passos."""
         title = intelligence.get("meeting_title", "Reunião Executiva")
         summary = intelligence.get("executive_summary", "")
         commitments = intelligence.get("commitments_and_promises", [])
         accounts = intelligence.get("accounts_discussed", [])
 
-        voice_style = (user_profile or {}).get("preferred_voice_tone", "Executivo Direto e Sofisticado")
+        voice_style = (user_profile or {}).get("preferred_voice_tone", "Executivo Direto, Estratégico e Sofisticado")
         user_name = (user_profile or {}).get("user_name", "Felipe")
 
-        prompt = f"""Você é o narrador executivo do Jarvis Voice OS.
-Gere um roteiro de áudio falado de exatamente 60 a 75 segundos em tom {voice_style} para o executivo {user_name}.
+        prompt = f"""Você é o Narrador Executivo de Inteligência do EvoNotes OS.
+Gere um roteiro de áudio falado de exatamente 60 a 80 segundos em tom {voice_style} para o executivo {user_name}.
 
-Diretrizes de Roteiro Falado:
-- Comece direto e enérgico: "Fala {user_name}, aqui está o seu briefing executivo da reunião..."
-- Resuma as 2 principais decisões em linguagem natural e falada.
-- Destaque os compromissos imediatos que ele precisa cumprir hoje.
-- Termine com uma frase de foco e alta performance.
-- NÃO use bullet points, asteriscos ou emojis no texto, apenas prosa fluida pontuada para fala natural.
+ESTRUTURA OBRIGATÓRIA DO ÁUDIO NARRADO (3 PILARES):
+1. ABERTURA & PONTOS DE ATENÇÃO:
+   - Comece direto: "Fala {user_name}, briefing executivo de {title}..."
+   - Aponte imediatamente o principal PONTO DE ATENÇÃO ou risco de fechamento/concorrência identificado na conversa.
+2. DETALHES & NUANCES PERCEBIDAS:
+   - Destaque o que foi percebido nas entrelinhas (postura dos decisores, menções a concorrentes como Aktie Now, modelo de pricing FNR ou objeções de telefonia ZCC).
+3. PRÓXIMOS PASSOS & DONOS:
+   - Dicte com clareza cirúrgica as 2 ou 3 ações imediatas com seus respectivos donos e prazos combinados.
+   - Encerramento de alta performance.
 
-Dados da Reunião:
+REGRAS DE FORMATAÇÃO DE VOZ:
+- Texto 100% corrido e pontuado para fala fluida humana.
+- PROIBIDO usar bullet points, números soltos, asteriscos ou emojis no texto.
+
+DADOS DA REUNIÃO:
 Título: {title}
 Resumo: {summary}
 Compromissos: {json.dumps(commitments, ensure_ascii=False)}
-Contas: {json.dumps(accounts, ensure_ascii=False)}
+Contas e Deals: {json.dumps(accounts, ensure_ascii=False)}
 """
 
         response = self.openai_client.chat.completions.create(

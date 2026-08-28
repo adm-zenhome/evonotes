@@ -2867,9 +2867,16 @@
                             <!-- Line-by-Line Date & Time Badge (Click to open DatePicker) -->
                             <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
                                     class="flex items-center gap-1.5 bg-[#f4f5f7] hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer flex-shrink-0 group" 
-                                    title="Clique para abrir o calendário e definir o prazo">
+                                    title="Clique para definir o prazo">
                                 <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs transition"></i>
                                 <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
+                            </button>
+
+                            <!-- 1-Click Google Calendar Sync -->
+                            <button onclick="scheduleTaskInGoogleCalendar(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(t.meeting_title || '')}')" 
+                                    class="w-7 h-7 rounded-xl bg-[#f4f5f7] hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0" 
+                                    title="Agendar no Google Calendar em 1-Clique">
+                                <i class="ph-bold ph-google-logo text-xs"></i>
                             </button>
 
                             <!-- Status Dropdown Menu -->
@@ -3022,6 +3029,53 @@
                     }, 2500);
                 }
             }, 180);
+        }
+
+        
+        // ========== GOOGLE WORKSPACE (GMAIL & CALENDAR) HELPERS ==========
+        async function scheduleTaskInGoogleCalendar(taskId, encodedAction, encodedDeadline, encodedMeeting) {
+            const action = decodeURIComponent(encodedAction);
+            const deadline = decodeURIComponent(encodedDeadline) || 'amanhã 10h';
+            const meeting = decodeURIComponent(encodedMeeting);
+
+            try {
+                const res = await fetch('/api/google/schedule-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: action,
+                        deadline: deadline,
+                        description: `Origem da Reunião: ${meeting}\nResponsável: Felipe Donato\nPrazo Original: ${deadline}`,
+                        attendees: []
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.calendar_url) {
+                    window.open(data.calendar_url, '_blank');
+                }
+            } catch (e) {
+                console.error('Error scheduling in Google Calendar:', e);
+            }
+        }
+
+        async function openGmailCompose(toEmail, subject, bodyText) {
+            try {
+                const res = await fetch('/api/google/compose-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: toEmail,
+                        subject: subject,
+                        body: bodyText
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.compose_url) {
+                    window.open(data.compose_url, '_blank');
+                }
+            } catch (e) {
+                console.error('Error opening Gmail:', e);
+            }
         }
 
         function showTasksCentralView() {

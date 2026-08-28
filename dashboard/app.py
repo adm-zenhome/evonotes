@@ -740,3 +740,31 @@ async def api_resend_prospect_followup(payload: dict = Body(...)):
         
     result = resend_engine.dispatch_prospect_followup(file_id, prospect_name, prospect_email)
     return JSONResponse(result)
+
+
+from ..google_workspace_bridge import google_bridge
+
+@app.post("/api/google/compose-email")
+async def api_google_compose_email(payload: dict = Body(...)):
+    to_email = payload.get("to", "")
+    subject = payload.get("subject", "Follow-up Executivo • EvoNotes")
+    body = payload.get("body", "")
+    
+    compose_url = google_bridge.generate_gmail_compose_url(to_email, subject, body)
+    return JSONResponse({
+        "status": "SUCCESS",
+        "compose_url": compose_url
+    })
+
+@app.post("/api/google/schedule-event")
+async def api_google_schedule_event(payload: dict = Body(...)):
+    title = payload.get("title", "Alinhamento Executivo")
+    deadline_str = payload.get("deadline", "amanhã 10h")
+    description = payload.get("description", "Ação executiva extraída de reunião.")
+    attendees = payload.get("attendees", [])
+    
+    calendar_url = google_bridge.generate_calendar_event_url(title, deadline_str, description, attendees)
+    return JSONResponse({
+        "status": "SUCCESS",
+        "calendar_url": calendar_url
+    })
