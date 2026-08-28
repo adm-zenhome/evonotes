@@ -220,7 +220,7 @@
                         <span>Central de Tarefas</span>
                     </div>
                     <span id="sidebar-pending-tasks-count" class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                        7
+                        {{ my_tasks_count }}
                     </span>
                 </button>
                 <button onclick="filterCategory('Comercial')" class="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-[#0d0d0d] hover:bg-[#ececec] rounded-lg transition text-left">
@@ -2562,7 +2562,7 @@
                 const badgeEl = document.getElementById('sidebar-pending-tasks-count');
                 if (badgeEl) badgeEl.innerText = pendingCount;
 
-                renderTasksList();
+                renderTasksList(); renderHomeMyTasks();
             } catch (e) {
                 console.error('Error loading tasks:', e);
             }
@@ -2594,7 +2594,7 @@
                 activeTab.classList.add('bg-white', 'text-gray-900', 'shadow-xs', 'font-bold');
                 activeTab.classList.remove('text-gray-600');
             }
-            renderTasksList();
+            renderTasksList(); renderHomeMyTasks();
         }
 
         function filterByStakeholder(owner) {
@@ -2606,7 +2606,7 @@
             if (activePill) {
                 activePill.className = 'px-2.5 py-1 rounded-lg bg-black text-white text-[11px] font-semibold transition cursor-pointer';
             }
-            renderTasksList();
+            renderTasksList(); renderHomeMyTasks();
         }
 
         function setTasksGroupMode(mode) {
@@ -2620,7 +2620,50 @@
                 btnList.className = 'px-2.5 py-1 rounded-lg text-gray-600 hover:text-black font-semibold text-[11px] transition cursor-pointer';
                 btnMeeting.className = 'px-2.5 py-1 rounded-lg bg-white text-gray-900 font-bold shadow-xs text-[11px] transition cursor-pointer';
             }
-            renderTasksList();
+            renderTasksList(); renderHomeMyTasks();
+        }
+
+        
+        function renderHomeMyTasks() {
+            const container = document.getElementById('home-my-tasks-list');
+            if (!container) return;
+
+            const myPending = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status === 'PENDING');
+            
+            // Sync sidebar badge
+            const sidebarBadge = document.getElementById('sidebar-pending-tasks-count');
+            if (sidebarBadge) sidebarBadge.innerText = myPending.length;
+
+            const countPill = document.getElementById('my-tasks-count-pill');
+            if (countPill) countPill.innerText = myPending.length;
+
+            if (myPending.length === 0) {
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100/60 text-center text-xs text-emerald-800 font-medium">
+                        ✨ Parabéns! Você não tem nenhuma tarefa pendente sob sua responsabilidade no momento.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = myPending.map(t => `
+                <div class="p-3.5 rounded-2xl bg-gray-50/80 hover:bg-gray-100/80 transition flex items-center justify-between gap-3 group">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 flex items-center justify-center transition cursor-pointer flex-shrink-0">
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-semibold text-gray-900 leading-snug truncate">${t.action}</div>
+                            <div class="text-[10px] text-gray-400 flex items-center gap-2 mt-0.5">
+                                <span>📅 ${t.deadline_or_context || 'Hoje'}</span>
+                                ${t.meeting_title ? `<span>• Origem: ${t.meeting_title}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-bold flex-shrink-0">
+                        Pendente
+                    </span>
+                </div>
+            `).join('');
         }
 
         function renderTasksList() {
@@ -2810,7 +2853,7 @@
                 const badgeEl = document.getElementById('sidebar-pending-tasks-count');
                 if (badgeEl) badgeEl.innerText = pendingCount;
 
-                renderTasksList();
+                renderTasksList(); renderHomeMyTasks();
             } catch (e) {
                 alert('Erro ao atualizar status: ' + e.message);
             }
@@ -2877,7 +2920,7 @@
             try {
                 await fetch(`/api/tasks/${taskId}`, {method: 'DELETE'});
                 currentTasksList = currentTasksList.filter(t => t.id !== taskId);
-                renderTasksList();
+                renderTasksList(); renderHomeMyTasks();
             } catch (e) {
                 alert('Erro ao excluir tarefa: ' + e.message);
             }

@@ -35,11 +35,21 @@ async def home(request: Request):
     meetings = db.get_all_meetings()
     profile = learning_engine.get_or_create_profile("felipe_donato")
     analytics = get_keyword_analytics("felipe_donato")
+    tasks = db.get_all_tasks()
+    
+    my_tasks = [t for t in tasks if "felipe" in (t.get("owner") or "").lower() and t.get("status") == "PENDING"]
+    hours_saved = round((len(meetings) * 45) / 60, 1)
+    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "meetings": meetings,
         "profile": profile,
-        "analytics": analytics
+        "analytics": analytics,
+        "tasks": tasks,
+        "my_tasks": my_tasks,
+        "my_tasks_count": len(my_tasks),
+        "total_meetings_count": len(meetings),
+        "hours_saved": hours_saved
     })
 
 @app.get("/api/meetings")
