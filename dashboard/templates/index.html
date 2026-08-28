@@ -1260,7 +1260,19 @@
             document.getElementById('nav-home').classList.add('bg-[#ececec]', 'font-semibold');
         }
 
+
+        let allPendingKeywordsPool = {{ (analytics.all_pending_terms if analytics and analytics.all_pending_terms is defined else []) | tojson }};
+
         async function voteTerm(term, voteType, cardId) {
+            const card = document.getElementById(`term-card-${cardId}`);
+            
+            // 1. Animate card out immediately
+            if (card) {
+                card.style.transform = 'scale(0.92)';
+                card.style.opacity = '0';
+                card.style.transition = 'all 0.25s ease-out';
+            }
+
             try {
                 const res = await fetch('/api/dashboard/vote-keyword', {
                     method: 'POST',
@@ -1268,23 +1280,69 @@
                     body: JSON.stringify({ term: term, vote: voteType })
                 });
                 const data = await res.json();
+                
                 if (data.status === 'SUCCESS') {
-                    // Update visual state of card
-                    const card = document.getElementById(`term-card-${cardId}`);
-                    if (card) {
-                        if (voteType === 'UP') {
-                            card.className = 'p-3 rounded-xl border border-emerald-500 bg-emerald-50/40 flex items-center justify-between transition-all scale-[1.02] shadow-xs';
-                        } else {
-                            card.className = 'p-3 rounded-xl border border-gray-200 bg-gray-100 opacity-50 flex items-center justify-between transition-all';
-                        }
-                    }
-                    // Refresh keywords profile list if open
-                    currentKeywords = data.analytics.terms.filter(t => t.vote === 'UP').map(t => t.term);
-                    renderKeywordsPills();
+                    // Update global pool
+                    allPendingKeywordsPool = data.analytics.all_pending_terms;
+                    
+                    // Re-render the keyword grid with fresh candidates
+                    setTimeout(() => {
+                        renderDynamicTermsGrid(data.analytics.terms);
+                    }, 250);
                 }
             } catch (e) {
                 console.error('Error voting:', e);
+                if (card) {
+                    card.style.transform = 'scale(1)';
+                    card.style.opacity = '1';
+                }
             }
+        }
+
+        function renderDynamicTermsGrid(terms) {
+            const grid = document.getElementById('terms-training-grid');
+            if (!grid) return;
+
+            if (!terms || terms.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full p-6 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 text-center space-y-1">
+                        <div class="text-xs font-bold text-emerald-900">✨ Vocabulário 100% Calibrado!</div>
+                        <div class="text-[11px] text-emerald-700">A IA aprendeu todas as menções das reuniões recentes. Novas sugestões surgirão conforme novos áudios chegarem.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = terms.map((t, idx) => {
+                const cardIndex = idx + 1;
+                const isTrained = t.vote === 'UP';
+                const isDiscarded = t.vote === 'DOWN';
+
+                let cardStyle = 'bg-[#f8f9fa] hover:bg-[#f2f4f7]';
+                if (isTrained) cardStyle = 'bg-emerald-50/70 text-emerald-950';
+                else if (isDiscarded) cardStyle = 'bg-gray-100/60 opacity-50';
+
+                return `
+                    <div class="p-3.5 rounded-2xl border-0 ${cardStyle} flex items-center justify-between transition-all duration-300 animate-fade-in" id="term-card-${cardIndex}">
+                        <div class="truncate pr-2">
+                            <div class="text-xs font-bold text-gray-900 truncate flex items-center gap-1.5">
+                                <span class="${isDiscarded ? 'line-through text-gray-400' : ''}">${t.term}</span>
+                                ${isTrained ? '<span class="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-200/80 text-emerald-800 font-bold">Treinado</span>' : ''}
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5 truncate">${t.category || (t.count + 'x falado nas reuniões')}</div>
+                        </div>
+
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button onclick="voteTerm('${t.term}', 'UP', ${cardIndex})" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-emerald-100 text-gray-400 hover:text-emerald-700 ${isTrained ? 'text-emerald-700 bg-emerald-100' : ''} transition cursor-pointer" title="Priorizar no Modelo (👍)">
+                                <i class="ph-bold ph-thumbs-up text-xs"></i>
+                            </button>
+                            <button onclick="voteTerm('${t.term}', 'DOWN', ${cardIndex})" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-100 text-gray-400 hover:text-red-600 ${isDiscarded ? 'text-red-700 bg-red-100' : ''} transition cursor-pointer" title="Descartar / Ruído (👎)">
+                                <i class="ph-bold ph-thumbs-down text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function openLinkSourceModal() {
