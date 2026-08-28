@@ -1389,7 +1389,7 @@
                 closeLinkSourceModal();
                 loadMeetingSources(currentMeetingId);
             } catch (e) {
-                alert('Erro ao conectar fonte: ' + e.message);
+                showInAppToast('Erro ao conectar fonte: ' + e.message, 'error')
             }
         }
 
@@ -1520,7 +1520,7 @@
                     renderKeywordsPills();
                 }
             } catch (e) {
-                alert(`Erro ao adicionar: ${e.message}`);
+                showInAppToast(`Erro ao adicionar: ${e.message}`, 'error')
             }
         }
 
@@ -1537,7 +1537,7 @@
                     renderKeywordsPills();
                 }
             } catch (e) {
-                alert(`Erro ao remover: ${e.message}`);
+                showInAppToast(`Erro ao remover: ${e.message}`, 'error')
             }
         }
 
@@ -1586,7 +1586,7 @@
         }
 
         function triggerPillAction(name) {
-            alert(`✨ Ação de 1-Click disparada para: ${name}!\nDados sincronizados com o banco de dados.`);
+            showInAppToast(`✨ Ação de 1-Click disparada para: ${name}!\nDados sincronizados com o banco de dados.`, 'info')
         }
 
         function updateModelSelection() {
@@ -1935,11 +1935,11 @@
                     renderAudioPlayer(fileId);
                     setTimeout(() => { toggleAudioBriefing(); }, 300);
                 } else {
-                    alert('Erro: ' + (data.detail || 'Falha'));
+                    showInAppToast('Erro: ' + (data.detail || 'Falha'), 'error')
                     renderGenerateAudioButton(fileId);
                 }
             } catch (e) {
-                alert('Erro ao conectar com ElevenLabs: ' + e.message);
+                showInAppToast('Erro ao conectar com ElevenLabs: ' + e.message, 'error')
                 renderGenerateAudioButton(fileId);
             }
         }
@@ -2052,10 +2052,10 @@
 
                     closeRenameModal();
                 } else {
-                    alert('Erro ao renomear: ' + (data.detail || 'Falha'));
+                    showInAppToast('Erro ao renomear: ' + (data.detail || 'Falha'), 'error')
                 }
             } catch (e) {
-                alert('Erro na requisição: ' + e.message);
+                showInAppToast('Erro na requisição: ' + e.message, 'error')
             }
         }
 
@@ -2067,9 +2067,9 @@
             try {
                 const res = await fetch(`/api/open-in-obsidian/${activeContextFileId}`, { method: 'POST' });
                 const data = await res.json();
-                if (data.status !== 'SUCCESS') alert('Erro ao abrir Obsidian: ' + (data.detail || 'Falha'));
+                if (data.status !== 'SUCCESS') showInAppToast('Erro ao abrir Obsidian: ' + (data.detail || 'Falha'), 'error')
             } catch (e) {
-                alert('Erro ao conectar com Obsidian: ' + e.message);
+                showInAppToast('Erro ao conectar com Obsidian: ' + e.message, 'error')
             }
         }
 
@@ -2081,9 +2081,9 @@
             try {
                 const res = await fetch(`/api/open-in-finder/${activeContextFileId}`, { method: 'POST' });
                 const data = await res.json();
-                if (data.status !== 'SUCCESS') alert('Erro ao abrir Finder: ' + (data.detail || 'Falha'));
+                if (data.status !== 'SUCCESS') showInAppToast('Erro ao abrir Finder: ' + (data.detail || 'Falha'), 'error')
             } catch (e) {
-                alert('Erro ao conectar com Finder: ' + e.message);
+                showInAppToast('Erro ao conectar com Finder: ' + e.message, 'error')
             }
         }
 
@@ -2095,7 +2095,7 @@
             const m = meetingsData.find(item => item.file_id === activeContextFileId);
             if (m && m.intelligence && m.intelligence.executive_summary) {
                 navigator.clipboard.writeText(m.intelligence.executive_summary);
-                alert('Síntese executiva copiada para a área de transferência!');
+                showInAppToast('📋 Síntese copiada para a área de transferência!', 'success');
             }
         }
 
@@ -2233,12 +2233,12 @@
         
 
                     }
-                    alert('🗑️ Gravação excluída com sucesso!');
+                    showInAppToast('🗑️ Gravação excluída com sucesso!', 'info');
                 } else {
-                    alert('Erro ao excluir: ' + (data.detail || 'Falha'));
+                    showInAppToast('Erro ao excluir: ' + (data.detail || 'Falha'), 'error')
                 }
             } catch (e) {
-                alert('Erro ao excluir: ' + e.message);
+                showInAppToast('Erro ao excluir: ' + e.message, 'error')
             }
         }
 
@@ -2397,7 +2397,7 @@ ${transcriptText}
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
             navigator.clipboard.writeText(m.transcription || m.transcript || m.transcript_full || '');
-            alert('📋 Transcrição completa copiada para a área de transferência!');
+            showInAppToast('📋 Transcrição completa copiada!', 'success');
         }
 
         function renderMeetingContent() {
@@ -2601,12 +2601,12 @@ ${transcriptText}
                 const res = await fetch('/api/open-in-finder/' + currentMeetingId, { method: 'POST' });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    alert('📂 ' + data.message + '\nCaminho: ' + data.path);
+                    showInAppToast('📂 ' + data.message + '\nCaminho: ' + data.path, 'info')
                 } else {
-                    alert('Erro: ' + data.detail);
+                    showInAppToast('Erro: ' + data.detail, 'error')
                 }
             } catch (e) {
-                alert('Erro ao abrir na Mesa: ' + e.message);
+                showInAppToast('Erro ao abrir na Mesa: ' + e.message, 'error')
             }
         }
 
@@ -2726,7 +2726,7 @@ ${transcriptText}
                             ${marked.parse(rawMarkdown)}
                         </div>
                         <div class="flex items-center gap-2 pt-2 border-t border-gray-100 text-gray-400">
-                            <button onclick="navigator.clipboard.writeText(\`${rawMarkdown.replace(/`/g, '\\`')}\`); alert('Copiado!');" class="p-1.5 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition" title="Copiar"><i class="ph ph-copy text-sm"></i></button>
+                            <button onclick="navigator.clipboard.writeText(\`${rawMarkdown.replace(/`/g, '\\`')}\`); showInAppToast('📋 Copiado!', 'success');" class="p-1.5 text-gray-400 hover:text-black hover:bg-gray-100 rounded-full transition" title="Copiar"><i class="ph ph-copy text-sm"></i></button>
                         </div>
                     </div>
                 `;
@@ -2736,7 +2736,7 @@ ${transcriptText}
             } catch (e) {
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
-                alert(`Erro ao processar: ${e.message}`);
+                showInAppToast(`Erro ao processar: ${e.message}`, 'error')
             }
         }
 
@@ -2779,7 +2779,7 @@ ${transcriptText}
         function copyCurrentSummary() {
             const text = document.getElementById('assistant-summary-box').innerText;
             navigator.clipboard.writeText(text);
-            alert('Relatório copiado para a área de transferência!');
+            showInAppToast('📋 Relatório copiado!', 'success');
         }
 
         function filterCategory(cat) {
@@ -2961,11 +2961,11 @@ ${transcriptText}
                         if (btn) btn.disabled = false;
                     }, 3000);
                 } else {
-                    alert('Erro na sincronização: ' + (data.detail || 'Falha'));
+                    showInAppToast('Erro na sincronização: ' + (data.detail || 'Falha'), 'error');
                     resetSyncBtn();
                 }
             } catch (e) {
-                alert('Erro ao conectar com o Plaud: ' + e.message);
+                showInAppToast('Erro na conexão com Plaud: ' + e.message, 'error');
                 resetSyncBtn();
             }
         }
@@ -3017,7 +3017,7 @@ ${transcriptText}
         async function savePlaudAccount() {
             const email = document.getElementById('plaud-email-input').value.trim();
             if (!email) {
-                alert('Digite um e-mail ou token válido');
+                showInAppToast('Digite um e-mail ou token válido', 'info')
                 return;
             }
             try {
@@ -3027,9 +3027,9 @@ ${transcriptText}
                     body: JSON.stringify({email: email})
                 });
                 const data = await res.json();
-                alert(data.message || 'Conta Plaud atualizada!');
+                showInAppToast(data.message || 'Conta Plaud atualizada!', 'info')
             } catch (e) {
-                alert('Erro ao salvar conta: ' + e.message);
+                showInAppToast('Erro ao salvar conta: ' + e.message, 'error')
             }
         }
 
@@ -3402,7 +3402,7 @@ ${transcriptText}
 
                 renderTasksList(); renderHomeMyTasks();
             } catch (e) {
-                alert('Erro ao atualizar status: ' + e.message);
+                showInAppToast('Erro ao atualizar status: ' + e.message, 'error')
             }
         }
 
@@ -3458,7 +3458,7 @@ ${transcriptText}
                 actionInput.value = '';
                 await loadAndRenderTasks(currentTaskFilter);
             } catch (e) {
-                alert('Erro ao criar tarefa: ' + e.message);
+                showInAppToast('Erro ao criar tarefa: ' + e.message, 'error')
             }
         }
 
@@ -3469,7 +3469,7 @@ ${transcriptText}
                 currentTasksList = currentTasksList.filter(t => t.id !== taskId);
                 renderTasksList(); renderHomeMyTasks();
             } catch (e) {
-                alert('Erro ao excluir tarefa: ' + e.message);
+                showInAppToast('Erro ao excluir tarefa: ' + e.message, 'error')
             }
         }
 
@@ -3890,7 +3890,7 @@ ${transcriptText}
             if (currentExecTaskId) {
                 changeTaskStatusDirect(currentExecTaskId, 'DONE');
                 setTimeout(() => {
-                    alert('✨ Áudio processado e tarefa marcada como Concluída no seu histórico!');
+                    showInAppToast('✨ Áudio processado e tarefa marcada como Concluída no seu histórico!', 'info')
                     closeExecuteTaskModal();
                 }, 800);
             }
@@ -3980,7 +3980,7 @@ _Enviado via EvoNotes OS_`);
         function checkWhatsAppStatus() {
             const menu = document.getElementById('sync-sources-menu');
             if (menu) menu.classList.add('hidden');
-            alert('📱 WhatsApp Voice Ingest está ATIVO!\nInstância Z-API conectada e pronta para receber áudios.');
+            showInAppToast('📱 WhatsApp Voice Ingest está ATIVO!\nInstância Z-API conectada e pronta para receber áudios.', 'info')
         }
 
 
@@ -4256,7 +4256,7 @@ _Enviado via EvoNotes OS_`);
                 });
                 renderMeetingContent();
             } catch (e) {
-                alert('Erro ao salvar participante: ' + e.message);
+                showInAppToast('Erro ao salvar participante: ' + e.message, 'error')
             }
         }
 
@@ -4312,7 +4312,7 @@ _Enviado via EvoNotes OS_`);
 
                 document.getElementById('stakeholder-360-modal').classList.remove('hidden');
             } catch (e) {
-                alert('Erro ao carregar dossiê: ' + e.message);
+                showInAppToast('Erro ao carregar dossiê: ' + e.message, 'error')
             }
         }
 
@@ -4324,7 +4324,7 @@ _Enviado via EvoNotes OS_`);
             const input = document.getElementById('stk-referral-input');
             input.select();
             navigator.clipboard.writeText(input.value);
-            alert('🔗 Link de Indicação B2B copiado com sucesso!\n' + input.value);
+            showInAppToast('🔗 Link de Indicação B2B copiado com sucesso!\n' + input.value, 'success')
         }
 
         function generateCustomFollowupForStakeholder() {
@@ -4471,9 +4471,9 @@ Felipe Donato`);
                     body: JSON.stringify({ api_key: apiKey, from_email: fromEmail, executive_email: execEmail })
                 });
                 const data = await res.json();
-                alert(data.message || 'Configurações salvas!');
+                showInAppToast(data.message || 'Configurações salvas!', 'info')
             } catch (e) {
-                alert('Erro ao salvar: ' + e.message);
+                showInAppToast('Erro ao salvar: ' + e.message, 'error')
             }
         }
 
@@ -4487,14 +4487,14 @@ Felipe Donato`);
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    alert('✅ E-mail de Fechamento Diário disparado com sucesso via Resend!');
+                    showInAppToast('✅ E-mail de Fechamento Diário disparado com sucesso via Resend!', 'success')
                 } else if (data.status === 'SIMULATED') {
-                    alert('ℹ️ Modo Preview: E-mail gerado em HTML no disco (adicione sua RESEND_API_KEY para envio real).');
+                    showInAppToast('ℹ️ Modo Preview: E-mail gerado em HTML no disco (adicione sua RESEND_API_KEY para envio real).', 'info')
                 } else {
-                    alert('Erro: ' + (data.detail || 'Falha no disparo'));
+                    showInAppToast('Erro: ' + (data.detail || 'Falha no disparo'), 'error')
                 }
             } catch (e) {
-                alert('Erro ao disparar: ' + e.message);
+                showInAppToast('Erro ao disparar: ' + e.message, 'error')
             }
         }
 
@@ -4517,7 +4517,7 @@ Felipe Donato`);
             const email = document.getElementById('prospect-send-email').value.trim();
 
             if (!email) {
-                alert('Por favor, digite o e-mail do prospect.');
+                showInAppToast('Por favor, digite o e-mail do prospect.', 'info')
                 return;
             }
 
@@ -4533,16 +4533,16 @@ Felipe Donato`);
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    alert(`✅ E-mail de Follow-up enviado com sucesso para ${name} (${email}) via Resend!`);
+                    showInAppToast(`✅ E-mail de Follow-up enviado com sucesso para ${name} (${email}) via Resend!`, 'success')
                     closeProspectEmailModal();
                 } else if (data.status === 'SIMULATED') {
-                    alert(`ℹ️ Modo Preview: E-mail formatado gerado em HTML no disco (adicione sua RESEND_API_KEY para disparo em produção).`);
+                    showInAppToast(`ℹ️ Modo Preview: E-mail formatado gerado em HTML no disco (adicione sua RESEND_API_KEY para disparo em produção).`, 'info')
                     closeProspectEmailModal();
                 } else {
-                    alert('Erro: ' + (data.detail || 'Falha ao enviar'));
+                    showInAppToast('Erro: ' + (data.detail || 'Falha ao enviar'), 'error')
                 }
             } catch (e) {
-                alert('Erro ao conectar: ' + e.message);
+                showInAppToast('Erro ao conectar: ' + e.message, 'error')
             }
         }
 

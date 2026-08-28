@@ -162,17 +162,17 @@ async def api_sync_plaud(payload: dict = Body(default={})):
                 ]
             }
             
-            db.save_meeting(
-                file_id=fid,
-                title=rec["title"],
-                category=rec["category"],
-                start_time=rec["start_time"],
-                duration_seconds=rec["duration"],
-                executive_summary=rec["executive_summary"],
-                intelligence=intel,
-                audio_path=str(target_raw),
-                transcription=f"Transcrição sincronizada do Plaud Note Pro para {rec['title']}."
-            )
+            db.save_meeting({
+                "file_id": fid,
+                "title": rec["title"],
+                "category": rec["category"],
+                "start_time": rec["start_time"],
+                "duration_seconds": rec["duration"],
+                "executive_summary": rec["executive_summary"],
+                "intelligence": intel,
+                "audio_path": str(target_raw),
+                "transcription": f"Transcrição sincronizada do Plaud Note Pro para {rec['title']}."
+            })
             synced_count += 1
 
     refreshed_meetings = db.get_all_meetings()
