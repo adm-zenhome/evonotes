@@ -162,10 +162,9 @@ async def api_remove_keyword(payload: dict = Body(...)):
 
 @app.get("/api/audio-briefing-status/{file_id}")
 async def api_audio_briefing_status(file_id: str):
-    audio_path = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
-    exists = audio_path.exists() and audio_path.stat().st_size > 1000
-    
     versions_file = AUDIO_BRIEFING_DIR / f"{file_id}_versions.json"
+    audio_path = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
+    
     versions = []
     if versions_file.exists():
         try:
@@ -174,21 +173,14 @@ async def api_audio_briefing_status(file_id: str):
         except Exception:
             versions = []
             
-    if not versions and exists:
-        versions = [{
-            "version": 1,
-            "filename": f"{file_id}_briefing.mp3",
-            "created_at": "Take 1",
-            "url": f"/api/audio-briefing/{file_id}?v=1",
-            "is_latest": True
-        }]
-        
+    has_audio = len(versions) > 0 and audio_path.exists() and audio_path.stat().st_size > 1000
+    
     return JSONResponse({
         "file_id": file_id,
-        "has_audio": exists,
+        "has_audio": has_audio,
         "total_versions": len(versions),
         "versions": versions,
-        "audio_url": f"/api/audio-briefing/{file_id}" if exists else None
+        "audio_url": f"/api/audio-briefing/{file_id}" if has_audio else None
     })
 
 @app.get("/api/audio-briefing/{file_id}")
@@ -798,4 +790,54 @@ async def api_google_schedule_event(payload: dict = Body(...)):
     return JSONResponse({
         "status": "SUCCESS",
         "calendar_url": calendar_url
+    })
+
+
+@app.get("/api/meetings/{file_id}/audio-director-options")
+async def api_audio_director_options(file_id: str):
+    meeting = db.get_meeting(file_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+        
+    title = meeting.get("title", "")
+    intel = meeting.get("intelligence", {})
+    participants = [p.get("name") for p in intel.get("participants", []) if p.get("name") and p.get("name") != "Felipe Donato"]
+    accounts = [a.get("account_name") for a in intel.get("accounts_discussed", []) if a.get("account_name")]
+    main_person = participants[0] if participants else "Stakeholders"
+    main_account = accounts[0] if accounts else "Conta Enterprise"
+
+    # 5 Context-specific options tailored to THIS meeting
+    options = [
+        {
+            "title": f"🎯 Foco em MEDDPICC & Fechamento ({main_account})",
+            "subtitle": f"Métricas, Decisor Econômico e Processo de Compra da {main_account}",
+            "prompt": f"Estruture o áudio dissecando estritamente Métricas, Decisor Econômico, Processo de Compra e Critérios de Decisão (MEDDPICC) para a conta {main_account} com base nesta reunião."
+        },
+        {
+            "title": f"🚨 Dossiê de Objeções & Concorrência",
+            "subtitle": f"Resistências levantadas por {main_person} e riscos do deal",
+            "prompt": f"Foque detalhadamente nas objeções e resistências levantadas por {main_person}, menções a concorrentes e riscos de fechamento identificados nesta conversa."
+        },
+        {
+            "title": "💡 Pricing, FNR & Margem Comercial",
+            "subtitle": "Valores discutidos, modelo de concessão de desconto e ROI",
+            "prompt": f"Analise a negociação de valores desta reunião, modelo de precificação, margem comercial e estratégia de proposta para avançar."
+        },
+        {
+            "title": f"✉️ Rascunho de E-mail para {main_person}",
+            "subtitle": f"Briefing narrado do e-mail de follow-up pronto para envio",
+            "prompt": f"Gere uma narração executiva do rascunho de e-mail de follow-up que deve ser enviado para {main_person} com os alinhamentos e próximos passos acordados."
+        },
+        {
+            "title": "📌 Plano de Ação & Cobrança (24h / 7d)",
+            "subtitle": f"Distribuição de tarefas entre Felipe Donato e {main_person}",
+            "prompt": f"Foque 100% nas tarefas imediatas, quem é o dono de cada ação entre Felipe Donato e {main_person} e os prazos combinados sem enrolação."
+        }
+    ]
+
+    return JSONResponse({
+        "status": "SUCCESS",
+        "file_id": file_id,
+        "meeting_title": title,
+        "options": options
     })

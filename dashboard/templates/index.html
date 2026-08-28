@@ -1846,11 +1846,43 @@
         
         let targetAudioGenerationMeetingId = null;
 
-        function openAudioDirectorModal(fileId) {
+
+        // targetAudioGenerationMeetingId already declared
+
+        async function openAudioDirectorModal(fileId) {
             targetAudioGenerationMeetingId = fileId || currentMeetingId;
             document.getElementById('audio-director-custom-input').value = '';
+            
+            const pillsContainer = document.getElementById('audio-director-pills-container');
+            if (pillsContainer) {
+                pillsContainer.innerHTML = `
+                    <div class="col-span-full p-4 text-center text-xs text-gray-400">
+                        <i class="ph-bold ph-spinner animate-spin text-emerald-600"></i> Carregando sugestões personalizadas da reunião...
+                    </div>
+                `;
+            }
+
             document.getElementById('audio-director-modal').classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/meetings/${targetAudioGenerationMeetingId}/audio-director-options`);
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.options && pillsContainer) {
+                    pillsContainer.innerHTML = data.options.map(opt => `
+                        <button onclick="setAudioDirectorPrompt('${opt.prompt.replace(/'/g, "\'")}')" 
+                                class="p-2.5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-left transition group cursor-pointer shadow-2xs">
+                            <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-950 flex items-center gap-1.5 truncate">
+                                <span class="truncate">${opt.title}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-0.5 leading-tight truncate">${opt.subtitle}</div>
+                        </button>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error('Error loading audio options:', e);
+            }
         }
+
 
         function closeAudioDirectorModal() {
             document.getElementById('audio-director-modal').classList.add('hidden');
@@ -4532,7 +4564,7 @@ Felipe Donato`);
             <!-- 5 Strategic Quick Direction Pills -->
             <div class="space-y-2">
                 <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Sugestões Contextuais Prontas (1-Clique):</label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="audio-director-pills-container">
                     <button onclick="setAudioDirectorPrompt('Estruture o áudio dissecando estritamente Métricas, Decisor Econômico, Processo e Critérios de Decisão (MEDDPICC) e BANT.')" 
                             class="p-2.5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-left transition group cursor-pointer shadow-2xs">
                         <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-950 flex items-center gap-1.5">
