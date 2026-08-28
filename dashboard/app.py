@@ -661,3 +661,16 @@ async def api_resend_save_config(payload: dict = Body(...)):
         os.environ["EXECUTIVE_EMAIL"] = exec_email
         
     return JSONResponse({"status": "SUCCESS", "message": "Configurações do Resend salvas com sucesso!"})
+
+
+@app.post("/api/resend/send-prospect-followup")
+async def api_resend_prospect_followup(payload: dict = Body(...)):
+    file_id = payload.get("file_id")
+    prospect_name = payload.get("prospect_name", "Cliente")
+    prospect_email = payload.get("prospect_email", "").strip()
+    
+    if not prospect_email:
+        raise HTTPException(status_code=400, detail="E-mail do prospect é obrigatório")
+        
+    result = resend_engine.dispatch_prospect_followup(file_id, prospect_name, prospect_email)
+    return JSONResponse(result)

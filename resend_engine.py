@@ -244,4 +244,102 @@ class ResendNotificationEngine:
 
         return self.send_email(to_email, subject, html)
 
+
+    def dispatch_prospect_followup(self, file_id: str, prospect_name: str, prospect_email: str, custom_message: Optional[str] = None) -> Dict[str, Any]:
+        """Sends professional executive follow-up email directly to a prospect/client via Resend."""
+        meeting = db.get_meeting(file_id)
+        if not meeting:
+            return {"status": "ERROR", "detail": "Meeting not found"}
+
+        title = meeting.get("title", "Alinhamento Estratégico")
+        intel = meeting.get("intelligence", {})
+        summary = intel.get("executive_summary", "")
+        commitments = intel.get("commitments_and_promises", [])
+
+        # Filter tasks relevant to this prospect
+        relevant_tasks = [c for c in commitments if prospect_name.lower() in c.get("owner", "").lower()]
+        other_tasks = [c for c in commitments if prospect_name.lower() not in c.get("owner", "").lower()]
+
+        tasks_html = ""
+        if relevant_tasks:
+            tasks_html += "<div style='margin-top: 15px; padding: 14px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;'>"
+            tasks_html += f"<h4 style='margin: 0 0 8px 0; font-size: 13px; color: #166534;'>🎯 Seus Próximos Passos ({prospect_name}):</h4>"
+            for t in relevant_tasks:
+                tasks_html += f"<div style='font-size: 12px; color: #15803d; margin-bottom: 6px;'>• {t.get('action')} <span style='background: #dcfce7; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>📅 {t.get('deadline_or_context', 'A combinar')}</span></div>"
+            tasks_html += "</div>"
+
+        if other_tasks:
+            tasks_html += "<div style='margin-top: 12px; padding: 14px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;'>"
+            tasks_html += "<h4 style='margin: 0 0 8px 0; font-size: 13px; color: #334155;'>📌 Próximos Passos do Nosso Lado:</h4>"
+            for t in other_tasks[:3]:
+                tasks_html += f"<div style='font-size: 12px; color: #475569; margin-bottom: 6px;'>• <b>{t.get('owner', 'Felipe')}:</b> {t.get('action')} <span style='background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>📅 {t.get('deadline_or_context', 'Em breve')}</span></div>"
+            tasks_html += "</div>"
+
+        # Viral Affiliate Join Link for the Prospect
+        clean_slug = prospect_name.lower().replace(" ", "-")
+        invite_link = f"https://zflow.tech/evonotes?ref=felipe_donato&invited_to={clean_slug}"
+        ml_hardware_link = "https://lista.mercadolivre.com.br/plaud-note-pro"
+
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 30px 15px;">
+            <div style="max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); padding: 32px; border: 1px solid #eaeaea;">
+                
+                <!-- Header -->
+                <div style="border-bottom: 1px solid #f0f0f0; padding-bottom: 16px; margin-bottom: 20px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #059669; text-transform: uppercase; background: #ecfdf5; padding: 4px 8px; border-radius: 6px; display: inline-block;">
+                        🤝 Follow-up Executivo • Resumo & Próximos Passos
+                    </div>
+                    <h2 style="font-size: 18px; font-weight: 800; color: #111827; margin: 12px 0 4px 0;">{title}</h2>
+                    <p style="font-size: 12px; color: #6b7280; margin: 0;">Enviado por Felipe Donato via EvoNotes OS</p>
+                </div>
+
+                <!-- Personal greeting -->
+                <p style="font-size: 13px; color: #374151; line-height: 1.6; margin-bottom: 16px;">
+                    Olá <b>{prospect_name}</b>, tudo bem?<br/>
+                    Obrigado pelo tempo na nossa conversa. Conforme combinamos, segue o alinhamento executivo com as decisões e prazos definidos:
+                </p>
+
+                <!-- Summary Box -->
+                <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.05em;">💡 Síntese das Decisões:</h4>
+                    <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #374151;">{summary}</p>
+                </div>
+
+                {tasks_html}
+
+                <!-- Closing -->
+                <p style="font-size: 13px; color: #374151; line-height: 1.6; margin-top: 20px;">
+                    Fico à disposição para qualquer dúvida. Um abraço,<br/>
+                    <b>Felipe Donato</b>
+                </p>
+
+                <!-- Viral Footer for Prospect with 25% Affiliate & Hardware -->
+                <div style="margin-top: 32px; padding: 18px; background: #f8fafc; border-radius: 14px; border: 1px dashed #cbd5e1; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+                        🎙️ Síntese gerada automaticamente pelo EvoNotes OS
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; margin-bottom: 12px;">
+                        Capture reuniões presenciais e ligações MagSafe sem digitar atas.
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                        <a href="{invite_link}" style="display: inline-block; background: #10b981; color: #000; font-size: 11px; font-weight: 700; text-decoration: none; padding: 8px 16px; border-radius: 20px;">
+                            Criar Conta VIP Grátis ➔
+                        </a>
+                        <a href="{ml_hardware_link}" style="display: inline-block; background: #ffe600; color: #111; font-size: 11px; font-weight: 700; text-decoration: none; padding: 8px 16px; border-radius: 20px;">
+                            Comprar Plaud Note Pro no ML ↗
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </body>
+        </html>
+        """
+
+        subject = f"🤝 Follow-up & Próximos Passos: {title}"
+        return self.send_email(prospect_email, subject, html)
+
 resend_engine = ResendNotificationEngine()
