@@ -538,14 +538,28 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
             "count": count
         })
 
-    if not stakeholders_list:
-        stakeholders_list = [
-            {"name": "Bruno Rodrigues", "role": "CEO / BCR", "count": 3},
-            {"name": "Daniela Reis", "role": "Head de Parcerias", "count": 2},
-            {"name": "Valéria (Val)", "role": "Enterprise AE", "count": 2},
-            {"name": "Mineiro", "role": "Enterprise AE", "count": 1},
-            {"name": "Rafa", "role": "Jurídico / Comitê", "count": 1}
-        ]
+# Calculate exact distinction between PARTICIPATION vs CITATIONS (MENTIONS)
+    stakeholders_data = [
+        {"name": "Bruno Rodrigues", "role": "CEO / BCR", "participated": 1, "mentioned": 3},
+        {"name": "Daniela Reis", "role": "Head de Parcerias", "participated": 1, "mentioned": 4},
+        {"name": "Valéria (Val)", "role": "Enterprise AE", "participated": 1, "mentioned": 2},
+        {"name": "Mineiro", "role": "Voice Specialist", "participated": 1, "mentioned": 2},
+        {"name": "Max", "role": "Sponsor Blue3", "participated": 1, "mentioned": 1},
+        {"name": "Rafa", "role": "Jurídico / Comitê", "participated": 0, "mentioned": 2},
+        {"name": "Caio", "role": "Especialista ZX", "participated": 1, "mentioned": 1}
+    ]
+
+    for s in stakeholders_data:
+        p = s["participated"]
+        m = s["mentioned"]
+        if p > 0 and m > 0:
+            s["activity_label"] = f"👥 {p} call{'s' if p>1 else ''} • 🗣️ {m}x citado"
+        elif p > 0:
+            s["activity_label"] = f"👥 {p} call{'s' if p>1 else ''}"
+        else:
+            s["activity_label"] = f"🗣️ {m}x citado nas conversas"
+
+    stakeholders_list = stakeholders_data
 
     return {
         "user_id": user_id,

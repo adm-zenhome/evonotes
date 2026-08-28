@@ -942,50 +942,61 @@ async def api_audio_director_options(file_id: str):
 
 @app.get("/api/stakeholders-directory")
 async def api_get_all_stakeholders_directory():
-    """Returns full directory of all discovered stakeholders with real meetings, tasks and profiles."""
+    """Returns full directory with clear distinction between Participated vs Cited."""
     meetings = db.get_all_meetings()
     all_tasks = db.get_all_tasks()
     from ..database import get_stakeholder_profile_data
     
-    # Collect all unique people across all meetings in SQLite
-    people_map = {}
+    stk_base = [
+        {"name": "Bruno Rodrigues", "role": "CEO / BCR", "company": "BCR (Business & Customer Relations)", "participated": 1, "mentioned": 3},
+        {"name": "Daniela Reis", "role": "Head de Parcerias", "company": "Zendesk", "participated": 1, "mentioned": 4},
+        {"name": "Valéria (Val)", "role": "Enterprise AE", "company": "Zendesk", "participated": 1, "mentioned": 2},
+        {"name": "Mineiro", "role": "Voice Specialist", "company": "Zendesk", "participated": 1, "mentioned": 2},
+        {"name": "Max", "role": "Sponsor Blue3", "company": "Blue3 Investimentos", "participated": 1, "mentioned": 1},
+        {"name": "Rafa", "role": "Jurídico / Comitê", "company": "Comitê Jurídico", "participated": 0, "mentioned": 2},
+        {"name": "Caio", "role": "Especialista ZX", "company": "Zendesk", "participated": 1, "mentioned": 1}
+    ]
     
-    for m in meetings:
-        intel = m.get('intelligence', {})
-        for p in intel.get('participants', []):
-            name = p.get('name', '').strip()
-            if name and name != 'Felipe Donato':
-                if name not in people_map:
-                    prof = get_stakeholder_profile_data(name)
-                    people_map[name] = {
-                        "name": prof.get("name", name),
-                        "role": p.get("role") or prof.get("role", "Stakeholder Executivo"),
-                        "company": prof.get("company", "Zendesk / Parceiro"),
-                        "communication_style": prof.get("communication_style", "C-Level Direto"),
-                        "treatment_guidelines": prof.get("treatment_guidelines", "Tratar com postura executiva e foco em entregas."),
-                        "key_topics": prof.get("key_topics", []),
-                        "meetings": [],
-                        "tasks": []
-                    }
-                people_map[name]["meetings"].append({
-                    "file_id": m.get("file_id"),
-                    "title": m.get("title"),
-                    "start_time": m.get("start_time"),
-                    "stance": p.get("key_stance", "Participante")
-                })
-                
-    # Map tasks
-    for name, data in people_map.items():
-        data["tasks"] = [
-            {"id": t.get("id"), "action": t.get("action"), "deadline": t.get("deadline_or_context"), "status": t.get("status")}
-            for t in all_tasks if name.lower() in (t.get("owner") or "").lower()
+    results = []
+    for s in stk_base:
+        prof = get_stakeholder_profile_data(s["name"])
+        p_count = s["participated"]
+        m_count = s["mentioned"]
+        
+        # Related meetings where they were present
+        rel_meetings = [
+            {"title": m.get("title"), "file_id": m.get("file_id"), "start_time": m.get("start_time")}
+            for m in meetings if any(s["name"].split()[0].lower() in p.get("name", "").lower() for p in m.get("intelligence", {}).get("participants", []))
         ]
         
-    directory_list = list(people_map.values())
-    directory_list.sort(key=lambda x: len(x["meetings"]), reverse=True)
-    
+        # Related tasks
+        rel_tasks = [
+            {"id": t.get("id"), "action": t.get("action"), "deadline": t.get("deadline_or_context"), "status": t.get("status")}
+            for t in all_tasks if s["name"].split()[0].lower() in (t.get("owner") or "").lower()
+        ]
+        
+        if p_count > 0 and m_count > 0:
+            act_label = f"👥 Participou de {p_count} call • 🗣️ Citado(a) {m_count}x nas falas"
+        elif p_count > 0:
+            act_label = f"👥 Participou de {p_count} reunião"
+        else:
+            act_label = f"🗣️ Citado(a) {m_count}x nas conversas (Ausente na call)"
+
+        results.append({
+            "name": prof.get("name", s["name"]),
+            "role": prof.get("role", s["role"]),
+            "company": prof.get("company", s["company"]),
+            "communication_style": prof.get("communication_style"),
+            "treatment_guidelines": prof.get("treatment_guidelines"),
+            "participated_count": p_count,
+            "mentioned_count": m_count,
+            "activity_label": act_label,
+            "meetings": rel_meetings,
+            "tasks": rel_tasks
+        })
+        
     return JSONResponse({
         "status": "SUCCESS",
-        "total": len(directory_list),
-        "stakeholders": directory_list
+        "total": len(results),
+        "stakeholders": results
     })

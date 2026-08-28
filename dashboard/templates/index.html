@@ -476,7 +476,7 @@
                                 </div>
                                 <div class="truncate">
                                     <div class="text-xs font-bold text-gray-900 truncate group-hover:text-emerald-700">{{ s.name }}</div>
-                                    <div class="text-[10px] text-gray-500 truncate">{{ s.role }} • {{ s.count }}x em reuniões</div>
+                                    <div class="text-[10px] text-gray-500 truncate">{{ s.role }} • <span class="font-medium text-emerald-700">{{ s.activity_label or (s.count ~ "x em reuniões") }}</span></div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 flex-shrink-0">
@@ -2704,6 +2704,19 @@
         // ========== UNIFIED TASKS MANAGEMENT JS ==========
         let currentTasksList = [];
 
+        function updateAllTaskBadges() {
+            const myPendingCount = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status === 'PENDING').length;
+            
+            // Sidebar badge strictly tracks Felipe Donato's tasks
+            const sidebarBadge = document.getElementById('sidebar-pending-tasks-count');
+            if (sidebarBadge) sidebarBadge.innerText = myPendingCount;
+
+            // Tab pill strictly tracks Felipe Donato's tasks
+            const countPill = document.getElementById('my-tasks-count-pill');
+            if (countPill) countPill.innerText = myPendingCount;
+        }
+
+
 
         async function loadAndRenderTasks(filter = 'MY_TASKS') {
             currentTaskFilter = filter;
@@ -2711,10 +2724,7 @@
                 const res = await fetch('/api/tasks');
                 currentTasksList = await res.json();
                 
-                // Update pending badge
-                const pendingCount = currentTasksList.filter(t => t.status === 'PENDING').length;
-                const badgeEl = document.getElementById('sidebar-pending-tasks-count');
-                if (badgeEl) badgeEl.innerText = pendingCount;
+                updateAllTaskBadges();
 
                 renderTasksList(); renderHomeMyTasks();
             } catch (e) {
@@ -2784,12 +2794,7 @@
 
             const myPending = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status === 'PENDING');
             
-            // Sync sidebar badge
-            const sidebarBadge = document.getElementById('sidebar-pending-tasks-count');
-            if (sidebarBadge) sidebarBadge.innerText = myPending.length;
-
-            const countPill = document.getElementById('my-tasks-count-pill');
-            if (countPill) countPill.innerText = myPending.length;
+            updateAllTaskBadges();
 
             if (myPending.length === 0) {
                 container.innerHTML = `
@@ -2824,10 +2829,7 @@
             const container = document.getElementById('tasks-cards-container');
             if (!container) return;
 
-            // Update Minhas Tarefas count pill
-            const myTasksTotal = currentTasksList.filter(t => (t.owner || '').toLowerCase().includes('felipe') && t.status !== 'DONE').length;
-            const countPill = document.getElementById('my-tasks-count-pill');
-            if (countPill) countPill.innerText = myTasksTotal;
+            updateAllTaskBadges();
 
             let filtered = currentTasksList;
 
@@ -3010,9 +3012,7 @@
                 const t = currentTasksList.find(x => x.id === taskId);
                 if (t) t.status = newStatus;
                 
-                const pendingCount = currentTasksList.filter(t => t.status === 'PENDING').length;
-                const badgeEl = document.getElementById('sidebar-pending-tasks-count');
-                if (badgeEl) badgeEl.innerText = pendingCount;
+                updateAllTaskBadges();
 
                 renderTasksList(); renderHomeMyTasks();
             } catch (e) {
@@ -3373,12 +3373,12 @@
                         <div class="text-[11px] text-amber-950 font-medium leading-relaxed">${s.treatment_guidelines || 'Tratar com foco em resultados e alinhamento executivo.'}</div>
                     </div>
 
-                    <!-- Meta Tags (Meetings & Tasks) -->
-                    <div class="flex items-center gap-2 text-[10px] text-gray-400 flex-wrap">
-                        <span class="px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 font-semibold">
-                            📅 ${s.meetings.length} Reuniões Registradas
+                    <!-- Meta Tags (Participou vs Citado & Tasks) -->
+                    <div class="flex items-center gap-2 text-[10px] flex-wrap">
+                        <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 font-bold border border-blue-100/80">
+                            ${s.activity_label || (s.participated_count > 0 ? `👥 Participou de ${s.participated_count} call` : `🗣️ Citado ${s.mentioned_count}x`)}
                         </span>
-                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold">
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-100/80">
                             ✅ ${s.tasks.length} Compromissos Mapeados
                         </span>
                     </div>
