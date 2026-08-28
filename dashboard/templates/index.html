@@ -1877,6 +1877,8 @@
 
         // targetAudioGenerationMeetingId already declared
 
+                let currentAudioDirectorOptions = [];
+
         async function openAudioDirectorModal(fileId) {
             targetAudioGenerationMeetingId = fileId || currentMeetingId;
             document.getElementById('audio-director-custom-input').value = '';
@@ -1896,11 +1898,13 @@
                 const res = await fetch(`/api/meetings/${targetAudioGenerationMeetingId}/audio-director-options`);
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.options && pillsContainer) {
-                    pillsContainer.innerHTML = data.options.map(opt => `
-                        <button onclick="setAudioDirectorPrompt('${opt.prompt.replace(/'/g, "\'")}')" 
+                    currentAudioDirectorOptions = data.options;
+                    pillsContainer.innerHTML = data.options.map((opt, idx) => `
+                        <button onclick="selectAndApplyAudioDirectorOption(${idx})" 
                                 class="p-2.5 rounded-xl border border-gray-200 hover:border-emerald-500 hover:bg-emerald-50/40 text-left transition group cursor-pointer shadow-2xs">
-                            <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-950 flex items-center gap-1.5 truncate">
+                            <div class="text-xs font-bold text-gray-900 group-hover:text-emerald-950 flex items-center justify-between gap-1.5">
                                 <span class="truncate">${opt.title}</span>
+                                <i class="ph-bold ph-arrow-right text-gray-400 group-hover:text-emerald-600 text-xs"></i>
                             </div>
                             <div class="text-[10px] text-gray-400 mt-0.5 leading-tight truncate">${opt.subtitle}</div>
                         </button>
@@ -1911,6 +1915,11 @@
             }
         }
 
+        function selectAndApplyAudioDirectorOption(idx) {
+            if (currentAudioDirectorOptions[idx]) {
+                document.getElementById('audio-director-custom-input').value = currentAudioDirectorOptions[idx].prompt;
+            }
+        }
 
         function closeAudioDirectorModal() {
             document.getElementById('audio-director-modal').classList.add('hidden');

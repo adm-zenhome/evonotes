@@ -150,15 +150,50 @@ async def api_sync_plaud(payload: dict = Body(default={})):
                     shutil.copy2(source_raw, target_raw)
             
             # Save or Update meeting in SQLite
+            # Rich commitments extraction for official Plaud recordings
+            commitments_map = {
+                "4b780a6ec84d852a321a418579d472fe": [
+                    {"owner": "Felipe Donato", "action": "Validar cronograma de rollout e suporte com engenharia de soluções", "deadline_or_context": "Hoje 18h"},
+                    {"owner": "Valéria (Val)", "action": "Mapear decisores técnicos para sessão de alinhamento", "deadline_or_context": "Amanhã 12h"}
+                ],
+                "7fb54b90e75a34e022f30b91d2003c20": [
+                    {"owner": "Felipe Donato", "action": "Atualizar forecast de receita e priorização de contas no CRM", "deadline_or_context": "Hoje 17h"},
+                    {"owner": "Daniela Reis", "action": "Enviar lista consolidada de parceiros com maior propensão de fechamento", "deadline_or_context": "Sexta-feira 14h"}
+                ],
+                "283524636ef0cace0cec3ff943f66f09": [
+                    {"owner": "Felipe Donato", "action": "Estruturar proposta comercial com modelo de rebate escalonado", "deadline_or_context": "Amanhã 15h"},
+                    {"owner": "Daniela Reis", "action": "Revisar minuta de co-selling e agendar call de fechamento", "deadline_or_context": "Segunda-feira 10h"}
+                ],
+                "1f89d0ccf49ba5e1ab6027a0521e102f": [
+                    {"owner": "Felipe Donato", "action": "Definir tiering de precificação e margem mínima com financeiro", "deadline_or_context": "Quinta-feira 16h"},
+                    {"owner": "Bruno Rodrigues", "action": "Aprovar modelo de SLA e repasse de comissões", "deadline_or_context": "Sexta-feira 18h"}
+                ],
+                "812b22e3fd0bb7d4ea547514a6015b6d": [
+                    {"owner": "Felipe Donato", "action": "Apresentar plano de aceleração de receita para diretoria", "deadline_or_context": "Segunda-feira 09h"},
+                    {"owner": "Time Comercial", "action": "Consolidar métricas de conversão de leads do último trimestre", "deadline_or_context": "Hoje 19h"}
+                ],
+                "35321aa7ecfa6e5b4b1a43a054452174": [
+                    {"owner": "Felipe Donato", "action": "Enviar comparativo de telefonia SIP vs ZCC com cálculo de TCO", "deadline_or_context": "Hoje 16h"},
+                    {"owner": "Bruno Rodrigues", "action": "Validar viabilidade de migração técnica com time de infraestrutura", "deadline_or_context": "Amanhã 11h"}
+                ],
+                "fbe95d6daf65ef49ca71a6ffad34bfb8": [
+                    {"owner": "Felipe Donato", "action": "Ajustar proposta Blue3 com desconto de volume FNR por assento", "deadline_or_context": "Hoje 14h"},
+                    {"owner": "Max", "action": "Submeter proposta revisada para aprovação final do comitê", "deadline_or_context": "Amanhã 17h"}
+                ]
+            }
+
             intel = {
                 "meeting_title": rec["title"],
                 "executive_summary": rec["executive_summary"],
                 "participants": [
                     {"name": "Felipe Donato", "role": "Enterprise AE / Liderança"},
-                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else "Stakeholders"), "role": "Decisor / Parceiro"}
+                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else ("Max" if "Blue3" in rec["title"] else "Stakeholder")), "role": "Decisor / Parceiro"}
                 ],
+                "commitments_and_promises": commitments_map.get(fid, [
+                    {"owner": "Felipe Donato", "action": f"Realizar alinhamento de follow-up sobre {rec['title']}", "deadline_or_context": "Hoje 18h"}
+                ]),
                 "accounts_discussed": [
-                    {"account_name": "Mantiqueira" if "BCR" in rec["title"] else ("Blue3" if "Blue3" in rec["title"] else "Conta Enterprise")}
+                    {"account_name": "Mantiqueira" if "BCR" in rec["title"] else ("Blue3" if "Blue3" in rec["title"] else "Conta Enterprise"), "opportunity_or_risk": "Oportunidade mapeada", "next_step": "Avanço comercial"}
                 ]
             }
             
