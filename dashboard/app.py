@@ -629,3 +629,35 @@ async def api_meeting_raw_audio(file_id: str):
         return FileResponse(str(briefing_file), media_type="audio/mpeg")
         
     raise HTTPException(status_code=404, detail="Raw audio file not found")
+
+
+from ..resend_engine import resend_engine
+
+@app.post("/api/resend/daily-closing")
+async def api_resend_daily_closing(payload: dict = Body(default={})):
+    to_email = payload.get("to_email") or os.getenv("EXECUTIVE_EMAIL", "felipedelucadonato@gmail.com")
+    result = resend_engine.dispatch_daily_closing_digest(to_email)
+    return JSONResponse(result)
+
+@app.post("/api/resend/meeting-dispatch/{file_id}")
+async def api_resend_meeting_dispatch(file_id: str, payload: dict = Body(default={})):
+    to_email = payload.get("to_email") or os.getenv("EXECUTIVE_EMAIL", "felipedelucadonato@gmail.com")
+    result = resend_engine.dispatch_new_meeting_processed(file_id, to_email)
+    return JSONResponse(result)
+
+@app.post("/api/resend/save-config")
+async def api_resend_save_config(payload: dict = Body(...)):
+    api_key = payload.get("api_key", "").strip()
+    from_email = payload.get("from_email", "").strip()
+    exec_email = payload.get("executive_email", "").strip()
+    
+    if api_key:
+        os.environ["RESEND_API_KEY"] = api_key
+        resend_engine.api_key = api_key
+    if from_email:
+        os.environ["RESEND_FROM_EMAIL"] = from_email
+        resend_engine.sender = from_email
+    if exec_email:
+        os.environ["EXECUTIVE_EMAIL"] = exec_email
+        
+    return JSONResponse({"status": "SUCCESS", "message": "Configurações do Resend salvas com sucesso!"})
