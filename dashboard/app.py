@@ -1193,6 +1193,16 @@ async def api_delete_deal(deal_id: int):
 
 # ========== DYNAMIC CATEGORIES MANAGEMENT ENDPOINTS ==========
 @app.get("/api/categories")
+
+@app.post("/api/categories/create")
+async def api_create_category(payload: dict = Body(...)):
+    """Creates a new custom category."""
+    cat_name = payload.get("name")
+    if not cat_name:
+        raise HTTPException(status_code=400, detail="name is required")
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria '{cat_name}' criada com sucesso.", "category": cat_name})
+
+@app.get("/api/categories")
 async def api_get_categories():
     """Returns distinct categories and meeting counts."""
     from modules.executive_voice_os.database import get_dynamic_categories

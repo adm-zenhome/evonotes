@@ -223,14 +223,26 @@
                         {{ my_tasks_count }}
                     </span>
                 </button>
-                <button onclick="filterCategory('Comercial')" class="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-[#0d0d0d] hover:bg-[#ececec] rounded-lg transition text-left">
-                    <i class="ph ph-briefcase text-base text-gray-600"></i>
-                    <span>Pipeline & Deals</span>
-                </button>
-                <button onclick="filterCategory('Pessoal')" class="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-[#0d0d0d] hover:bg-[#ececec] rounded-lg transition text-left">
-                    <i class="ph ph-lightbulb text-base text-gray-600"></i>
-                    <span>Mentorias & Estratégia</span>
-                </button>
+            <!-- Dynamic Categories & Contextual Filters (Max 3, Retrátil, 3 Pontinhos & Criar) -->
+            <div class="pt-2 pb-1 space-y-1">
+                <div class="px-2.5 py-1 flex items-center justify-between text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                    <span>Filtros & Categorias</span>
+                    <button onclick="openCategoryCreateModal()" class="w-5 h-5 rounded-md hover:bg-gray-200/80 text-gray-400 hover:text-black flex items-center justify-center transition cursor-pointer" title="Criar Nova Categoria">
+                        <i class="ph-bold ph-plus text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Dynamic Category Items (Rendered by JS) -->
+                <div id="sidebar-categories-list" class="space-y-0.5"></div>
+
+                <!-- Expand/Collapse Button (Shows if > 3 categories) -->
+                <div id="sidebar-categories-expand-wrapper" class="hidden px-1 pt-0.5">
+                    <button onclick="toggleCategoriesExpansion()" id="btn-categories-expand" class="w-full py-1 px-2 text-[10px] font-bold text-gray-500 hover:text-black hover:bg-gray-200/60 rounded-lg flex items-center justify-center gap-1 transition cursor-pointer">
+                        <i class="ph-bold ph-caret-down text-xs" id="icon-categories-expand"></i>
+                        <span id="label-categories-expand">Ver mais categorias</span>
+                    </button>
+                </div>
+            </div>
             </div>
 
             <!-- Separator -->
@@ -5432,6 +5444,66 @@ Felipe Donato`);
                 </button>
             </div>
 
+        </div>
+    </div>
+
+
+    <!-- 🏷️ CONTEXT MENU FOR CATEGORY (3 Dots Dropdown) -->
+    <div id="category-context-menu" class="hidden fixed z-50 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] py-1.5 px-1 w-52 text-xs select-none border border-gray-100 animate-fade-in">
+        <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 truncate" id="cat-menu-title">Opções da Categoria</div>
+        <button onclick="triggerRenameCategory()" class="w-full flex items-center gap-2 px-3 py-2 text-gray-800 hover:bg-gray-100 rounded-xl transition text-left font-medium">
+            <i class="ph-bold ph-pencil-simple text-sm text-blue-600"></i>
+            <span>Renomear Categoria</span>
+        </button>
+        <button onclick="triggerDeleteCategory()" class="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-xl transition text-left font-medium">
+            <i class="ph-bold ph-trash text-sm text-red-600"></i>
+            <span>Excluir Categoria</span>
+        </button>
+    </div>
+
+    <!-- 🏷️ MODAL: CRIAR / RENOMEAR CATEGORIA -->
+    <div id="category-modal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden select-none animate-fade-in">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border-0">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-sm font-bold shadow-2xs">
+                        <i class="ph-bold ph-tag"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900" id="cat-modal-heading">Nova Categoria</h3>
+                        <p class="text-[10px] text-gray-400">Filtro contextual para suas reuniões</p>
+                    </div>
+                </div>
+                <button onclick="closeCategoryModal()" class="w-7 h-7 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center cursor-pointer">
+                    <i class="ph-bold ph-x text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">Nome da Categoria</label>
+                    <input type="text" id="cat-name-input" placeholder="Ex: Parcerias Estratégicas, M&A..." 
+                           onkeydown="if(event.key==='Enter') saveCategoryAction()"
+                           class="w-full mt-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold focus:outline-none focus:border-blue-500 shadow-2xs">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-700">Ícone da Categoria</label>
+                    <div class="flex items-center gap-2 pt-1" id="cat-icons-palette">
+                        <button type="button" onclick="selectCatIcon('ph-briefcase')" class="cat-icon-pill p-2 rounded-xl bg-blue-50 text-blue-700 text-base shadow-2xs"><i class="ph-bold ph-briefcase"></i></button>
+                        <button type="button" onclick="selectCatIcon('ph-lightbulb')" class="cat-icon-pill p-2 rounded-xl bg-gray-100 text-gray-600 text-base"><i class="ph-bold ph-lightbulb"></i></button>
+                        <button type="button" onclick="selectCatIcon('ph-cpu')" class="cat-icon-pill p-2 rounded-xl bg-gray-100 text-gray-600 text-base"><i class="ph-bold ph-cpu"></i></button>
+                        <button type="button" onclick="selectCatIcon('ph-chart-line-up')" class="cat-icon-pill p-2 rounded-xl bg-gray-100 text-gray-600 text-base"><i class="ph-bold ph-chart-line-up"></i></button>
+                        <button type="button" onclick="selectCatIcon('ph-chat-circle-dots')" class="cat-icon-pill p-2 rounded-xl bg-gray-100 text-gray-600 text-base"><i class="ph-bold ph-chat-circle-dots"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 text-xs">
+                <button onclick="closeCategoryModal()" class="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition cursor-pointer">Cancelar</button>
+                <button onclick="saveCategoryAction()" class="px-5 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold shadow-xs transition active:scale-95 cursor-pointer">
+                    Salvar
+                </button>
+            </div>
         </div>
     </div>
 
