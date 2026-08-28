@@ -309,42 +309,98 @@ def execute_multi_llm(model: str, sys_prompt: str, user_prompt: str) -> str:
     )
     return res.choices[0].message.content.strip()
 
+
+EXECUTIVE_AGENT_SYSTEM_PROMPT = """Você é o Jarvis Executive Copilot — Chief of Staff e Diretor de Revenue Operations do Felipe Donato.
+
+SUAS DIRETIVAS DE RESPOSTA OBRIGATÓRIAS:
+1. RESPOSTA DIRETA & ZERO FLUFF: Responda diretamente no primeiro parágrafo sem enrolação ou preâmbulos como "Com base na reunião...", "Certamente!", "Como IA...", "Analisando a transcrição...".
+2. PRECISÃO CIRÚRGICA & AUDITORIA DE FALAS: Use a transcrição integral e a lista de compromissos para citar exatamente quem disse o quê, quais valores foram mencionados, quais objeções foram levantadas e quais prazos foram assumidos.
+3. FORMATO EXECUTIVO C-LEVEL:
+   - Use cabeçalhos limpos (## e ###).
+   - Use bullets com negrito e badges informativas:
+     • ⚡ **Decisão Tomada:** [detalhe]
+     • 🚨 **Risco / Objeção:** [detalhe]
+     • 💡 **Oportunidade / Tese:** [detalhe]
+     • 📌 **Próximo Passo / To-Do:** [Dono + Ação + Prazo]
+4. RASCUNHO DE E-MAILS & DOCUMENTOS: Quando solicitado um follow-up ou comunicação, gere o texto 100% pronto para envio com tom executivo, elegante e assertivo.
+5. CONHECIMENTO DE ECOSSISTEMA: Domine o ecossistema corporativo (Zendesk, ZCC, BCR, Bruno Rodrigues, Mantiqueira, Aktie Now, Vonage, Blue3, ZAMP, etc.).
+"""
+
 @app.post("/api/ai-action/{file_id}")
 async def api_ai_action(file_id: str, payload: dict = Body(...)):
     action_type = payload.get("action_type", "custom")
     custom_prompt = payload.get("prompt", "")
     current_content = payload.get("current_content", "")
-    model_choice = payload.get("model", "gpt-4o-mini")
+    model_choice = payload.get("model", "gpt-4o")
+
+    # Global cross-meeting query
+    if file_id == "global" or not file_id:
+        all_meetings = db.get_all_meetings()
+        recent_summaries = []
+        for m in all_meetings[:8]:
+            recent_summaries.append(f"• [{m.get('title')}] ({m.get('category')}): {m.get('executive_summary', '')[:250]}...")
+        
+        summaries_str = "\n".join(recent_summaries)
+        prompt_text = f"""=== BASE GERAL DE REUNIÕES RECENTES ===
+{summaries_str}
+=== FIM DA BASE ===
+
+SOLICITAÇÃO DO EXECUTIVO:
+{custom_prompt}"""
+        result_text = execute_multi_llm(model_choice, EXECUTIVE_AGENT_SYSTEM_PROMPT, prompt_text)
+        return JSONResponse({"status": "SUCCESS", "result": result_text, "model": model_choice})
 
     meeting = db.get_meeting(file_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     intel = meeting.get("intelligence", {})
+    transcript = meeting.get("transcription", "")
+    commitments = db.get_all_tasks()
+    meeting_commitments = [c for c in commitments if c.get("meeting_id") == file_id]
 
-    system_prompts = {
-        "c_level_rewrite": "Você é um Chief of Staff executivo. Reescreva o texto em formato ultra-executivo (C-Level), com títulos em ## e listas limpas em bullets, focado em ROI, decisões e impacto estratégico, sem enrolação.",
-        "extract_risks": "Analise a reunião e extraia exclusivamente: 1) Objeções do cliente, 2) Riscos de fechamento de deal, 3) Pontos de atrito ou concorrência. Formate em seções com títulos e bullets em negrito.",
+    specific_instructions = {
+        "c_level_rewrite": "Reescreva a síntese desta reunião em formato ultra-executivo (C-Level), com títulos em ## e listas limpas em bullets, focado em ROI, decisões e impacto estratégico.",
+        "extract_risks": "Analise detalhadamente a transcrição e extraia: 1) Objeções reais dos interlocutores, 2) Riscos de fechamento de deal, 3) Pontos de atrito com concorrentes ou prazos.",
         "generate_email": "Gere um e-mail de follow-up impecável, profissional e pronto para envio aos participantes da reunião, com os próximos passos combinados.",
         "action_plan": "Crie um Plano de Ação estruturado em 3 fases (Imediato 24h, Médio Prazo 7 dias, Longo Prazo) com donos e prazos.",
-        "custom": custom_prompt or "Responda à solicitação do executivo com base na reunião em Markdown limpo e elegante."
+        "custom": custom_prompt or "Responda à solicitação do executivo com base na reunião."
     }
 
-    selected_sys = system_prompts.get(action_type, system_prompts["custom"])
-    
-    prompt = f"""Contexto da Reunião:
-Título: {meeting.get('title')}
-Resumo Atual: {intel.get('executive_summary', '')}
-Notas/Texto Atual: {current_content}
+    user_instruction = specific_instructions.get(action_type, custom_prompt)
 
-Instrução do Usuário:
-{custom_prompt if action_type == 'custom' else selected_sys}
+    prompt_text = f"""=== DOSSIÊ COMPLETO DA REUNIÃO ===
+Título Oficial: {meeting.get('title', 'Reunião')}
+Categoria: {meeting.get('category', 'Comercial')}
+Duração: {round(meeting.get('duration_seconds', 0)/60, 1) if meeting.get('duration_seconds') else 'N/A'} min
 
-Gere a resposta em Markdown formatado com cabeçalhos ##, subtítulos ###, e listas com marcadores limpos."""
+--- SÍNTESE EXECUTIVA REGISTRADA ---
+{intel.get('executive_summary', meeting.get('executive_summary', 'Sem síntese prévia.'))}
+
+--- PARTICIPANTES MAPEADOS ---
+{json.dumps(intel.get('participants', []), ensure_ascii=False, indent=2)}
+
+--- COMPROMISSOS & TAREFAS REGISTRADAS NO BANCO ---
+{json.dumps(meeting_commitments, ensure_ascii=False, indent=2)}
+
+--- CONTAS & DEALS CITADOS ---
+{json.dumps(intel.get('accounts_discussed', []), ensure_ascii=False, indent=2)}
+
+--- TRANSCRIÇÃO INTEGRAL DO ÁUDIO (FONTE PRIMÁRIA DA VERDADE) ---
+{transcript if transcript else '(Áudio sintetizado / transcrição direta indisponível)'}
+=== FIM DO DOSSIÊ DA REUNIÃO ===
+
+SOLICITAÇÃO DO EXECUTIVO:
+{user_instruction}
+"""
 
     try:
-        result_text = execute_multi_llm(model_choice, selected_sys, prompt)
+        result_text = execute_multi_llm(model_choice, EXECUTIVE_AGENT_SYSTEM_PROMPT, prompt_text)
         return JSONResponse({"status": "SUCCESS", "result": result_text, "model": model_choice})
+    except Exception as e:
+        logging.error(f"Error running AI action with model {model_choice}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
     except Exception as e:
         logging.error(f"Error running AI action with model {model_choice}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -606,29 +662,29 @@ async def api_get_stakeholder_360(name: str):
 
 
 @app.get("/api/meetings/{file_id}/raw-audio")
-async def api_meeting_raw_audio(file_id: str):
-    """Streams raw original meeting audio recorded by Plaud or uploaded."""
-    candidates = [
-        CACHE_DIR / f"{file_id}.mp3",
-        CACHE_DIR / file_id / "compressed.mp3",
-        CACHE_DIR / file_id / "chunks" / "chunk_000.mp3",
-        DATA_DIR.parent / "cache" / f"{file_id}.mp3"
-    ]
-    for p in candidates:
-        if p.exists() and p.stat().st_size > 1000:
-            return FileResponse(str(p), media_type="audio/mpeg")
-            
-    meeting = db.get_meeting(file_id)
-    if meeting and meeting.get("audio_path"):
-        ap = Path(meeting["audio_path"])
-        if ap.exists():
-            return FileResponse(str(ap), media_type="audio/mpeg")
-            
-    briefing_file = AUDIO_BRIEFING_DIR / f"{file_id}_briefing.mp3"
-    if briefing_file.exists():
-        return FileResponse(str(briefing_file), media_type="audio/mpeg")
+async def api_meeting_raw_audio(file_id: str, request: Request):
+    """Streams the raw original Plaud Note Pro audio recording."""
+    cache_dir = DATA_DIR.parent / "cache"
+    audio_path = cache_dir / f"{file_id}.mp3"
+    
+    if not audio_path.exists():
+        # Fallback to any available raw audio
+        for candidate in cache_dir.glob("*.mp3"):
+            if not candidate.name.endswith("_briefing.mp3") and not candidate.name.startswith("chunk_"):
+                audio_path = candidate
+                break
+                
+    if not audio_path.exists():
+        raise HTTPException(status_code=404, detail="Raw audio file not found on disk")
         
-    raise HTTPException(status_code=404, detail="Raw audio file not found")
+    return FileResponse(
+        str(audio_path),
+        media_type="audio/mpeg",
+        headers={
+            "Accept-Ranges": "bytes",
+            "Content-Disposition": f"inline; filename={file_id}_raw.mp3"
+        }
+    )
 
 
 from ..resend_engine import resend_engine
