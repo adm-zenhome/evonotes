@@ -1429,32 +1429,24 @@
 
         let currentKeywords = {{ profile.vocabulary_and_jargon | tojson }};
 
-        // ========== DYNAMIC CATEGORIES & SIDEBAR MANAGEMENT ==========
-        let categoriesState = [
-            { id: 'cat-1', name: 'Pipeline & Deals', icon: 'ph-briefcase', filter: 'Comercial' },
-            { id: 'cat-2', name: 'Mentorias & Estratégia', icon: 'ph-lightbulb', filter: 'Pessoal' },
-            { id: 'cat-3', name: 'Técnico & Arquitetura', icon: 'ph-cpu', filter: 'Técnico' }
-        ];
+        // ========== DYNAMIC CATEGORIES & SIDEBAR MANAGEMENT (100% SQLite Persistent) ==========
+        let categoriesState = {{ (categories if categories is defined else []) | tojson }};
         let isCategoriesExpanded = false;
         let activeFilterCategory = null;
         let contextMenuCategory = null;
         let selectedCatIcon = 'ph-briefcase';
         let categoryActionType = 'create'; // 'create' or 'rename'
 
-        function initSidebarCategories() {
-            const existingFilters = new Set(categoriesState.map(c => c.name.toLowerCase()));
-            (meetingsData || []).forEach(m => {
-                const cat = (m.intelligence && m.intelligence.category) || m.category;
-                if (cat && !existingFilters.has(cat.toLowerCase()) && cat !== 'Geral' && cat !== 'Standard') {
-                    existingFilters.add(cat.toLowerCase());
-                    categoriesState.push({
-                        id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-                        name: cat,
-                        icon: 'ph-tag',
-                        filter: cat
-                    });
+        async function initSidebarCategories() {
+            try {
+                const res = await fetch('/api/categories');
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && Array.isArray(data.categories)) {
+                    categoriesState = data.categories;
                 }
-            });
+            } catch (e) {
+                console.error('Error loading persistent categories from SQLite:', e);
+            }
             renderSidebarCategories();
         }
 
@@ -1464,6 +1456,16 @@
             const expandLabel = document.getElementById('label-categories-expand');
             const expandIcon = document.getElementById('icon-categories-expand');
             if (!container) return;
+
+            if (!categoriesState || categoriesState.length === 0) {
+                container.innerHTML = `
+                    <div class="px-2 py-1 text-[11px] text-gray-400 italic">
+                        Nenhuma categoria cadastrada.
+                    </div>
+                `;
+                if (expandWrapper) expandWrapper.classList.add('hidden');
+                return;
+            }
 
             const visibleCategories = isCategoriesExpanded ? categoriesState : categoriesState.slice(0, 3);
 
