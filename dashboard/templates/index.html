@@ -1289,11 +1289,19 @@
         <!-- Top Bar (Fixed on Mobile, Sticky on Desktop - NEVER SCROLLS OFF) -->
         <header class="fixed md:sticky top-0 left-0 right-0 z-40 h-14 border-b border-gray-200/80 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-white/95 md:bg-[#f4f5f7]/90 backdrop-blur-md gap-2 w-full">
             <div class="flex items-center gap-2 truncate min-w-0 flex-1">
-                <!-- Mobile High-Visibility Hamburger Menu Button -->
-                <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer flex-shrink-0" title="Abrir Menu">
-                    <i class="ph-bold ph-list text-emerald-400 text-sm"></i>
-                    <span>Menu</span>
-                </button>
+                <!-- Mobile High-Visibility Navigation Buttons -->
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
+                        <i class="ph-bold ph-list text-emerald-400 text-sm"></i>
+                        <span class="hidden xs:inline">Menu</span>
+                    </button>
+                    
+                    <button onclick="showHomeDashboard()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
+                        <i class="ph-bold ph-house text-emerald-600 text-sm"></i>
+                        <span>Início</span>
+                    </button>
+                </div>
+                
                 <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
                     <h2 id="topbar-title" 
                         contenteditable="false" 
