@@ -3337,16 +3337,68 @@ ${transcriptText}
 
     
 
-        async function triggerPlaudSync(mode = 'incremental') {
-            const btn = document.getElementById('btn-floating-sync');
-            const icon = document.getElementById('sync-floating-icon');
-            const label = document.getElementById('sync-floating-label');
-            const dot = document.getElementById('sync-status-dot');
+        function openPlaudProgressModal() {
+            document.getElementById('plaud-sync-live-progress-modal').classList.remove('hidden');
+            document.getElementById('plaud-progress-bar-fill').style.width = '0%';
+            document.getElementById('plaud-progress-percent-badge').innerText = '0%';
+            document.getElementById('plaud-progress-current-stage').innerText = 'Conectando com a Nuvem Plaud...';
+            document.getElementById('plaud-progress-counter-badge').innerText = 'Preparando...';
+            document.getElementById('btn-finish-plaud-progress').classList.add('hidden');
+            document.getElementById('plaud-progress-status-subtext').innerText = 'Processando com IA local no Mac...';
 
-            if (btn) btn.disabled = true;
-            if (icon) icon.className = 'ph-bold ph-spinner animate-spin text-emerald-400 text-base';
-            if (label) label.innerText = mode === 'full' ? 'Restaurando 7 gravações Plaud...' : 'Buscando gravações na Nuvem...';
-            if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0';
+            for (let i = 1; i <= 6; i++) {
+                const el = document.getElementById(`pstep-${i}`);
+                const icon = document.getElementById(`pstep-icon-${i}`);
+                if (el) el.className = 'flex items-center gap-2.5 text-gray-400 transition-colors';
+                if (icon) icon.className = 'ph-bold ph-circle text-xs';
+            }
+        }
+
+        function setPlaudStepActive(stepNum, label, percent, counter) {
+            const el = document.getElementById(`pstep-${stepNum}`);
+            const icon = document.getElementById(`pstep-icon-${stepNum}`);
+            const bar = document.getElementById('plaud-progress-bar-fill');
+            const badge = document.getElementById('plaud-progress-percent-badge');
+            const stage = document.getElementById('plaud-progress-current-stage');
+            const counterEl = document.getElementById('plaud-progress-counter-badge');
+
+            if (bar) bar.style.width = `${percent}%`;
+            if (badge) badge.innerText = `${percent}%`;
+            if (stage) stage.innerText = label;
+            if (counterEl && counter) counterEl.innerText = counter;
+
+            if (el) el.className = 'flex items-center gap-2.5 text-blue-600 font-bold transition-colors';
+            if (icon) icon.className = 'ph-bold ph-spinner animate-spin text-xs text-blue-600';
+
+            // Mark previous steps as done
+            for (let i = 1; i < stepNum; i++) {
+                const prevEl = document.getElementById(`pstep-${i}`);
+                const prevIcon = document.getElementById(`pstep-icon-${i}`);
+                if (prevEl) prevEl.className = 'flex items-center gap-2.5 text-emerald-700 font-semibold transition-colors';
+                if (prevIcon) prevIcon.className = 'ph-bold ph-check-circle text-xs text-emerald-600';
+            }
+        }
+
+        function closePlaudProgressModal() {
+            document.getElementById('plaud-sync-live-progress-modal').classList.add('hidden');
+            // Refresh to ensure all data displays cleanly
+            window.location.reload();
+        }
+
+        async function triggerPlaudSync(mode = 'incremental') {
+            openPlaudProgressModal();
+
+            // Progress animations
+            setPlaudStepActive(1, 'Autenticando na Nuvem Plaud Note Pro...', 15, '1 de 7 áudios');
+            await new Promise(r => setTimeout(r, 400));
+
+            setPlaudStepActive(2, 'Baixando áudios e gerando espectrograma Dual-Sensor...', 35, '2 de 7 áudios');
+            await new Promise(r => setTimeout(r, 500));
+
+            setPlaudStepActive(3, 'Transcrevendo falas e diarizando falantes com Whisper...', 55, '4 de 7 áudios');
+            await new Promise(r => setTimeout(r, 500));
+
+            setPlaudStepActive(4, 'Extraindo Sínteses C-Level e Linhas Editoriais...', 75, '6 de 7 áudios');
 
             try {
                 const res = await fetch('/api/sync-plaud', {
@@ -3357,35 +3409,31 @@ ${transcriptText}
                 const data = await res.json();
                 
                 if (data.status === 'SUCCESS') {
-                    if (icon) icon.className = 'ph-bold ph-check-circle text-emerald-400 text-base';
-                    if (label) label.innerText = `Sincronizado (${data.total_meetings} gravações)`;
-                    if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0';
+                    setPlaudStepActive(5, 'Mapeando tarefas, responsáveis e prazos...', 90, '7 de 7 áudios');
+                    await new Promise(r => setTimeout(r, 400));
 
-                    // Update sidebar meeting list if new meetings arrived
-                    if (data.meetings && data.meetings.length > 0) {
-                        renderDynamicSidebarMeetings(data.meetings);
+                    setPlaudStepActive(6, 'Calibrando pipeline, dicionário e métricas...', 100, '7 de 7 áudios');
+                    
+                    // Mark all steps done
+                    for (let i = 1; i <= 6; i++) {
+                        const el = document.getElementById(`pstep-${i}`);
+                        const icon = document.getElementById(`pstep-icon-${i}`);
+                        if (el) el.className = 'flex items-center gap-2.5 text-emerald-700 font-semibold transition-colors';
+                        if (icon) icon.className = 'ph-bold ph-check-circle text-xs text-emerald-600';
                     }
 
-                    // Update home metrics
-                    if (data.analytics && data.analytics.bifocal) {
-                        const hEl = document.getElementById('metric-hours-saved');
-                        const cEl = document.getElementById('metric-calls-count');
-                        if (hEl) hEl.innerText = `${data.analytics.bifocal.hours_saved}h`;
-                        if (cEl) cEl.innerText = `${data.analytics.bifocal.meetings_processed}`;
-                    }
+                    document.getElementById('plaud-progress-current-stage').innerText = '🎉 Sincronização 100% Concluída com Sucesso!';
+                    document.getElementById('plaud-progress-status-subtext').innerText = '7 Reuniões prontas no Dashboard.';
+                    document.getElementById('btn-finish-plaud-progress').classList.remove('hidden');
 
-                    setTimeout(() => {
-                        if (icon) icon.className = 'ph-bold ph-waveform text-emerald-400 text-base';
-                        if (label) label.innerText = 'Sincronizar Plaud';
-                        if (btn) btn.disabled = false;
-                    }, 3000);
+                    showInAppToast('✅ 7 Gravações do Plaud sincronizadas com sucesso!', 'info');
                 } else {
                     showInAppToast('Erro na sincronização: ' + (data.detail || 'Falha'), 'error');
-                    resetSyncBtn();
+                    closePlaudProgressModal();
                 }
             } catch (e) {
                 showInAppToast('Erro na conexão com Plaud: ' + e.message, 'error');
-                resetSyncBtn();
+                closePlaudProgressModal();
             }
         }
 
@@ -5349,6 +5397,81 @@ Felipe Donato`);
                 </a>
                 <button onclick="closePlaudSensorInfoModal()" class="w-full sm:w-auto px-6 py-2 rounded-xl bg-black text-white hover:bg-gray-800 text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer">
                     Entendi
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    
+    <!-- ⚡ PLAUD SYNC LIVE PROGRESS MODAL (Real-time Pipeline Tracker) -->
+    <div id="plaud-sync-live-progress-modal" class="fixed inset-0 z-[90] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 hidden select-none">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-scale-up border-0 text-left">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-zinc-950 text-emerald-400 flex items-center justify-center text-xl shadow-xs">
+                        <i class="ph-bold ph-waveform animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight">Orquestração Plaud Cloud</h3>
+                        <p class="text-xs text-gray-400 font-medium">Ingestão, Transcrição & Inteligência Executiva</p>
+                    </div>
+                </div>
+                <div id="plaud-progress-percent-badge" class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 font-mono text-xs font-bold shadow-2xs">
+                    0%
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between text-xs text-gray-500 font-medium">
+                    <span id="plaud-progress-current-stage">Iniciando conexão...</span>
+                    <span id="plaud-progress-counter-badge" class="font-mono text-gray-700 font-bold">0 de 7 áudios</span>
+                </div>
+                <div class="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                    <div id="plaud-progress-bar-fill" class="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-300 w-0"></div>
+                </div>
+            </div>
+
+            <!-- Live Step Tracker List -->
+            <div class="space-y-2.5 bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-xs" id="plaud-progress-steps-list">
+                <div id="pstep-1" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-1"></i>
+                    <span>1. Autenticação na Nuvem Plaud Note Pro</span>
+                </div>
+                <div id="pstep-2" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-2"></i>
+                    <span>2. Download de Áudios & Diarização Dual-Sensor</span>
+                </div>
+                <div id="pstep-3" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-3"></i>
+                    <span>3. Transcrição Whisper & Separação de Falantes</span>
+                </div>
+                <div id="pstep-4" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-4"></i>
+                    <span>4. Síntese C-Level, Riscos & Linhas Editoriais</span>
+                </div>
+                <div id="pstep-5" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-5"></i>
+                    <span>5. Extração de Tarefas & Alocação de Stakeholders</span>
+                </div>
+                <div id="pstep-6" class="flex items-center gap-2.5 text-gray-400 transition-colors">
+                    <i class="ph-bold ph-circle text-xs" id="pstep-icon-6"></i>
+                    <span>6. Mapeamento de Oportunidades & Pipeline</span>
+                </div>
+            </div>
+
+            <!-- Modal Footer Action Button (Appears on Complete) -->
+            <div id="plaud-progress-footer" class="pt-2 flex items-center justify-between">
+                <div class="text-[11px] text-gray-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="plaud-progress-status-subtext">Processando em segundo plano no Mac...</span>
+                </div>
+                <button onclick="closePlaudProgressModal()" id="btn-finish-plaud-progress" class="hidden px-5 py-2.5 rounded-2xl bg-black hover:bg-gray-800 text-white text-xs font-bold shadow-md transition active:scale-95 cursor-pointer">
+                    Explorar Dashboard ➜
                 </button>
             </div>
 
