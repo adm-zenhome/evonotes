@@ -52,7 +52,7 @@ class ExecutiveDatabase:
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
         self.init_db()
-        self.migrate_from_json_if_needed()
+        # self.migrate_from_json_if_needed() disabled for 100% clean control
 
     def get_connection(self):
         conn = sqlite3.connect(self.db_path)
