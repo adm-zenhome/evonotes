@@ -662,24 +662,29 @@
                     </div>
                 </div>
 
-                <!-- Quick Add Task Bar -->
-                <div class="bg-white rounded-2xl p-3 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border-0 flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        <i class="ph-bold ph-plus"></i>
+                <!-- Quick Add Task Bar (Responsive on Mobile & Desktop) -->
+                <div class="bg-white rounded-3xl p-3.5 sm:p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border-0 space-y-2.5">
+                    <div class="flex items-center gap-2.5 w-full">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            <i class="ph-bold ph-plus"></i>
+                        </div>
+                        <input type="text" id="quick-task-action" placeholder="Adicionar nova tarefa, follow-up ou compromisso executivo..." 
+                               onkeydown="if(event.key==='Enter') createQuickTask()"
+                               class="w-full bg-gray-50/80 px-3.5 py-2 rounded-2xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
                     </div>
-                    <input type="text" id="quick-task-action" placeholder="Adicionar nova tarefa, follow-up ou compromisso executivo..." 
-                           onkeydown="if(event.key==='Enter') createQuickTask()"
-                           class="flex-1 bg-transparent text-xs text-gray-900 placeholder-gray-400 focus:outline-none">
                     
-                    <input type="text" id="quick-task-owner" value="Felipe Donato" placeholder="Responsável..." 
-                           class="w-28 px-2.5 py-1.5 rounded-lg bg-gray-50 border-0 text-xs text-gray-700 focus:outline-none">
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pl-0 sm:pl-10.5">
+                        <input type="text" id="quick-task-owner" value="Felipe Donato" placeholder="Responsável..." 
+                               class="flex-1 min-w-[120px] px-3 py-1.5 rounded-xl bg-gray-50 text-xs text-gray-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
 
-                    <input type="text" id="quick-task-deadline" value="Hoje" placeholder="Data/Hora..." 
-                           class="w-24 px-2.5 py-1.5 rounded-lg bg-gray-50 border-0 text-xs text-gray-700 focus:outline-none">
+                        <input type="text" id="quick-task-deadline" value="Hoje" placeholder="Data/Hora..." 
+                               class="flex-1 min-w-[100px] px-3 py-1.5 rounded-xl bg-gray-50 text-xs text-gray-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
 
-                    <button onclick="createQuickTask()" class="px-4 py-1.5 rounded-xl bg-black hover:bg-gray-800 text-white text-xs font-semibold transition active:scale-95 flex-shrink-0">
-                        Criar
-                    </button>
+                        <button onclick="createQuickTask()" class="w-full sm:w-auto px-5 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition active:scale-95 cursor-pointer flex-shrink-0 flex items-center justify-center gap-1">
+                            <i class="ph-bold ph-plus-circle text-emerald-400"></i>
+                            <span>Criar Tarefa</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Unified Tasks Floating Cards Container -->
@@ -4978,64 +4983,62 @@ ${transcriptText}
             }
 
             return `
-                <div class="${cardBg} rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md border-0 transition-all space-y-2.5 group" id="task-card-${t.id}">
-                    <div class="flex items-center justify-between gap-3">
+                <div class="${cardBg} rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md border-0 transition-all space-y-3 group" id="task-card-${t.id}">
+                    
+                    <!-- Row 1: Status Checkbox + Full Width Task Description -->
+                    <div class="flex items-start gap-3 w-full">
+                        <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="mt-0.5 flex-shrink-0 cursor-pointer p-0.5" title="Alternar Status">
+                            ${statusIcon}
+                        </button>
                         
-                        <!-- Left: Status Icon + Task Description -->
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="flex-shrink-0 cursor-pointer" title="Alternar Status">
-                                ${statusIcon}
-                            </button>
-                            
-                            <div class="flex-1 min-w-0 space-y-1">
-                                <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
-                                     class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-xl transition" title="Clique para editar">
-                                    ${t.action || '(Tarefa sem descrição)'}
-                                </div>
-                                
-                                <div class="flex items-center gap-2 text-[10px] flex-wrap">
-                                    <!-- Meeting Source Badge -->
-                                    ${t.meeting_title ? `
-                                        <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[220px]" title="Abrir Reunião de Origem">
-                                            <i class="ph-bold ph-chats-circle text-[9px]"></i>
-                                            <span class="truncate">${t.meeting_title}</span>
-                                        </span>
-                                    ` : ''}
-
-                                    <!-- Owner Badge -->
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
-                                        <span contenteditable="true" onblur="saveTaskOwner(${t.id}, this.innerText)" class="outline-none">${t.owner || 'Felipe Donato'}</span>
-                                    </span>
-
-                                    <!-- Context & Intelligence Balloon Trigger -->
-                                    <button onclick="toggleTaskContextCard(${t.id})" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold transition cursor-pointer" title="Ver por que esta tarefa existe e contexto das reuniões">
-                                        <i class="ph-bold ph-lightbulb text-amber-600"></i>
-                                        <span>Contexto & Por quê</span>
-                                    </button>
-                                </div>
-                            </div>
+                        <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
+                             class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-xl transition flex-1 min-w-0" title="Clique para editar a tarefa">
+                            ${t.action || '(Tarefa sem descrição)'}
                         </div>
+                    </div>
 
-                        <!-- Right Minimalist Controls: Date + Google Calendar + Status (Clean & Uncluttered) -->
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            
-                            <!-- Minimalist Date Badge (Opens Interactive DatePicker Modal) -->
+                    <!-- Row 2: Metadata Badges (Origem, Responsável, Contexto) -->
+                    <div class="flex items-center gap-2 text-[10px] flex-wrap pl-8">
+                        ${t.meeting_title ? `
+                            <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[240px]" title="Abrir Reunião de Origem">
+                                <i class="ph-bold ph-chats-circle text-[9px]"></i>
+                                <span class="truncate">${t.meeting_title}</span>
+                            </span>
+                        ` : ''}
+
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
+                            <i class="ph-bold ph-user text-[10px]"></i>
+                            <span contenteditable="true" onblur="saveTaskOwner(${t.id}, this.innerText)" class="outline-none">${t.owner || 'Felipe Donato'}</span>
+                        </span>
+
+                        <button onclick="toggleTaskContextCard(${t.id})" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold transition cursor-pointer" title="Ver contexto da reunião">
+                            <i class="ph-bold ph-lightbulb text-amber-600"></i>
+                            <span>Contexto & Por quê</span>
+                        </button>
+                    </div>
+
+                    <!-- Row 3: Action Controls Bar (Date + Calendar + Status + Trash) -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-gray-100 pl-8">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <!-- Date Button -->
                             <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
                                     class="flex items-center gap-1 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 shadow-2xs transition active:scale-95 cursor-pointer" 
                                     title="Definir prazo">
-                                <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs"></i>
+                                <i class="ph-bold ph-calendar-blank text-emerald-600 text-xs"></i>
                                 <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
                             </button>
 
-                            <!-- Minimalist 1-Click Google Calendar -->
+                            <!-- Google Calendar -->
                             <button onclick="scheduleTaskInGoogleCalendar(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(t.meeting_title || '')}')" 
-                                    class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer" 
+                                    class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer" 
                                     title="Google Calendar (1-Clique)">
                                 <i class="ph-bold ph-google-logo text-xs"></i>
                             </button>
+                        </div>
 
-                            <!-- Status Dropdown -->
-                            <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
+                        <div class="flex items-center gap-1.5">
+                            <!-- Status Selector -->
+                            <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
                                 <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ A Fazer</option>
                                 <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>✅ Concluído</option>
                                 <option value="DELEGATED" ${t.status === 'DELEGATED' ? 'selected' : ''}>👥 Delegado</option>
@@ -5043,14 +5046,13 @@ ${transcriptText}
                             </select>
 
                             <!-- Delete Button -->
-                            <button onclick="deleteSingleTask(${t.id})" class="w-6 h-6 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition opacity-0 group-hover:opacity-100 cursor-pointer" title="Excluir Tarefa">
+                            <button onclick="deleteSingleTask(${t.id})" class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center transition cursor-pointer" title="Excluir Tarefa">
                                 <i class="ph-bold ph-trash text-xs"></i>
                             </button>
                         </div>
-
                     </div>
 
-                    <!-- 💡 EXPANDABLE CONTEXTUAL EXECUTIVE BALLOON (ZERO MEMORY LOSS AFTER 3 WEEKS) -->
+                    <!-- 💡 EXPANDABLE CONTEXTUAL EXECUTIVE BALLOON -->
                     <div id="task-context-drawer-${t.id}" class="hidden bg-amber-50/60 rounded-2xl p-3.5 border border-amber-200/60 space-y-2 text-xs text-amber-950 animate-fade-in">
                         <div class="flex items-center justify-between border-b border-amber-200/50 pb-2">
                             <span class="font-bold flex items-center gap-1.5 text-amber-900">
