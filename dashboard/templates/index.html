@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Executive Voice OS — Second Brain</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,6 +11,24 @@
     <!-- Marked.js (Markdown Renderer) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        html, body {
+            height: 100dvh;
+            overscroll-behavior-y: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #bottom-input-container {
+            padding-bottom: calc(1rem + var(--sab)) !important;
+            padding-left: max(1rem, var(--sal)) !important;
+            padding-right: max(1rem, var(--sar)) !important;
+        }
         .layout-narrow { max-width: 680px !important; margin-left: auto !important; margin-right: auto !important; }
         .layout-default { max-width: 860px !important; margin-left: auto !important; margin-right: auto !important; }
         .layout-wide { max-width: 1180px !important; margin-left: auto !important; margin-right: auto !important; }
@@ -787,24 +805,24 @@
                           placeholder="Trabalhe com o Executive Voice OS... (use @ para citar outra reunião)" 
                           class="w-full bg-transparent px-5 pt-4 pb-11 text-sm text-[#0d0d0d] placeholder-gray-400 focus:outline-none resize-none font-sans"></textarea>
                 
-                <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                <div class="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between gap-1.5">
                     <!-- Left: Strict Page-Level Guardrail & Context Tag -->
-                    <div class="flex items-center gap-2 text-xs font-semibold text-gray-500 truncate" id="chat-context-badge">
+                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 truncate min-w-0 max-w-[110px] sm:max-w-xs" id="chat-context-badge">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse"></span>
-                        <span id="chat-context-label" class="truncate">Analisando Atas & Transcrição desta Página</span>
+                        <span id="chat-context-label" class="truncate">Esta Nota</span>
                     </div>
 
                     <!-- Right: Model Selector Dropdown & Send Button -->
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <select id="chat-model-selector" onchange="changeChatModel(this.value)" class="text-xs bg-gray-100 hover:bg-gray-200/80 rounded-full px-3 py-1.5 text-gray-800 font-semibold focus:outline-none cursor-pointer border-0 transition max-w-[280px] sm:max-w-xs truncate" title="Escolha a forma de entrega de IA">
-                            <option value="gpt-4o-mini" selected>⚡ Síntese Rápida (Dailies & Rotina)</option>
-                            <option value="gpt-4o">🧠 Estratégia C-Level (Deals & Negociação)</option>
-                            <option value="o3-mini">🔬 Raciocínio Profundo (Técnico & Arquitetura)</option>
-                            <option value="gemini-2.5-flash">💎 Visão 360° (Consultas & Workshops)</option>
-                            <option value="gemini-2.5-pro">🏛️ Planejamento Master (Mentorias & QBR)</option>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <select id="chat-model-selector" onchange="changeChatModel(this.value)" class="text-xs bg-gray-100 hover:bg-gray-200/80 rounded-full px-2.5 py-1 text-gray-800 font-semibold focus:outline-none cursor-pointer border-0 transition max-w-[130px] sm:max-w-xs truncate" title="Escolha a forma de entrega de IA">
+                            <option value="gpt-4o-mini" selected>⚡ Rápida</option>
+                            <option value="gpt-4o">🧠 C-Level</option>
+                            <option value="o3-mini">🔬 Profundo</option>
+                            <option value="gemini-2.5-flash">💎 Visão 360°</option>
+                            <option value="gemini-2.5-pro">🏛️ Master</option>
                         </select>
-                        <button onclick="sendPrompt()" id="btn-send" class="w-8 h-8 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center transition disabled:opacity-40 shadow-xs border-0">
-                            <i class="ph-bold ph-arrow-up text-sm"></i>
+                        <button onclick="sendPrompt()" id="btn-send" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center transition disabled:opacity-40 shadow-xs border-0 flex-shrink-0 active:scale-95">
+                            <i class="ph-bold ph-arrow-up text-xs sm:text-sm"></i>
                         </button>
                     </div>
                 </div>
@@ -4266,6 +4284,22 @@ ${transcriptText}
             }
         });
 
+        
+        async function openObsidianNoteDirect() {
+            if (!currentMeetingId) return;
+            try {
+                const res = await fetch(`/api/open-in-obsidian/${currentMeetingId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🟣 Nota aberta no Obsidian!', 'success');
+                } else {
+                    showInAppToast('Nota no Desktop (~/Desktop/Zendesk/)', 'info');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao abrir no Obsidian: ' + e.message, 'error');
+            }
+        }
+
         async function openDesktopMarkdown() {
             if (!currentMeetingId) return;
             try {
@@ -6455,13 +6489,15 @@ Felipe Donato`);
         });
 
     
-        // ==========================================
-        // 🔄 PULL TO REFRESH ENGINE (iOS / Mobile Native)
+        // ==============================================================
+        // 🔄 REFINED PULL TO REFRESH ENGINE (iOS Native Touch Physics)
         // ==========================================
         let ptrStartY = 0;
+        let ptrStartX = 0;
         let ptrCurrentY = 0;
         let ptrIsPulling = false;
         let ptrIsRefreshing = false;
+        let ptrThresholdVibrated = false;
         const PTR_THRESHOLD = 65;
 
         function initPullToRefresh() {
@@ -6472,28 +6508,43 @@ Felipe Donato`);
             if (!container || !indicator || !icon || !label) return;
 
             container.addEventListener('touchstart', (e) => {
-                if (container.scrollTop <= 0 && !ptrIsRefreshing) {
+                if (container.scrollTop <= 0 && !ptrIsRefreshing && e.touches.length === 1) {
                     ptrStartY = e.touches[0].clientY;
+                    ptrStartX = e.touches[0].clientX;
                     ptrIsPulling = true;
+                    ptrThresholdVibrated = false;
                 } else {
                     ptrIsPulling = false;
                 }
             }, { passive: true });
 
             container.addEventListener('touchmove', (e) => {
-                if (!ptrIsPulling || ptrIsRefreshing) return;
+                if (!ptrIsPulling || ptrIsRefreshing || e.touches.length !== 1) return;
                 ptrCurrentY = e.touches[0].clientY;
-                const diff = ptrCurrentY - ptrStartY;
+                const currentX = e.touches[0].clientX;
+                const diffY = ptrCurrentY - ptrStartY;
+                const diffX = Math.abs(currentX - ptrStartX);
 
-                if (diff > 0 && container.scrollTop <= 0) {
-                    const pullDistance = Math.min(diff * 0.4, 90);
+                // Disambiguate: only pull if purely vertical
+                if (diffX > diffY) {
+                    ptrIsPulling = false;
+                    return;
+                }
+
+                if (diffY > 0 && container.scrollTop <= 0) {
+                    const pullDistance = Math.min(diffY * 0.4, 90);
                     indicator.style.height = `${pullDistance}px`;
                     indicator.style.opacity = `${Math.min(pullDistance / 40, 1)}`;
 
                     if (pullDistance >= PTR_THRESHOLD) {
+                        if (!ptrThresholdVibrated) {
+                            if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
+                            ptrThresholdVibrated = true;
+                        }
                         icon.className = 'ph-bold ph-arrows-clockwise text-emerald-600 text-sm animate-spin';
                         label.innerText = 'Solte para atualizar...';
                     } else {
+                        ptrThresholdVibrated = false;
                         icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
                         label.innerText = 'Puxe para atualizar...';
                     }
@@ -6517,9 +6568,7 @@ Felipe Donato`);
                         await refreshCompleteDashboardData();
                         icon.className = 'ph-bold ph-check-circle text-emerald-600 text-sm';
                         label.innerText = 'Atualizado!';
-                        if (window.navigator && window.navigator.vibrate) {
-                            window.navigator.vibrate(40);
-                        }
+                        if (window.navigator && window.navigator.vibrate) window.navigator.vibrate([15, 30, 20]);
                     } catch (err) {
                         console.error('PTR error:', err);
                         label.innerText = 'Erro ao atualizar';
@@ -6543,49 +6592,8 @@ Felipe Donato`);
             });
         }
 
-        async function refreshCompleteDashboardData() {
-            try {
-                const [mRes, tRes, aRes] = await Promise.all([
-                    fetch('/api/meetings'),
-                    fetch('/api/tasks'),
-                    fetch('/api/dashboard/analytics')
-                ]);
-                
-                if (mRes.ok) {
-                    meetingsData = await mRes.json();
-                    renderSidebarMeetings();
-                    if (currentMeetingId) {
-                        const m = meetingsData.find(item => item.file_id === currentMeetingId);
-                        if (m) {
-                            checkAndRenderAudioBriefing(currentMeetingId);
-                        }
-                    }
-                }
-                if (tRes.ok) {
-                    currentTasksList = await tRes.json();
-                    renderTasksList();
-                }
-                if (aRes.ok) {
-                    const analyticsData = await aRes.json();
-                    if (analyticsData && analyticsData.bifocal) {
-                        const hSaved = document.getElementById('metric-hours-saved');
-                        if (hSaved) hSaved.innerHTML = `<span>${analyticsData.bifocal.hours_saved || '0.0'}h</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
-                        const cCount = document.getElementById('metric-calls-count');
-                        if (cCount) cCount.innerHTML = `<span>${analyticsData.bifocal.meetings_processed || 0}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
-                        const pVal = document.getElementById('metric-pipeline-val');
-                        if (pVal) pVal.innerHTML = `<span>${analyticsData.bifocal.pipeline_value || 'R$ 0'}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
-                    }
-                }
-                showInAppToast('🔄 Dados atualizados com sucesso!', 'success');
-            } catch (e) {
-                console.error('Error in refreshCompleteDashboardData:', e);
-                showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
-            }
-        }
-
-    
         // ==============================================================
-        // 👆 UNIVERSAL SWIPE-TO-ACTION ENGINE (Mobile Gestures on Tasks)
+        // 👆 OPTIMIZED UNIVERSAL SWIPE-TO-ACTION ENGINE
         // ==============================================================
         let activeSwipeCard = null;
         let swipeStartX = 0;
@@ -6593,38 +6601,64 @@ Felipe Donato`);
         let swipeCurrentX = 0;
         let isHorizontalSwipe = false;
         let isSwipeLocked = false;
+        let hasTriggeredThresholdHaptic = false;
+        const SWIPE_THRESHOLD = 70;
 
         function initUniversalSwipeEngine() {
+            function resetCardState(card, animate = true) {
+                if (!card) return;
+                const front = card.querySelector('.swipe-front');
+                const leftAction = card.querySelector('.swipe-action-left');
+                const rightAction = card.querySelector('.swipe-action-right');
+                const bg = card.querySelector('.swipe-bg');
+
+                if (front) {
+                    if (animate) {
+                        front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+                        front.style.transform = 'translateX(0px)';
+                        setTimeout(() => { if (front) front.style.transition = ''; }, 240);
+                    } else {
+                        front.style.transition = 'none';
+                        front.style.transform = 'translateX(0px)';
+                    }
+                }
+                if (leftAction) {
+                    leftAction.style.opacity = '0';
+                    leftAction.style.transform = 'translateX(-8px) scale(1)';
+                }
+                if (rightAction) {
+                    rightAction.style.opacity = '0';
+                    rightAction.style.transform = 'translateX(8px) scale(1)';
+                }
+                if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors duration-150';
+            }
+
             document.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
                 const swipeContainer = e.target.closest('.swipe-container');
                 if (!swipeContainer) return;
-                
-                // Avoid initiating swipe if user touched an interactive input or button
-                if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('[contenteditable="true"]')) {
-                    return;
-                }
+                if (e.target.closest('button, select, input, [contenteditable="true"]')) return;
 
                 activeSwipeCard = swipeContainer;
                 swipeStartX = e.touches[0].clientX;
                 swipeStartY = e.touches[0].clientY;
+                swipeCurrentX = swipeStartX;
                 isHorizontalSwipe = false;
                 isSwipeLocked = false;
-                
+                hasTriggeredThresholdHaptic = false;
+
                 const front = activeSwipeCard.querySelector('.swipe-front');
-                if (front) {
-                    front.style.transition = 'none';
-                }
+                if (front) front.style.transition = 'none';
             }, { passive: true });
 
             document.addEventListener('touchmove', (e) => {
-                if (!activeSwipeCard || isSwipeLocked) return;
+                if (!activeSwipeCard || isSwipeLocked || e.touches.length !== 1) return;
 
                 swipeCurrentX = e.touches[0].clientX;
                 const currentY = e.touches[0].clientY;
                 const deltaX = swipeCurrentX - swipeStartX;
                 const deltaY = currentY - swipeStartY;
 
-                // Determine swipe intent (lock to horizontal if deltaX > deltaY)
                 if (!isHorizontalSwipe) {
                     if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
                         isHorizontalSwipe = true;
@@ -6636,76 +6670,73 @@ Felipe Donato`);
 
                 if (isHorizontalSwipe) {
                     if (e.cancelable) e.preventDefault();
-                    
                     const front = activeSwipeCard.querySelector('.swipe-front');
                     const bg = activeSwipeCard.querySelector('.swipe-bg');
                     const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
                     const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
-                    
                     if (!front || !bg) return;
 
-                    // Elastic damping
                     const translateX = deltaX * 0.72;
                     front.style.transform = `translateX(${translateX}px)`;
+                    const isOverThreshold = Math.abs(translateX) >= SWIPE_THRESHOLD;
+
+                    // Haptic trigger on crossing boundary
+                    if (isOverThreshold && !hasTriggeredThresholdHaptic) {
+                        if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(15);
+                        hasTriggeredThresholdHaptic = true;
+                    } else if (!isOverThreshold && hasTriggeredThresholdHaptic) {
+                        hasTriggeredThresholdHaptic = false;
+                    }
 
                     if (translateX > 0) {
-                        // Swiping Right -> Complete
                         if (leftAction) {
                             leftAction.style.opacity = `${Math.min(translateX / 55, 1)}`;
-                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${translateX >= 70 ? 1.08 : 1})`;
+                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${isOverThreshold ? 1.08 : 1})`;
                         }
                         if (rightAction) rightAction.style.opacity = '0';
-
-                        if (translateX >= 70) {
-                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors';
-                        } else {
-                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
-                        }
+                        bg.className = isOverThreshold 
+                            ? 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors'
+                            : 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
                     } else if (translateX < 0) {
-                        // Swiping Left -> Delete / Postpone
                         const absX = Math.abs(translateX);
                         if (rightAction) {
                             rightAction.style.opacity = `${Math.min(absX / 55, 1)}`;
-                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${absX >= 70 ? 1.08 : 1})`;
+                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${isOverThreshold ? 1.08 : 1})`;
                         }
                         if (leftAction) leftAction.style.opacity = '0';
-
                         const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
-                        const bgClass = swipeType === 'meeting-task' ? 'bg-blue-50/90' : 'bg-red-50/90';
-                        const lightBgClass = swipeType === 'meeting-task' ? 'bg-blue-50/40' : 'bg-red-50/40';
-
-                        if (absX >= 70) {
-                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${bgClass} transition-colors`;
+                        const isMeeting = swipeType === 'meeting-task';
+                        if (isMeeting) {
+                            bg.className = isOverThreshold 
+                                ? 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-blue-50/90 transition-colors'
+                                : 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-blue-50/40 transition-colors';
                         } else {
-                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${lightBgClass} transition-colors`;
+                            bg.className = isOverThreshold 
+                                ? 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-red-50/90 transition-colors'
+                                : 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-red-50/40 transition-colors';
                         }
                     }
                 }
             }, { passive: false });
 
-            document.addEventListener('touchend', async () => {
+            const handleTouchEnd = async () => {
                 if (!activeSwipeCard || !isHorizontalSwipe) {
                     activeSwipeCard = null;
                     return;
                 }
 
-                const front = activeSwipeCard.querySelector('.swipe-front');
-                const bg = activeSwipeCard.querySelector('.swipe-bg');
-                const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
-                const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
                 const deltaX = swipeCurrentX - swipeStartX;
                 const translateX = deltaX * 0.72;
-                const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
                 const card = activeSwipeCard;
+                const front = card.querySelector('.swipe-front');
+                const swipeType = card.getAttribute('data-swipe-type');
 
-                if (front) {
-                    front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
-                }
-
-                if (translateX >= 70) {
-                    // SWIPED RIGHT: COMPLETE / TOGGLE STATUS
-                    if (front) front.style.transform = 'translateX(105%)';
-                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+                if (translateX >= SWIPE_THRESHOLD) {
+                    if (front) {
+                        front.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+                        front.style.transform = 'translateX(105%)';
+                    }
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate([15, 30, 20]);
 
                     setTimeout(async () => {
                         if (swipeType === 'central-task') {
@@ -6718,11 +6749,12 @@ Felipe Donato`);
                             await changeMeetingTaskStatusDirect(taskIdx, currentStatus === 'DONE' ? 'PENDING' : 'DONE');
                         }
                     }, 180);
-
-                } else if (translateX <= -70) {
-                    // SWIPED LEFT: DELETE / POSTPONE
-                    if (front) front.style.transform = 'translateX(-105%)';
-                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+                } else if (translateX <= -SWIPE_THRESHOLD) {
+                    if (front) {
+                        front.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+                        front.style.transform = 'translateX(-105%)';
+                    }
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate([15, 30, 20]);
 
                     setTimeout(async () => {
                         if (swipeType === 'central-task') {
@@ -6733,15 +6765,17 @@ Felipe Donato`);
                             await postponeMeetingTaskDirect(taskIdx);
                         }
                     }, 180);
-
                 } else {
-                    // Snap back to 0
-                    if (front) front.style.transform = 'translateX(0px)';
-                    if (leftAction) leftAction.style.opacity = '0';
-                    if (rightAction) rightAction.style.opacity = '0';
-                    if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors';
+                    resetCardState(card, true);
                 }
 
+                activeSwipeCard = null;
+                isHorizontalSwipe = false;
+            };
+
+            document.addEventListener('touchend', handleTouchEnd);
+            document.addEventListener('touchcancel', () => {
+                if (activeSwipeCard) resetCardState(activeSwipeCard, true);
                 activeSwipeCard = null;
                 isHorizontalSwipe = false;
             });
