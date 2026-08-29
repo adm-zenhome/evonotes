@@ -1,0 +1,307 @@
+{
+  "system_name": "Executive Voice OS (EvoNotes)",
+  "version": "4.2.0",
+  "last_updated": "2026-08-29T12:29:43.217109",
+  "base_url": "https://evonotes.ai",
+  "pages": [
+    {
+      "id": "home_dashboard",
+      "url": "/app",
+      "title": "Executive Voice OS — Painel Bifocal & Canvas Executivo",
+      "description": "Segundo cérebro executivo orientado a voz. Painel bifocal com horas economizadas, pipeline ativo e transcrição com diarização de interlocutores.",
+      "type": "application/page",
+      "priority": "1.0",
+      "changefreq": "always",
+      "seo_keywords": [
+        "executive voice os",
+        "segundo cerebro executivo",
+        "plaud note pro",
+        "transcricao de reunioes",
+        "bifocal dashboard"
+      ],
+      "features": [
+        "Bifocal Analytics",
+        "Voice Notes Canvas",
+        "AI Copilot Spark",
+        "Realtime Sync"
+      ]
+    },
+    {
+      "id": "login_gate",
+      "url": "/app#login",
+      "title": "Acesso Executivo — Executive Voice OS",
+      "description": "Portal de autenticação e governança Guardian Auth v4 com criptografia de ponta a ponta para instâncias executivas.",
+      "type": "security/gate",
+      "priority": "0.9",
+      "changefreq": "monthly",
+      "seo_keywords": [
+        "guardian auth",
+        "acesso executivo",
+        "login corporativo seguro"
+      ],
+      "features": [
+        "Executive Fast-Pass",
+        "PIN Security",
+        "Profile Validation"
+      ]
+    },
+    {
+      "id": "tasks_central",
+      "url": "/app#tasks",
+      "title": "Central de Tarefas & Gestos no Celular (Swipe-to-Action)",
+      "description": "Hub consolidado de to-dos, prazos e compromissos extraídos automaticamente das reuniões com suporte a gestos de deslizar no iPhone.",
+      "type": "application/view",
+      "priority": "0.9",
+      "changefreq": "always",
+      "seo_keywords": [
+        "central de tarefas",
+        "to-do executivo",
+        "swipe-to-action",
+        "compromissos de reuniao"
+      ],
+      "features": [
+        "Inline Editing",
+        "Swipe to Complete",
+        "Google Calendar 1-Click",
+        "Owner Assignment"
+      ]
+    },
+    {
+      "id": "whatsapp_inbox",
+      "url": "/app#whatsapp-inbox",
+      "title": "Triagem de Áudios do WhatsApp — Executive Voice OS",
+      "description": "Área de triagem para mensagens de voz recebidas em grupos e conversas privadas via Z-API. Zero conversão automática, criação de notas com 1 toque.",
+      "type": "application/modal",
+      "priority": "0.85",
+      "changefreq": "hourly",
+      "seo_keywords": [
+        "whatsapp voice ingest",
+        "audio para texto whatsapp",
+        "triagem de audios z-api"
+      ],
+      "features": [
+        "Realtime Z-API Webhook",
+        "Context Resolver",
+        "Explicit User Confirmation",
+        "Whisper Parallel Pipeline"
+      ]
+    },
+    {
+      "id": "connection_hub",
+      "url": "/app#settings",
+      "title": "Hub de Conexões & Integrações — Plaud, WhatsApp, Gmail, Calendar",
+      "description": "Central de conexões para dispositivos de hardware (Plaud Note Pro), mensageria (Z-API WhatsApp), e-mails (Gmail Draft) e agenda (Google Calendar).",
+      "type": "application/modal",
+      "priority": "0.8",
+      "changefreq": "weekly",
+      "seo_keywords": [
+        "plaud note pro sync",
+        "whatsapp z-api",
+        "google calendar integration",
+        "gmail executive draft"
+      ],
+      "features": [
+        "Plaud Cloud Sync",
+        "Z-API QR/Token",
+        "Google 1-Click Scheduling",
+        "Obsidian Markdown Export"
+      ]
+    },
+    {
+      "id": "template_b2b_sales",
+      "url": "/app?template=b2b_sales",
+      "title": "Template Comercial B2B — Síntese C-Level, Contas & E-mail",
+      "description": "Estrutura focada em receita, objeções MEDDPICC, matriz de compromissos e rascunho de e-mail de follow-up pronto para envio.",
+      "type": "template/polymorphic",
+      "priority": "0.85",
+      "changefreq": "daily",
+      "seo_keywords": [
+        "b2b sales notes",
+        "meddpicc ai summary",
+        "executive follow up email"
+      ],
+      "features": [
+        "C-Level Summary",
+        "Accounts & Opportunities",
+        "Follow-up Email Draft",
+        "Objections Extraction"
+      ]
+    },
+    {
+      "id": "template_personal_family",
+      "url": "/app?template=personal_family",
+      "title": "Template Pessoal & Família — Diário & Momentos Afetivos",
+      "description": "Formato caloroso e narrativo para conversas em família e vida pessoal, com momentos afetivos, insights e to-dos domésticos.",
+      "type": "template/polymorphic",
+      "priority": "0.8",
+      "changefreq": "daily",
+      "seo_keywords": [
+        "diario de familia",
+        "rotina pessoal",
+        "lembretes domesticos voz"
+      ],
+      "features": [
+        "Narrativa Afetiva",
+        "Momentos Marcantes",
+        "To-dos Domésticos",
+        "Memória Familiar"
+      ]
+    },
+    {
+      "id": "template_mentorship_learning",
+      "url": "/app?template=mentorship_learning",
+      "title": "Template Mentoria & Aprendizado — Modelos Mentais & Frases",
+      "description": "Síntese de podcasts, palestras e mentorias com teses centrais, modelos mentais, citações de impacto e hábitos sugeridos.",
+      "type": "template/polymorphic",
+      "priority": "0.8",
+      "changefreq": "daily",
+      "seo_keywords": [
+        "mentoria executiva",
+        "resumo podcast ia",
+        "modelos mentais"
+      ],
+      "features": [
+        "Teses Centrais",
+        "Frases de Impacto",
+        "Hábitos & Práticas",
+        "Modelos Mentais"
+      ]
+    },
+    {
+      "id": "template_product_brainstorm",
+      "url": "/app?template=product_brainstorm",
+      "title": "Template Ideias & Produto — Problemas & Arquitetura",
+      "description": "Captura de ideação de novos produtos, desafios técnicos, decisões de arquitetura e próximos passos de roadmap.",
+      "type": "template/polymorphic",
+      "priority": "0.75",
+      "changefreq": "weekly",
+      "seo_keywords": [
+        "product brainstorm",
+        "roadmap ia",
+        "arquitetura de software"
+      ],
+      "features": [
+        "Problema vs Solução",
+        "Decisões Técnicas",
+        "Arquitetura",
+        "Roadmap"
+      ]
+    },
+    {
+      "id": "template_one_on_one",
+      "url": "/app?template=one_on_one",
+      "title": "Template 1-on-1 & Liderança — Feedback & Desenvolvimento",
+      "description": "Alinhamento de pessoas, metas individuais, feedbacks mútuos e plano de desenvolvimento de liderança.",
+      "type": "template/polymorphic",
+      "priority": "0.75",
+      "changefreq": "weekly",
+      "seo_keywords": [
+        "1-on-1 meeting notes",
+        "feedback executivo",
+        "lideranca e metas"
+      ],
+      "features": [
+        "Pauta & Clima",
+        "Feedbacks",
+        "Metas de Carreira",
+        "Ações Acordadas"
+      ]
+    },
+    {
+      "id": "template_quick_note",
+      "url": "/app?template=quick_note",
+      "title": "Template Nota Rápida — Ideias & Ações Imediatas",
+      "description": "Estrutura ultra-concisa para áudios rápidos de até 2 minutos com a ideia principal e a ação imediata.",
+      "type": "template/polymorphic",
+      "priority": "0.7",
+      "changefreq": "daily",
+      "seo_keywords": [
+        "nota rapida voz",
+        "audio memo",
+        "acao imediata"
+      ],
+      "features": [
+        "Ideia Central",
+        "Ação Imediata",
+        "Zero Burocracia"
+      ]
+    }
+  ],
+  "api_endpoints": [
+    {
+      "endpoint": "/api/sync-plaud",
+      "method": "POST",
+      "purpose": "Sincronização de gravações Plaud Note Pro"
+    },
+    {
+      "endpoint": "/api/meetings",
+      "method": "GET",
+      "purpose": "Listagem de todas as reuniões processadas"
+    },
+    {
+      "endpoint": "/api/meetings/{id}",
+      "method": "GET",
+      "purpose": "Detalhes de inteligência de uma nota"
+    },
+    {
+      "endpoint": "/api/meetings/{id}/reprocess-template",
+      "method": "POST",
+      "purpose": "Re-análise sob novo template adaptativo"
+    },
+    {
+      "endpoint": "/api/tasks",
+      "method": "GET",
+      "purpose": "Central de tarefas e to-dos"
+    },
+    {
+      "endpoint": "/api/tasks/{id}/status",
+      "method": "POST",
+      "purpose": "Atualização de status de tarefa"
+    },
+    {
+      "endpoint": "/api/whatsapp/audio-feed",
+      "method": "GET",
+      "purpose": "Fila real de triagem de áudios do WhatsApp"
+    },
+    {
+      "endpoint": "/api/whatsapp/ingest-audio-item",
+      "method": "POST",
+      "purpose": "Ingestão confirmada de áudio WhatsApp"
+    },
+    {
+      "endpoint": "/api/ai-action/{file_id}",
+      "method": "POST",
+      "purpose": "Consultas contextuais ao Copiloto Spark"
+    },
+    {
+      "endpoint": "/api/ai-action/global",
+      "method": "POST",
+      "purpose": "Consultas estratégicas cross-meeting ao Copiloto Spark"
+    },
+    {
+      "endpoint": "/api/generate-audio-briefing/{id}",
+      "method": "POST",
+      "purpose": "Síntese vocal de briefing executivo (60s)"
+    },
+    {
+      "endpoint": "/api/meetings/{id}/export-obsidian",
+      "method": "POST",
+      "purpose": "Exportação física para Obsidian Vault"
+    },
+    {
+      "endpoint": "/sitemap.xml",
+      "method": "GET",
+      "purpose": "Sitemap XML padrão para SEO e indexadores"
+    },
+    {
+      "endpoint": "/sitemap.json",
+      "method": "GET",
+      "purpose": "Sitemap estruturado em JSON para agentes e APIs"
+    },
+    {
+      "endpoint": "/api/sitemap",
+      "method": "GET",
+      "purpose": "API de consulta de sitemap da aplicação"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 
 class ExecutiveDatabase:
     def reset_all_data(self):
-        """Wipes all meetings, commitments, sources, categories, and resets database to clean state."""
+        """Wipes all meetings, commitments, sources, categories, audio cache, profiles, and resets to 100% virgin state."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
@@ -22,6 +22,32 @@ class ExecutiveDatabase:
                 cursor.execute(f"DELETE FROM {tbl}")
             conn.commit()
             logging.info(f"🔥 DATABASE COMPLETELY WIPED: Cleared tables {tables}!")
+
+        # Wipe profiles to clean virgin state
+        profiles_dir = DATA_DIR / "profiles"
+        if profiles_dir.exists():
+            for p_file in profiles_dir.glob("*.json"):
+                try:
+                    p_file.unlink()
+                    logging.info(f"Purged profile file: {p_file}")
+                except Exception as e:
+                    logging.warning(f"Error purging profile {p_file}: {e}")
+
+        # Wipe audio briefings and audio cache
+        cache_dir = DATA_DIR.parent / "cache"
+        if cache_dir.exists():
+            for item in cache_dir.glob("*"):
+                if item.is_file():
+                    try:
+                        item.unlink()
+                    except Exception:
+                        pass
+                elif item.is_dir() and item.name == "audio_briefings":
+                    for sub in item.glob("*"):
+                        try:
+                            sub.unlink()
+                        except Exception:
+                            pass
 
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
@@ -558,7 +584,6 @@ class ExecutiveDatabase:
             conn.commit()
             return cursor.lastrowid
 
-db = ExecutiveDatabase()
 
 # --- Analytics & Feedback Extension ---
 
@@ -589,7 +614,7 @@ def init_analytics_tables():
         """)
         conn.commit()
 
-init_analytics_tables()
+# init_analytics_tables called inside ExecutiveDatabase.init_db
 
 
 def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
@@ -1112,37 +1137,47 @@ def update_meeting_channel(file_id: str, channel_name: str):
         conn.commit()
 
 
-    def save_whatsapp_inbox_item(self, item: Dict[str, Any]):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO whatsapp_inbox_queue 
-                (message_id, phone, sender_name, chat_name, is_group, audio_url, duration_seconds, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                item["message_id"],
-                item["phone"],
-                item.get("sender_name", item["phone"]),
-                item.get("chat_name", item["phone"]),
-                1 if item.get("is_group") else 0,
-                item["audio_url"],
-                item.get("duration_seconds", 0),
-                item.get("status", "PENDING")
-            ))
-            conn.commit()
+def save_whatsapp_inbox_item(item: Dict[str, Any]):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO whatsapp_inbox_queue 
+            (message_id, phone, sender_name, chat_name, is_group, audio_url, duration_seconds, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            item["message_id"],
+            item["phone"],
+            item.get("sender_name", item["phone"]),
+            item.get("chat_name", item["phone"]),
+            1 if item.get("is_group") else 0,
+            item["audio_url"],
+            item.get("duration_seconds", 0),
+            item.get("status", "PENDING")
+        ))
+        conn.commit()
 
-    def get_pending_whatsapp_inbox(self) -> List[Dict[str, Any]]:
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT * FROM whatsapp_inbox_queue 
-                WHERE status = 'PENDING' 
-                ORDER BY received_at DESC
-            """)
-            return [dict(row) for row in cursor.fetchall()]
+def get_pending_whatsapp_inbox() -> List[Dict[str, Any]]:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM whatsapp_inbox_queue 
+            WHERE status = 'PENDING' 
+            ORDER BY received_at DESC
+        """)
+        return [dict(row) for row in cursor.fetchall()]
 
-    def mark_whatsapp_inbox_status(self, message_id: str, status: str = "PROCESSED"):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE whatsapp_inbox_queue SET status = ? WHERE message_id = ?", (status, message_id))
-            conn.commit()
+def mark_whatsapp_inbox_status(message_id: str, status: str = "PROCESSED"):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE whatsapp_inbox_queue SET status = ? WHERE message_id = ?", (status, message_id))
+        conn.commit()
+
+# Bind methods to ExecutiveDatabase class as well
+ExecutiveDatabase.save_whatsapp_inbox_item = lambda self, item: save_whatsapp_inbox_item(item)
+ExecutiveDatabase.get_pending_whatsapp_inbox = lambda self: get_pending_whatsapp_inbox()
+ExecutiveDatabase.mark_whatsapp_inbox_status = lambda self, mid, s='PROCESSED': mark_whatsapp_inbox_status(mid, s)
+
+
+
+# Singleton Database Instance
+db = ExecutiveDatabase()

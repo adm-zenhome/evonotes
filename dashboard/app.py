@@ -1574,3 +1574,28 @@ async def api_open_in_obsidian(file_id: str):
         return JSONResponse({"status": "SUCCESS", "uri": obsidian_uri})
     except Exception as e:
         return JSONResponse({"status": "ERROR", "detail": str(e)})
+
+
+# ========== 🗺️ SITEMAP & SEO ENGINE ENDPOINTS ==========
+
+@app.get("/sitemap.xml")
+async def api_sitemap_xml():
+    """Delivers official XML sitemap for SEO and indexers."""
+    from fastapi.responses import Response
+    sitemap_file = DATA_DIR.parent / "sitemap.xml"
+    if sitemap_file.exists():
+        with open(sitemap_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        return Response(content=content, media_type="application/xml")
+    raise HTTPException(status_code=404, detail="Sitemap XML not found")
+
+@app.get("/sitemap.json")
+@app.get("/api/sitemap")
+async def api_sitemap_json():
+    """Delivers official structured JSON sitemap for Agents and API clients."""
+    sitemap_file = DATA_DIR.parent / "sitemap.json"
+    if sitemap_file.exists():
+        with open(sitemap_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return JSONResponse(data)
+    raise HTTPException(status_code=404, detail="Sitemap JSON not found")
