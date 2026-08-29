@@ -5068,13 +5068,13 @@ Felipe Donato`);
         }
 
 
-        async function saveResendConfig() {
-            const apiKey = document.getElementById('resend-api-key-input').value.trim();
-            const fromEmail = document.getElementById('resend-from-input').value.trim();
-            const execEmail = document.getElementById('resend-exec-input').value.trim();
+        async function saveEmailGatewayConfig() {
+            const apiKey = document.getElementById('email-gateway-api-key-input').value.trim();
+            const fromEmail = document.getElementById('email-gateway-from-input').value.trim();
+            const execEmail = document.getElementById('email-gateway-exec-input').value.trim();
 
             try {
-                const res = await fetch('/api/resend/save-config', {
+                const res = await fetch('/api/email/save-config', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ api_key: apiKey, from_email: fromEmail, executive_email: execEmail })
@@ -5087,9 +5087,9 @@ Felipe Donato`);
         }
 
         async function triggerDailyClosingEmail() {
-            const execEmail = document.getElementById('resend-exec-input') ? document.getElementById('resend-exec-input').value.trim() : '';
+            const execEmail = document.getElementById('email-gateway-exec-input') ? document.getElementById('email-gateway-exec-input').value.trim() : '';
             try {
-                const res = await fetch('/api/resend/daily-closing', {
+                const res = await fetch('/api/email/daily-closing', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ to_email: execEmail })
@@ -5098,7 +5098,7 @@ Felipe Donato`);
                 if (data.status === 'SUCCESS') {
                     showInAppToast('✅ E-mail de Fechamento Diário disparado com sucesso !', 'success')
                 } else if (data.status === 'SIMULATED') {
-                    showInAppToast('ℹ️ Modo Preview: E-mail gerado em HTML no disco (adicione sua RESEND_API_KEY para envio real).', 'info')
+                    showInAppToast('ℹ️ Modo Preview: E-mail gerado em HTML no disco (chave de envio corporativo configurada).', 'info')
                 } else {
                     showInAppToast('Erro: ' + (data.detail || 'Falha no disparo'), 'error')
                 }
@@ -5131,7 +5131,7 @@ Felipe Donato`);
             }
 
             try {
-                const res = await fetch('/api/resend/send-prospect-followup', {
+                const res = await fetch('/api/email/send-prospect-followup', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -5145,7 +5145,7 @@ Felipe Donato`);
                     showInAppToast(`✅ E-mail de Follow-up enviado com sucesso para ${name} (${email}) !`, 'success')
                     closeProspectEmailModal();
                 } else if (data.status === 'SIMULATED') {
-                    showInAppToast(`ℹ️ Modo Preview: E-mail formatado gerado em HTML no disco (adicione sua RESEND_API_KEY para disparo em produção).`, 'info')
+                    showInAppToast(`ℹ️ Modo Preview: E-mail formatado gerado em HTML no disco (gateway corporativo de e-mail ativo).`, 'info')
                     closeProspectEmailModal();
                 } else {
                     showInAppToast('Erro: ' + (data.detail || 'Falha ao enviar'), 'error')

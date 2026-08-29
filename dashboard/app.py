@@ -30,6 +30,67 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 
+# Official Plaud Cloud Catalog (7 Recordings)
+plaud_cloud_catalog = [
+    {
+        "id": "4b780a6ec8bb208c162033e97b77d8fd",
+        "title": "🏢 Alinhamento Comercial & Suporte",
+        "duration": 182,
+        "date": "28/08/2026 14:30",
+        "category": "Comercial",
+        "executive_summary": "Reunião de alinhamento sobre suporte e expansão de clientes estratégicos com a liderança técnica."
+    },
+    {
+        "id": "7fb54b90e729fd671e21c23b7e1dc305",
+        "title": "🤝 Parcerias & Estratégia de Canais",
+        "duration": 298,
+        "date": "28/08/2026 15:45",
+        "category": "Estratégia",
+        "executive_summary": "Discussão com a equipe de parcerias para estruturação de canais prioritários e aceleração de novos contratos."
+    },
+    {
+        "id": "283524636ef0cace0cec3ff943f66f09",
+        "title": "💼 Negociação & Modelo de Rebate",
+        "duration": 1650,
+        "date": "28/08/2026 17:00",
+        "category": "Comercial",
+        "executive_summary": "Definição de modelo comercial escalonado e alinhamento de rebate com foco em expansão de contas corporativas."
+    },
+    {
+        "id": "1f89d0ccf4e7ad49fd92425feef8dbcd",
+        "title": "💰 Alinhamento de SLA & Repasses",
+        "duration": 58,
+        "date": "28/08/2026 18:15",
+        "category": "Comercial",
+        "executive_summary": "Validação de margens mínimas, prazos de SLA e repasse de comissões para o próximo trimestre."
+    },
+    {
+        "id": "812b22e3fd08635d2f6b5829ae163641",
+        "title": "🚀 Estratégia de Aceleração & Conversão",
+        "duration": 3126,
+        "date": "28/08/2026 19:30",
+        "category": "Estratégia",
+        "executive_summary": "Apresentação e alinhamento das métricas de conversão de leads e plano de aceleração de receita para a diretoria."
+    },
+    {
+        "id": "35321aa7eca9033f91bd5de7bd9f2951",
+        "title": "📞 Telefonia ZCC vs SIP & TCO",
+        "duration": 574,
+        "date": "28/08/2026 20:10",
+        "category": "Técnico",
+        "executive_summary": "Comparativo técnico de infraestrutura entre telefonia SIP e ZCC com cálculo detalhado de TCO para migração."
+    },
+    {
+        "id": "fbe95d6daf6e44054d840052b276f3a2",
+        "title": "📊 Proposta Blue3 & Pricing FNR",
+        "duration": 182,
+        "date": "28/08/2026 20:45",
+        "category": "Comercial",
+        "executive_summary": "Revisão e ajuste de proposta comercial com desconto de volume FNR por assento para aprovação do comitê."
+    }
+]
+
+
 @app.get("/app", response_class=HTMLResponse)
 @app.get("/app/", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
