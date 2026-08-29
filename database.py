@@ -148,6 +148,9 @@ class ExecutiveDatabase:
             # Ensure channel column exists in meetings
             try:
                 cursor.execute("ALTER TABLE meetings ADD COLUMN channel TEXT DEFAULT 'Plaud Note Pro'")
+
+
+
             except Exception:
                 pass
 
@@ -164,6 +167,12 @@ class ExecutiveDatabase:
                     FOREIGN KEY (meeting_id) REFERENCES meetings (file_id) ON DELETE CASCADE
                 )
             """)
+            # Ensure optional commitment columns exist
+            for col in ['completed_at TIMESTAMP', 'rationale_why TEXT', 'rationale_how TEXT']:
+                try:
+                    cursor.execute(f"ALTER TABLE commitments ADD COLUMN {col}")
+                except Exception:
+                    pass
             # Ensure columns value_amount and quote_citation exist in accounts_deals
             try:
                 cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 0")
