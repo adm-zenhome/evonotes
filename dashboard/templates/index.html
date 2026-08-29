@@ -1007,18 +1007,18 @@
     </div>
 
     
-    <!-- Modal Central de Configurações & Canais (Apple-Grade • Zero Técnico • 100% Toggles) -->
+    <!-- Modal Central de Configurações & Canais (macOS Settings 2-Column Layout • Zero Scrollbar Issues) -->
     <div id="settings-modal" class="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
-        <div class="bg-[#f8f9fa] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[90vh] overflow-y-auto border-0 transition-all">
+        <div class="bg-[#f8f9fa] rounded-3xl max-w-4xl w-full p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[88vh] flex flex-col border-0 transition-all">
             
             <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-gray-200/60">
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200/70 flex-shrink-0">
                 <div class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-2xl bg-zinc-950 text-white flex items-center justify-center text-base font-bold shadow-xs">
                         <i class="ph-bold ph-gear"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 leading-tight">Configurações & Notificações</h3>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight">Configurações do Sistema</h3>
                         <p class="text-[11px] text-gray-500 font-medium">Dispositivo Plaud, canais de alertas e preferências de inteligência</p>
                     </div>
                 </div>
@@ -1027,305 +1027,340 @@
                 </button>
             </div>
 
-            <!-- Settings Navigation Tabs with Left/Right Arrow Smooth Scrolling -->
-            <div class="relative flex items-center w-full group/tabnav">
-                <!-- Left Arrow -->
-                <button type="button" onclick="scrollSettingsTabs(-150)" class="w-7 h-7 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-100 flex items-center justify-center transition absolute left-0 z-10 -translate-x-2 cursor-pointer border border-gray-200" title="Rolar para esquerda">
-                    <i class="ph-bold ph-caret-left text-xs"></i>
-                </button>
-
-                <!-- Scrollable Container -->
-                <div class="inline-flex w-full rounded-2xl bg-gray-200/70 p-1 border-0 text-xs font-semibold shadow-inner overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth px-6 gap-1" id="settings-tabs">
-                    <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" class="py-2 px-3.5 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-bell-simple text-emerald-600"></i> <span>Notificações & Canais</span>
-                    </button>
-                    <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-folders text-blue-600"></i> <span>Listas & Categorias</span>
-                    </button>
-                    <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-waveform text-purple-600"></i> <span>Hardware Plaud</span>
-                    </button>
-                    <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-book-bookmark text-indigo-600"></i> <span>Dicionário & Jargões</span>
-                    </button>
-                    <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-brain text-amber-600"></i> <span>Motores de IA</span>
-                    </button>
-                </div>
-
-                <!-- Right Arrow -->
-                <button type="button" onclick="scrollSettingsTabs(150)" class="w-7 h-7 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-100 flex items-center justify-center transition absolute right-0 z-10 translate-x-2 cursor-pointer border border-gray-200" title="Rolar para direita">
-                    <i class="ph-bold ph-caret-right text-xs"></i>
-                </button>
-            </div>
-
-            <!-- TAB 1: Notificações & Canais (WhatsApp & E-mail • 100% Toggles • Zero Técnico) -->
-            <div id="settings-content-tab-channels" class="space-y-4">
+            <!-- macOS 2-Column Body: Left Sidebar + Right Content Area -->
+            <div class="flex-1 flex flex-col md:flex-row gap-5 pt-4 min-h-0 overflow-hidden">
                 
-                <!-- Section: WhatsApp Notifications & Ingest -->
-                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                    <div class="flex items-center gap-2.5 pb-2 border-b border-gray-100">
-                        <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base font-bold shadow-2xs">
-                            <i class="ph-bold ph-whatsapp-logo"></i>
+                <!-- Left Sidebar Nav (macOS Style) -->
+                <div class="w-full md:w-56 bg-gray-200/50 p-2 rounded-2xl space-y-1 flex-shrink-0 h-fit md:h-full overflow-y-auto">
+                    <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" 
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs text-xs transition cursor-pointer text-left">
+                        <div class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <i class="ph-bold ph-bell-simple"></i>
                         </div>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900">Canais de WhatsApp (Voz & Notificações)</div>
-                            <div class="text-[10px] text-gray-400">Sem configurações técnicas • Apenas marque o que deseja receber</div>
-                        </div>
-                    </div>
+                        <span class="truncate">Notificações & Canais</span>
+                    </button>
 
-                    <div class="space-y-3 text-xs">
-                        <!-- Toggle 1: Ingestão de Áudios -->
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <div class="font-bold text-gray-900">Ingestão de Voz via WhatsApp</div>
-                                <div class="text-[11px] text-gray-500">Envie notas de voz para gerar atas, follow-ups e tarefas automaticamente.</div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" checked onchange="toggleNotificationPref('wa_ingest', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
+                    <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" 
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <i class="ph-bold ph-folders"></i>
                         </div>
+                        <span class="truncate">Listas & Categorias</span>
+                    </button>
 
-                        <!-- Toggle 2: Resumo Matinal -->
-                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
-                            <div>
-                                <div class="font-bold text-gray-900">Briefing Matinal no WhatsApp (08h00)</div>
-                                <div class="text-[11px] text-gray-500">Receba no WhatsApp a lista de compromissos e prioridades do dia.</div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" checked onchange="toggleNotificationPref('wa_morning', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
+                    <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" 
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <i class="ph-bold ph-waveform"></i>
                         </div>
+                        <span class="truncate">Hardware Plaud</span>
+                    </button>
 
-                        <!-- Toggle 3: Alertas de Novas Gravações -->
-                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
-                            <div>
-                                <div class="font-bold text-gray-900">Alerta Imediato de Call Processada</div>
-                                <div class="text-[11px] text-gray-500">Notificação rápida com os 3 principais pontos assim que o áudio for transcrito.</div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" checked onchange="toggleNotificationPref('wa_call_ready', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
+                    <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" 
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <i class="ph-bold ph-book-bookmark"></i>
                         </div>
-                    </div>
+                        <span class="truncate">Dicionário & Jargões</span>
+                    </button>
+
+                    <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" 
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <i class="ph-bold ph-brain"></i>
+                        </div>
+                        <span class="truncate">Motores de IA</span>
+                    </button>
                 </div>
 
-                <!-- Section: E-mail Notifications & Reports -->
-                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                    <div class="flex items-center gap-2.5 pb-2 border-b border-gray-100">
-                        <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-base font-bold shadow-2xs">
-                            <i class="ph-bold ph-envelope-simple"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900">Notificações por E-mail & Relatórios</div>
-                            <div class="text-[10px] text-gray-400">Resumos executivos e relatórios de horas salvas</div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 text-xs">
-                        <!-- Toggle 4: Fechamento Diário -->
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <div class="font-bold text-gray-900">Fechamento do Dia por E-mail (18h30)</div>
-                                <div class="text-[11px] text-gray-500">Resumo consolidado de todas as calls do dia, tarefas pendentes e horas economizadas.</div>
+                <!-- Right Content Panels (Scrollable) -->
+                <div class="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[68vh]">
+                    
+                    <!-- PANEL 1: Notificações & Canais -->
+                    <div id="settings-content-tab-channels" class="space-y-4">
+                        <!-- Section: WhatsApp Notifications & Ingest -->
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-gray-100">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base font-bold shadow-2xs">
+                                    <i class="ph-bold ph-whatsapp-logo"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Canais de WhatsApp (Voz & Notificações)</div>
+                                    <div class="text-[10px] text-gray-400">Sem configurações técnicas • Apenas marque o que deseja receber</div>
+                                </div>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" checked onchange="toggleNotificationPref('email_closing', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
-                        </div>
 
-                        <!-- Toggle 5: Relatório Semanal de Produtividade -->
-                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
-                            <div>
-                                <div class="font-bold text-gray-900">Relatório Semanal de Horas Salvas (Segunda 08h)</div>
-                                <div class="text-[11px] text-gray-500">Digest de inteligência com total de reuniões, pipeline avançado e tempo poupado.</div>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                <input type="checkbox" checked onchange="toggleNotificationPref('email_weekly', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
-                        </div>
+                            <div class="space-y-3 text-xs">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <div class="font-bold text-gray-900">Ingestão de Voz via WhatsApp</div>
+                                        <div class="text-[11px] text-gray-500">Envie notas de voz para gerar atas, follow-ups e tarefas automaticamente.</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_ingest', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
 
-                        <!-- Test Action Button -->
-                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
-                            <span class="text-[11px] text-gray-400">Remetente: Notificações EvoNotes</span>
-                            <button onclick="triggerDailyClosingEmail()" class="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5">
-                                <i class="ph-bold ph-paper-plane-tilt"></i>
-                                <span>Enviar Teste Agora</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
+                                    <div>
+                                        <div class="font-bold text-gray-900">Briefing Matinal no WhatsApp (08h00)</div>
+                                        <div class="text-[11px] text-gray-500">Receba no WhatsApp a lista de compromissos e prioridades do dia.</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_morning', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
 
-            </div>
-
-            
-            <!-- TAB 2: Gestão de Listas & Reuniões nas Categorias -->
-            <div id="settings-content-tab-categories" class="space-y-4 hidden">
-                
-                <!-- Category Lists Manager Card -->
-                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-base font-bold shadow-2xs">
-                                <i class="ph-bold ph-folders"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs font-bold text-gray-900">Listas & Categorias Customizadas</div>
-                                <div class="text-[10px] text-gray-400">Clique na categoria para auditar e mover as reuniões associadas</div>
-                            </div>
-                        </div>
-                        <button onclick="openCategoryCreateModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                            <i class="ph-bold ph-plus text-xs"></i> <span>Nova Categoria</span>
-                        </button>
-                    </div>
-
-                    <!-- Categories Cards Grid -->
-                    <div id="settings-categories-list-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Meetings in Selected Category Card -->
-                <div class="bg-white p-5 rounded-2xl space-y-3 shadow-xs border-0">
-                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shadow-2xs">
-                                <i class="ph-bold ph-chats-circle"></i>
-                            </div>
-                            <div class="text-xs font-bold text-gray-900" id="cat-meetings-manager-title">Conversas na Categoria Selecionada</div>
-                        </div>
-                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700" id="cat-meetings-manager-count">0 conversas</span>
-                    </div>
-
-                    <!-- Meetings List (Scrollable) -->
-                    <div id="cat-meetings-manager-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- TAB 2: Hardware & Plaud Note Pro -->
-            <div id="settings-content-tab-hardware" class="space-y-4 hidden">
-                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                <i class="ph-bold ph-waveform"></i>
-                            </div>
-                            <div>
-                                <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span>Conectado & Sincronizado via Nuvem</span>
+                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
+                                    <div>
+                                        <div class="font-bold text-gray-900">Alerta Imediato de Call Processada</div>
+                                        <div class="text-[11px] text-gray-500">Notificação rápida com os 3 principais pontos assim que o áudio for transcrito.</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_call_ready', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
                                 </div>
                             </div>
                         </div>
-                        <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                            <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
-                        </button>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
-                        <div>
-                            <div class="text-gray-400">Número de Série (SN)</div>
-                            <div class="font-mono font-bold text-gray-800">8810B30300504129</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Modo de Captura Ativo</div>
-                            <div class="font-bold text-gray-800">Presencial + Ligação MagSafe (VCS)</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Conta Plaud Conectada</div>
-                            <div class="font-bold text-gray-800">feee.deluca (Apple ID)</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-400">Status da Nuvem</div>
-                            <div class="font-bold text-emerald-700">Operacional & Automático</div>
-                        </div>
-                    </div>
+                        <!-- Section: E-mail Notifications & Reports -->
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center gap-2.5 pb-2 border-b border-gray-100">
+                                <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-base font-bold shadow-2xs">
+                                    <i class="ph-bold ph-envelope-simple"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Notificações por E-mail & Relatórios</div>
+                                    <div class="text-[10px] text-gray-400">Resumos executivos e relatórios de horas salvas</div>
+                                </div>
+                            </div>
 
-                    <div class="pt-2 flex items-center justify-between border-t border-gray-100">
-                        <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                            <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
-                        </button>
-                        <span class="text-[11px] text-gray-400 font-medium">Sensor de Condução Óssea Ativo</span>
-                    </div>
-                </div>
-            </div>
+                            <div class="space-y-3 text-xs">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <div class="font-bold text-gray-900">Fechamento do Dia por E-mail (18h30)</div>
+                                        <div class="text-[11px] text-gray-500">Resumo consolidado de todas as calls do dia, tarefas pendentes e horas economizadas.</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" checked onchange="toggleNotificationPref('email_closing', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
 
-            <!-- TAB 3: Dicionário & Vocabulário -->
-            <div id="settings-content-tab-dictionary" class="space-y-4 hidden">
-                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-xs font-bold text-gray-900">Dicionário de Jargões & Palavras-Chave</div>
-                            <div class="text-[11px] text-gray-400">Termos executivos alimentados para guiar o Whisper sem cortes.</div>
-                        </div>
-                        <span id="keyword-count-badge" class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold font-mono">
-                            {{ profile.vocabulary_and_jargon|length }}/150
-                        </span>
-                    </div>
+                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
+                                    <div>
+                                        <div class="font-bold text-gray-900">Relatório Semanal de Horas Salvas (Segunda 08h)</div>
+                                        <div class="text-[11px] text-gray-500">Digest de inteligência com total de reuniões, pipeline avançado e tempo poupado.</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                        <input type="checkbox" checked onchange="toggleNotificationPref('email_weekly', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    </label>
+                                </div>
 
-                    <div class="flex items-center gap-2">
-                        <input type="text" id="new-keyword-input" placeholder="Adicionar nova sigla, cliente ou termo..." 
-                               onkeydown="if(event.key==='Enter') addKeywordFromInput()"
-                               class="flex-1 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-emerald-500">
-                        <button onclick="addKeywordFromInput()" class="px-4 py-2 rounded-xl bg-black text-white text-xs font-semibold shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer">
-                            Adicionar
-                        </button>
-                    </div>
-
-                    <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-xl" id="keywords-pills-container">
-                        {% for kw in profile.vocabulary_and_jargon %}
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white shadow-2xs text-xs font-medium text-gray-800 border border-gray-200/60">
-                            <span>{{ kw }}</span>
-                            <button onclick="removeKeyword('{{ kw }}')" class="text-gray-400 hover:text-red-500 p-0.5 rounded transition cursor-pointer"><i class="ph-bold ph-x text-[10px]"></i></button>
-                        </span>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: Preferências & Modelos de IA -->
-            <div id="settings-content-tab-preferences" class="space-y-3 hidden">
-                <div class="bg-white p-5 rounded-2xl shadow-xs border-0 space-y-4 text-xs">
-                    <div class="flex items-center justify-between gap-4">
-                        <div>
-                            <div class="font-bold text-gray-900">Motor de IA Padrão</div>
-                            <div class="text-gray-400 text-[11px]">Selecione a forma de entrega para sínteses e perguntas</div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <select id="setting-ai-model" onchange="updateModelSelection()" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none cursor-pointer transition">
-                                <option value="gpt-4o-mini" selected>⚡ Síntese Rápida (Dailies & Rotina)</option>
-                                <option value="gpt-4o">🧠 Estratégia C-Level (Deals & Negociação)</option>
-                                <option value="o3-mini">🔬 Raciocínio Profundo (Técnico & Arquitetura)</option>
-                                <option value="gemini-2.5-flash">💎 Visão 360° (Consultas & Workshops)</option>
-                                <option value="gemini-2.5-pro">🏛️ Planejamento Master (Mentorias & QBR)</option>
-                            </select>
+                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+                                    <span class="text-[11px] text-gray-400">Remetente: Notificações EvoNotes</span>
+                                    <button onclick="triggerDailyClosingEmail()" class="px-3.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5">
+                                        <i class="ph-bold ph-paper-plane-tilt"></i>
+                                        <span>Enviar Teste Agora</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
-                        <div>
-                            <div class="font-bold text-gray-900">Tamanho da Fonte</div>
-                            <div class="text-gray-400 text-[11px]">Tamanho do texto nas notas e sínteses</div>
+                    <!-- PANEL 2: Listas & Categorias Customizadas -->
+                    <div id="settings-content-tab-categories" class="space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-base font-bold shadow-2xs">
+                                        <i class="ph-bold ph-folders"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Listas & Categorias Customizadas</div>
+                                        <div class="text-[10px] text-gray-400">Clique na categoria para auditar e mover as reuniões associadas</div>
+                                    </div>
+                                </div>
+                                <button onclick="openCategoryCreateModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-plus text-xs"></i> <span>Nova Categoria</span>
+                                </button>
+                            </div>
+
+                            <div id="settings-categories-list-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1"></div>
                         </div>
-                        <div class="inline-flex rounded-xl bg-gray-200/80 p-1 font-semibold">
-                            <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">14px</button>
-                            <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">16px</button>
-                            <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">18px</button>
+
+                        <div class="bg-white p-5 rounded-2xl space-y-3 shadow-xs border-0">
+                            <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shadow-2xs">
+                                        <i class="ph-bold ph-chats-circle"></i>
+                                    </div>
+                                    <div class="text-xs font-bold text-gray-900" id="cat-meetings-manager-title">Conversas na Categoria Selecionada</div>
+                                </div>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700" id="cat-meetings-manager-count">0 conversas</span>
+                            </div>
+
+                            <div id="cat-meetings-manager-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
                         </div>
                     </div>
+
+                    <!-- PANEL 3: Hardware & Plaud Note Pro -->
+                    <div id="settings-content-tab-hardware" class="space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>Conectado & Sincronizado via Nuvem</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
+                                <div>
+                                    <div class="text-gray-400">Número de Série (SN)</div>
+                                    <div class="font-mono font-bold text-gray-800">8810B30300504129</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Modo de Captura Ativo</div>
+                                    <div class="font-bold text-gray-800">Presencial + Ligação MagSafe (VCS)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Conta Plaud Conectada</div>
+                                    <div class="font-bold text-gray-800">feee.deluca (Apple ID)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Status da Nuvem</div>
+                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex items-center justify-between border-t border-gray-100">
+                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
+                                </button>
+                                <span class="text-[11px] text-gray-400 font-medium">Sensor de Condução Óssea Ativo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PANEL 4: Dicionário & Vocabulário -->
+                    <div id="settings-content-tab-dictionary" class="space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Dicionário de Jargões & Palavras-Chave</div>
+                                    <div class="text-[11px] text-gray-400">Termos executivos alimentados para guiar o Whisper sem cortes.</div>
+                                </div>
+                                <span id="keyword-count-badge" class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold font-mono">
+                                    {{ profile.vocabulary_and_jargon|length }} termos
+                                </span>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <input type="text" id="new-keyword-input" placeholder="Ex: Zendesk AI, ARR, QBR, NPS..." 
+                                       onkeydown="if(event.key==='Enter') addCustomKeyword()"
+                                       class="flex-1 bg-gray-50 border-0 rounded-xl px-3.5 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-black">
+                                <button onclick="addCustomKeyword()" class="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-xl text-xs font-semibold shadow-xs transition active:scale-95">
+                                    Adicionar
+                                </button>
+                            </div>
+
+                            <div class="flex flex-wrap gap-1.5 pt-1 max-h-48 overflow-y-auto pr-1" id="keywords-container">
+                                {% for kw in profile.vocabulary_and_jargon %}
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-medium transition" id="kw-tag-{{ loop.index }}">
+                                    <span>{{ kw }}</span>
+                                    <button onclick="removeCustomKeyword('{{ kw }}', {{ loop.index }})" class="text-gray-400 hover:text-red-600 transition">
+                                        <i class="ph-bold ph-x text-[10px]"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PANEL 5: Motores de IA & Tamanho de Fonte -->
+                    <div id="settings-content-tab-preferences" class="space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Motor de IA Padrão para Sínteses</div>
+                                    <div class="text-[11px] text-gray-400">Escolha o modelo principal para geração e análises</div>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-mono text-[10px] font-bold">Multi-LLM</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                <div onclick="selectGlobalAiModel('gpt-4o-mini')" id="opt-model-gpt-4o-mini" class="p-3.5 rounded-2xl border border-gray-200 hover:border-black cursor-pointer transition bg-white shadow-2xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-900">GPT-4o Mini</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">Rápido</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-1">Ideal para sínteses instantâneas e baixo consumo.</div>
+                                </div>
+
+                                <div onclick="selectGlobalAiModel('gpt-4o')" id="opt-model-gpt-4o" class="p-3.5 rounded-2xl border border-gray-200 hover:border-black cursor-pointer transition bg-white shadow-2xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-900">GPT-4o</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">Estratégico</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-1">Raciocínio avançado para negociações e deals complexos.</div>
+                                </div>
+
+                                <div onclick="selectGlobalAiModel('gemini-2.5-flash')" id="opt-model-gemini-2.5-flash" class="p-3.5 rounded-2xl border border-gray-200 hover:border-black cursor-pointer transition bg-white shadow-2xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-900">Gemini 2.5 Flash</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">1M Context</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-1">Janela massiva de contexto para reuniões longas (>2h).</div>
+                                </div>
+
+                                <div onclick="selectGlobalAiModel('gemini-2.5-pro')" id="opt-model-gemini-2.5-pro" class="p-3.5 rounded-2xl border border-gray-200 hover:border-black cursor-pointer transition bg-white shadow-2xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-gray-900">Gemini 2.5 Pro</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">Profundo</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-1">Análise minuciosa de argumentos, riscos e dados.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fonte do Leitor -->
+                        <div class="bg-white p-5 rounded-2xl space-y-2 shadow-xs border-0">
+                            <div class="text-xs font-bold text-gray-900">Tamanho da Fonte de Leitura</div>
+                            <div class="flex items-center gap-2 pt-1 bg-gray-100 p-1 rounded-xl w-fit">
+                                <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">14px</button>
+                                <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">16px</button>
+                                <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">18px</button>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
             <!-- Footer Action -->
+            <div class="flex items-center justify-end pt-3 border-t border-gray-200/60 flex-shrink-0">
+                <button onclick="closeSettingsModal()" class="px-6 py-2 rounded-full bg-black text-white text-xs font-semibold hover:bg-gray-800 active:scale-95 transition shadow-sm cursor-pointer">
+                    Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
             <div class="flex items-center justify-end pt-2">
                 <button onclick="closeSettingsModal()" class="px-6 py-2.5 rounded-full bg-black text-white text-xs font-semibold hover:bg-gray-800 active:scale-95 transition shadow-sm cursor-pointer">
                     Fechar
@@ -4470,23 +4505,30 @@ _Enviado via EvoNotes OS_`);
         }
 
         function switchSettingsTab(tabId) {
-            // Hide all tab contents
-            ['tab-hardware', 'tab-channels', 'tab-dictionary', 'tab-preferences'].forEach(t => {
-                const el = document.getElementById(`settings-content-${t}`);
-                if (el) el.classList.add('hidden');
+            const allTabs = ['tab-channels', 'tab-categories', 'tab-hardware', 'tab-dictionary', 'tab-preferences'];
+            
+            allTabs.forEach(t => {
+                const content = document.getElementById(`settings-content-${t}`);
+                if (content) {
+                    if (t === tabId) {
+                        content.classList.remove('hidden');
+                    } else {
+                        content.classList.add('hidden');
+                    }
+                }
+
                 const btn = document.getElementById(`btn-${t}`);
                 if (btn) {
-                    btn.classList.remove('bg-white', 'text-gray-900', 'shadow-xs', 'font-bold');
-                    btn.classList.add('text-gray-600');
+                    if (t === tabId) {
+                        btn.className = 'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs text-xs transition cursor-pointer text-left';
+                    } else {
+                        btn.className = 'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left';
+                    }
                 }
             });
-            // Show selected
-            const activeEl = document.getElementById(`settings-content-${tabId}`);
-            if (activeEl) activeEl.classList.remove('hidden');
-            const activeBtn = document.getElementById(`btn-${tabId}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-white', 'text-gray-900', 'shadow-xs', 'font-bold');
-                activeBtn.classList.remove('text-gray-600');
+
+            if (tabId === 'tab-categories') {
+                renderSettingsCategoriesManager();
             }
         }
 
