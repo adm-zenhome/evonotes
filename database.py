@@ -26,6 +26,17 @@ class ExecutiveDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
+            # Persistent Custom Categories Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS custom_categories (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    icon TEXT DEFAULT 'ph-tag',
+                    is_deleted INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Meetings Table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS meetings (
@@ -759,28 +770,55 @@ def delete_deal_by_id(deal_id: int):
         logging.info(f"Auto-correction learned: '{acc_name}' excluded from deals pipeline.")
 
 
-def get_dynamic_categories() -> list:
+def get_all_persistent_categories() -> list:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, icon FROM custom_categories WHERE is_deleted = 0 ORDER BY created_at ASC")
+        rows = cursor.fetchall()
+        cats = [dict(r) for r in rows]
+        
+        # Also include any categories present in meetings that are not deleted
+        cursor.execute("SELECT DISTINCT category FROM meetings WHERE category IS NOT NULL AND category != 'Geral' AND category != ''")
+        m_cats = [r["category"] for r in cursor.fetchall()]
+        
+        existing_names = {c["name"].lower() for c in cats}
+        for mc in m_cats:
+            if mc.lower() not in existing_names:
+                cats.append({"id": f"cat-{mc.lower().replace(' ', '-')}", "name": mc, "icon": "ph-tag"})
+                existing_names.add(mc.lower())
+        return cats
+
+def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
+    cat_id = f"cat-{int(datetime.now().timestamp())}"
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT category, COUNT(*) as count 
-            FROM meetings 
-            GROUP BY category 
-            ORDER BY count DESC
-        """)
-        return [dict(r) for r in cursor.fetchall()]
+            INSERT INTO custom_categories (id, name, icon, is_deleted)
+            VALUES (?, ?, ?, 0)
+            ON CONFLICT(name) DO UPDATE SET is_deleted = 0, icon = excluded.icon
+        """, (cat_id, name, icon))
+        conn.commit()
+    return {"id": cat_id, "name": name, "icon": icon}
 
 def rename_category(old_name: str, new_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        cursor.execute("UPDATE custom_categories SET name = ? WHERE name = ?", (new_name, old_name))
         cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, old_name))
         conn.commit()
 
 def delete_category(cat_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        cursor.execute("DELETE FROM custom_categories WHERE name = ?", (cat_name,))
         cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (cat_name,))
+        # Record exclusion feedback
+        cursor.execute("""
+            INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
+            VALUES ('category', ?, 'DELETED_BY_USER')
+        """, (cat_name,))
         conn.commit()
+        logging.info(f"Category '{cat_name}' permanently deleted and recorded in exclusion feedback.")
 
 
 def get_user_notification_preferences(user_id: str = "felipe_donato") -> dict:

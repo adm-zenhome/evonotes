@@ -1214,21 +1214,22 @@ async def api_delete_deal(deal_id: int):
 
 # ========== DYNAMIC CATEGORIES MANAGEMENT ENDPOINTS ==========
 @app.get("/api/categories")
+async def api_get_categories():
+    """Returns persistent categories from SQLite."""
+    from modules.executive_voice_os.database import get_all_persistent_categories
+    cats = get_all_persistent_categories()
+    return JSONResponse({"status": "SUCCESS", "categories": cats})
 
 @app.post("/api/categories/create")
 async def api_create_category(payload: dict = Body(...)):
-    """Creates a new custom category."""
+    """Creates a new custom category in SQLite."""
+    from modules.executive_voice_os.database import create_persistent_category
     cat_name = payload.get("name")
+    icon = payload.get("icon", "ph-tag")
     if not cat_name:
         raise HTTPException(status_code=400, detail="name is required")
-    return JSONResponse({"status": "SUCCESS", "message": f"Categoria '{cat_name}' criada com sucesso.", "category": cat_name})
-
-@app.get("/api/categories")
-async def api_get_categories():
-    """Returns distinct categories and meeting counts."""
-    from modules.executive_voice_os.database import get_dynamic_categories
-    cats = get_dynamic_categories()
-    return JSONResponse({"status": "SUCCESS", "categories": cats})
+    created = create_persistent_category(cat_name, icon)
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria '{cat_name}' criada com sucesso.", "category": created})
 
 @app.post("/api/categories/rename")
 async def api_rename_category(payload: dict = Body(...)):
