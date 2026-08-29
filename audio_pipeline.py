@@ -15,7 +15,7 @@ class AudioPipeline:
 
     def __init__(self, api_key: str = OPENAI_API_KEY):
         self.api_key = api_key
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = OpenAI(api_key=self.api_key or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
 
     def optimize_audio(self, input_path: Path, output_path: Path) -> Path:
         """Converts raw audio to optimized 16kHz mono 32kbps MP3."""

@@ -4,10 +4,10 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from .plaud_bridge import PlaudBridge
-from .audio_pipeline import AudioPipeline
+from plaud_bridge import PlaudBridge
+from audio_pipeline import AudioPipeline
 from intelligence_engine import IntelligenceEngine
-from .output_manager import OutputManager
+from output_manager import OutputManager
 from voice_briefing import VoiceBriefingEngine
 from self_learning_engine import SelfLearningEngine
 

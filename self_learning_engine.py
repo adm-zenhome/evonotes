@@ -17,7 +17,7 @@ class SelfLearningEngine:
     """Autonomous per-user profile learning, jargon extraction, and style calibration system."""
 
     def __init__(self, openai_key: str = OPENAI_API_KEY):
-        self.openai_client = OpenAI(api_key=openai_key)
+        self.openai_client = OpenAI(api_key=openai_key or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
         self.profiles_dir = PROFILES_DIR
 
     def get_or_create_profile(self, user_id: str = "felipe_donato") -> Dict[str, Any]:

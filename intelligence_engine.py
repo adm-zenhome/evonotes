@@ -158,7 +158,7 @@ class IntelligenceEngine:
     """Extracts executive intelligence, commitments, deal strategy and follow-ups from transcripts."""
 
     def __init__(self, api_key: str = OPENAI_API_KEY):
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
         self.learning_engine = SelfLearningEngine(openai_key=api_key)
 
     def analyze(self, transcript_text: str, metadata: Optional[Dict[str, Any]] = None, user_id: str = "felipe_donato", target_template: Optional[str] = None) -> Dict[str, Any]:

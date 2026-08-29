@@ -1,6 +1,5 @@
 import time
-from datetime import datetime
-from typing import Optional, List, Dict, Any
+import sys
 import os
 import re
 import json
@@ -10,35 +9,26 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, List, Dict, Any
+
 from fastapi import FastAPI, Request, HTTPException, Body, Query
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 
-import sys
-from pathlib import Path
+# Add root project directory to sys.path
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-try:
-    from config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
-    from database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources, get_stakeholder_profile_data, save_stakeholder_profile
-    from self_learning_engine import SelfLearningEngine
-    from voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
-    from whatsapp_voice_ingest import WhatsAppVoiceIngest
-    from intelligence_engine import IntelligenceEngine
-    from resend_engine import resend_engine
-    from google_workspace_bridge import google_bridge
-except ImportError:
-    from ..config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
-    from ..database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources, get_stakeholder_profile_data, save_stakeholder_profile
-    from ..self_learning_engine import SelfLearningEngine
-    from ..voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
-    from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
-    from ..intelligence_engine import IntelligenceEngine
-    from ..resend_engine import resend_engine
-    from ..google_workspace_bridge import google_bridge
+from config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
+from database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources, get_stakeholder_profile_data, save_stakeholder_profile
+from self_learning_engine import SelfLearningEngine
+from voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
+from whatsapp_voice_ingest import WhatsAppVoiceIngest
+from intelligence_engine import IntelligenceEngine
+from resend_engine import resend_engine
+from google_workspace_bridge import google_bridge
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -46,7 +36,7 @@ app = FastAPI(title="Executive Voice OS — Second Brain Engine", version="3.6.0
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 

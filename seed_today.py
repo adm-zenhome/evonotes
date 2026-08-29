@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from intelligence_engine import IntelligenceEngine
-from .output_manager import OutputManager
+from output_manager import OutputManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

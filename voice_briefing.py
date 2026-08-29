@@ -19,7 +19,7 @@ class VoiceBriefingEngine:
 
     def __init__(self, eleven_key: Optional[str] = None, openai_key: str = OPENAI_API_KEY):
         self.eleven_client = ElevenLabsClient(api_key=eleven_key)
-        self.openai_client = OpenAI(api_key=openai_key)
+        self.openai_client = OpenAI(api_key=openai_key or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
 
     def generate_briefing_script(self, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, custom_direction: Optional[str] = None) -> str:
         """Generates high-impact spoken audio script structured in 3 Pillars, with optional executive customization."""
