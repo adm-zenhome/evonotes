@@ -1959,41 +1959,125 @@
             }
 
             container.innerHTML = deals.map(d => {
-                const valStr = d.value_amount ? `R$ ${(d.value_amount / 1000).toFixed(0)}k` : 'R$ 75k';
+                const valRaw = d.value_amount || 75000;
+                const valStr = valRaw >= 1000 ? `R$ ${(valRaw / 1000).toFixed(0)}k` : `R$ ${valRaw}`;
                 const quoteStr = d.quote_citation ? `"${d.quote_citation}"` : (d.opportunity_or_risk || 'Oportunidade citada na reunião');
+                const tasks = d.tasks || [];
 
                 return `
-                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100 hover:border-gray-200 shadow-2xs hover:shadow-xs transition space-y-2 group" id="deal-card-${d.id}">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-2.5 truncate">
-                                <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    <div class="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md transition-all space-y-3 group" id="deal-card-${d.id}">
+                        
+                        <!-- Top Header: Account Name + Origin Meeting + Inline Editable Value -->
+                        <div class="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                            <div class="flex items-center gap-3 truncate flex-1 min-w-0">
+                                <div class="w-9 h-9 rounded-2xl bg-blue-50 text-blue-800 text-sm font-bold flex items-center justify-center flex-shrink-0 shadow-2xs">
                                     <i class="ph-bold ph-buildings"></i>
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${d.account_name}</div>
-                                    <div class="text-[10px] text-gray-400 truncate flex items-center gap-1">
-                                        <i class="ph-bold ph-waveform text-emerald-600"></i>
-                                        <span>${d.meeting_title || 'Reunião'}</span>
+                                    <div class="text-sm font-bold text-gray-900 truncate">${d.account_name}</div>
+                                    <div class="text-[11px] text-gray-400 truncate flex items-center gap-1.5">
+                                        <i class="ph-bold ph-microphone text-emerald-600"></i>
+                                        <span class="truncate">${d.meeting_title || 'Reunião'}</span>
+                                        ${d.meeting_date ? `<span>• ${d.meeting_date.split(' ')[0]}</span>` : ''}
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Inline Editable Value with Pencil -->
                             <div class="flex items-center gap-2 flex-shrink-0">
-                                <span class="px-2.5 py-1 rounded-xl  font-mono text-xs font-bold">
-                                    ${valStr}
-                                </span>
-                                <button onclick="deletePipelineDeal(${d.id})" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Descartar conta / Excluir da soma">
+                                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-100 shadow-2xs" title="Clique no valor para editar manualmente">
+                                    <span class="text-xs font-bold font-mono outline-none cursor-text" 
+                                          contenteditable="true" 
+                                          onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
+                                          onblur="saveDealValueInline(${d.id}, this.innerText)">
+                                        ${valStr}
+                                    </span>
+                                    <i class="ph-bold ph-pencil-simple text-xs text-emerald-600 opacity-60"></i>
+                                </div>
+
+                                <button onclick="deletePipelineDeal(${d.id})" class="p-1.5 rounded-xl text-gray-300 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Remover do pipeline">
                                     <i class="ph-bold ph-trash text-sm"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100/80 leading-relaxed font-sans">
-                            <span class="text-gray-400 font-semibold">Citação / Contexto:</span> ${quoteStr}
+                        <!-- Context & Real Quote -->
+                        <div class="text-xs text-gray-700 bg-gray-50/80 p-3 rounded-2xl border border-gray-100 leading-relaxed font-sans">
+                            <span class="text-gray-400 font-bold">🎯 Citação & Contexto:</span> ${quoteStr}
                         </div>
+
+                        <!-- Linked Tasks / Commitments for this Account -->
+                        <div class="space-y-2 pt-1">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="font-bold text-gray-500 flex items-center gap-1">
+                                    <i class="ph-bold ph-check-square text-emerald-600"></i>
+                                    <span>Tarefas Atribuídas a esta Conta (${tasks.length})</span>
+                                </span>
+                            </div>
+
+                            ${tasks.length > 0 ? `
+                                <div class="space-y-1.5">
+                                    ${tasks.map(t => {
+                                        const isDone = t.status === 'DONE';
+                                        return `
+                                            <div class="bg-gray-50/90 hover:bg-gray-100 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-xs transition">
+                                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                                    <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="text-base flex-shrink-0 cursor-pointer" title="Alternar status">
+                                                        ${isDone ? '<i class="ph-fill ph-check-circle text-emerald-500"></i>' : '<i class="ph ph-circle text-gray-400"></i>'}
+                                                    </button>
+                                                    <div class="truncate ${isDone ? 'line-through text-gray-400' : 'text-gray-900 font-medium'}">
+                                                        ${t.action}
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center gap-2 flex-shrink-0">
+                                                    <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                                                        👤 ${t.owner || 'Você'}
+                                                    </span>
+                                                    <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
+                                                            class="px-2 py-0.5 rounded-md bg-white border border-gray-200 text-[10px] font-semibold text-gray-700 hover:bg-emerald-50 transition cursor-pointer">
+                                                        📅 ${t.deadline_or_context || 'A definir'}
+                                                    </button>
+                                                    <button onclick="scheduleTaskInGoogleCalendar(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(d.account_name)}')" 
+                                                            class="w-6 h-6 rounded-lg bg-white hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center border border-gray-200 shadow-2xs transition cursor-pointer" 
+                                                            title="Google Calendar">
+                                                        <i class="ph-bold ph-google-logo text-[10px]"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            ` : `
+                                <div class="text-[11px] text-gray-400 italic px-1">Nenhum compromisso específico pendente para esta conta.</div>
+                            `}
+                        </div>
+
                     </div>
                 `;
             }).join('');
+        }
+
+        async function saveDealValueInline(dealId, textValue) {
+            try {
+                const res = await fetch(`/api/deals/${dealId}/value`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: textValue })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(`💰 Valor da conta atualizado: ${data.formatted_value}`, 'success');
+                    // Update header totals if available
+                    if (data.analytics && data.analytics.bifocal) {
+                        updateBifocalMetricsInDOM(data.analytics.bifocal);
+                        const totalBadge = document.getElementById('pipeline-modal-total-badge');
+                        if (totalBadge) totalBadge.innerText = data.analytics.bifocal.pipeline_value || 'R$ 0';
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro ao salvar valor: ' + e.message, 'error');
+            }
         }
 
         async function deletePipelineDeal(dealId) {
@@ -4266,6 +4350,12 @@ ${transcriptText}
             }
         }
 
+        function toggleTaskContextCard(taskId) {
+            const drawer = document.getElementById(`task-context-drawer-${taskId}`);
+            if (!drawer) return;
+            drawer.classList.toggle('hidden');
+        }
+
         function renderSingleTaskCard(t) {
             const isDone = t.status === 'DONE';
             const isDelegated = t.status === 'DELEGATED';
@@ -4289,66 +4379,65 @@ ${transcriptText}
             }
 
             return `
-                <div class="${cardBg} rounded-xl p-3 sm:p-3.5 shadow-2xs hover:shadow-xs border-0 transition-all space-y-2 group" id="task-card-${t.id}">
+                <div class="${cardBg} rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md border-0 transition-all space-y-2.5 group" id="task-card-${t.id}">
                     <div class="flex items-center justify-between gap-3">
                         
-                        <!-- Left: Status Icon + Task Description (Compact & Editable) -->
-                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                        <!-- Left: Status Icon + Task Description -->
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
                             <button onclick="toggleSingleTaskStatus(${t.id}, '${t.status}')" class="flex-shrink-0 cursor-pointer" title="Alternar Status">
                                 ${statusIcon}
                             </button>
                             
                             <div class="flex-1 min-w-0 space-y-1">
                                 <div contenteditable="true" onblur="saveTaskActionText(${t.id}, this.innerText)" 
-                                     class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-lg transition" title="Clique para editar a descrição completa">
-                                    ${t.action || '(Tarefa sem descrição - clique para editar)'}
+                                     class="task-description-text text-xs sm:text-[13px] ${textClass} leading-snug break-words whitespace-normal outline-none focus:bg-emerald-50/70 p-1 rounded-xl transition" title="Clique para editar">
+                                    ${t.action || '(Tarefa sem descrição)'}
                                 </div>
                                 
-                                <div class="flex items-center gap-2 text-[10px]">
+                                <div class="flex items-center gap-2 text-[10px] flex-wrap">
                                     <!-- Meeting Source Badge -->
                                     ${t.meeting_title ? `
-                                        <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[200px]" title="Abrir Reunião de Origem">
+                                        <span onclick="navigateToTaskMeeting('${t.meeting_id}', encodeURIComponent('${t.action || ''}'))" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition cursor-pointer font-medium truncate max-w-[220px]" title="Abrir Reunião de Origem">
                                             <i class="ph-bold ph-chats-circle text-[9px]"></i>
                                             <span class="truncate">${t.meeting_title}</span>
                                         </span>
                                     ` : ''}
 
-                                    <!-- Owner Badge (Editable) -->
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
+                                    <!-- Owner Badge -->
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg ${isDelegated ? 'bg-blue-100 text-blue-800' : 'bg-emerald-50 text-emerald-800'} font-bold flex-shrink-0">
                                         <span contenteditable="true" onblur="saveTaskOwner(${t.id}, this.innerText)" class="outline-none">${t.owner || 'Felipe Donato'}</span>
                                     </span>
+
+                                    <!-- Context & Intelligence Balloon Trigger -->
+                                    <button onclick="toggleTaskContextCard(${t.id})" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold transition cursor-pointer" title="Ver por que esta tarefa existe e contexto das reuniões">
+                                        <i class="ph-bold ph-lightbulb text-amber-600"></i>
+                                        <span>Contexto & Por quê</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Right Controls: Date/Time Line-by-Line + Status Dropdown (Executar Button Removed!) -->
-                        <div class="flex items-center gap-2 flex-shrink-0">
+                        <!-- Right Minimalist Controls: Date + Google Calendar + Status (Clean & Uncluttered) -->
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
                             
-                            <!-- Line-by-Line Date & Time Badge (Click to open DatePicker) -->
+                            <!-- Minimalist Date Badge (Opens Interactive DatePicker Modal) -->
                             <button onclick="openExecutiveDatePicker(${t.id}, '${encodeURIComponent(t.deadline_or_context || 'A definir')}', '${encodeURIComponent(t.action || '')}')" 
-                                    class="flex items-center gap-1.5 bg-[#f4f5f7] hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer flex-shrink-0 group" 
-                                    title="Clique para definir o prazo">
-                                <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs transition"></i>
+                                    class="flex items-center gap-1 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 shadow-2xs transition active:scale-95 cursor-pointer" 
+                                    title="Definir prazo">
+                                <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs"></i>
                                 <span class="text-[11px] font-bold">${t.deadline_or_context || 'A definir'}</span>
                             </button>
 
-                            <!-- 1-Click Google Calendar Sync -->
+                            <!-- Minimalist 1-Click Google Calendar -->
                             <button onclick="scheduleTaskInGoogleCalendar(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(t.meeting_title || '')}')" 
-                                    class="w-7 h-7 rounded-xl bg-[#f4f5f7] hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0" 
-                                    title="Agendar no Google Calendar em 1-Clique">
+                                    class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer" 
+                                    title="Google Calendar (1-Clique)">
                                 <i class="ph-bold ph-google-logo text-xs"></i>
                             </button>
 
-                            <!-- 1-Click Gmail Executive Follow-up Composer -->
-                            <button onclick="openGmailFollowupForTask(${t.id}, '${encodeURIComponent(t.action || '')}', '${encodeURIComponent(t.owner || '')}', '${encodeURIComponent(t.deadline_or_context || '')}', '${encodeURIComponent(t.meeting_title || '')}')" 
-                                    class="w-7 h-7 rounded-xl bg-[#f4f5f7] hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0" 
-                                    title="Criar E-mail de Follow-up Executivo no Gmail">
-                                <i class="ph-bold ph-envelope-simple text-xs"></i>
-                            </button>
-
-                            <!-- Status Dropdown Menu -->
-                            <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
-                                <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ Pendente</option>
+                            <!-- Status Dropdown -->
+                            <select onchange="changeTaskStatusDirect(${t.id}, this.value)" class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
+                                <option value="PENDING" ${t.status === 'PENDING' ? 'selected' : ''}>⏳ A Fazer</option>
                                 <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>✅ Concluído</option>
                                 <option value="DELEGATED" ${t.status === 'DELEGATED' ? 'selected' : ''}>👥 Delegado</option>
                                 <option value="CANCELLED" ${t.status === 'CANCELLED' ? 'selected' : ''}>✕ Cancelado</option>
@@ -4361,6 +4450,32 @@ ${transcriptText}
                         </div>
 
                     </div>
+
+                    <!-- 💡 EXPANDABLE CONTEXTUAL EXECUTIVE BALLOON (ZERO MEMORY LOSS AFTER 3 WEEKS) -->
+                    <div id="task-context-drawer-${t.id}" class="hidden bg-amber-50/60 rounded-2xl p-3.5 border border-amber-200/60 space-y-2 text-xs text-amber-950 animate-fade-in">
+                        <div class="flex items-center justify-between border-b border-amber-200/50 pb-2">
+                            <span class="font-bold flex items-center gap-1.5 text-amber-900">
+                                <i class="ph-bold ph-compass text-sm text-amber-700"></i>
+                                <span>Racional Estratégico & Contexto de Negócio</span>
+                            </span>
+                            <span class="text-[10px] text-amber-800 font-mono">Origem: ${t.meeting_title || 'Reunião'}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                            <div class="space-y-1">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-amber-800">🎯 Por que esta tarefa existe:</div>
+                                <div class="text-[11px] leading-relaxed text-amber-900">
+                                    Ação crítica para manter tração no pipeline e cumprir o compromisso assumido com ${t.owner || 'a equipe'}.
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-amber-800">⚡ Abordagem de Execução (Solution Selling & Dale Carnegie):</div>
+                                <div class="text-[11px] leading-relaxed text-amber-900">
+                                    Conecte-se com foco nas prioridades do cliente/interlocutor, valide o valor acordado e proponha o próximo marco direto.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             `;
         }

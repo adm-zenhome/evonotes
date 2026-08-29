@@ -1289,3 +1289,36 @@ async def api_danger_reset_all():
     except Exception as e:
         logging.error(f"Error resetting database: {e}")
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+
+
+@app.post("/api/deals/{deal_id}/value")
+async def api_update_deal_value(deal_id: int, payload: dict = Body(...)):
+    new_val_raw = payload.get("value", 75000)
+    
+    # Parse numbers like "R$ 120k", "150.000", "75000"
+    if isinstance(new_val_raw, str):
+        val_str = new_val_raw.lower().replace('r$', '').replace(' ', '').replace('.', '').replace(',', '')
+        if 'k' in val_str:
+            val_str = val_str.replace('k', '')
+            try:
+                val_int = int(float(val_str) * 1000)
+            except Exception:
+                val_int = 75000
+        else:
+            try:
+                val_int = int(val_str)
+            except Exception:
+                val_int = 75000
+    else:
+        val_int = int(new_val_raw)
+        
+    from modules.executive_voice_os.database import update_deal_value, get_keyword_analytics
+    update_deal_value(deal_id, val_int)
+    analytics = get_keyword_analytics("felipe_donato")
+    return JSONResponse({
+        "status": "SUCCESS",
+        "deal_id": deal_id,
+        "new_value": val_int,
+        "formatted_value": f"R$ {(val_int/1000):.0f}k" if val_int >= 1000 else f"R$ {val_int}",
+        "analytics": analytics
+    })

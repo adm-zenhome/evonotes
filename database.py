@@ -765,7 +765,19 @@ def get_all_deals_breakdown() -> list:
             ORDER BY d.id DESC
         """)
         rows = cursor.fetchall()
-        return [dict(r) for r in rows]
+        deals = [dict(r) for r in rows]
+        
+        # Link tasks for each deal
+        for d in deals:
+            acc = d.get('account_name', '')
+            m_id = d.get('meeting_id', '')
+            cursor.execute("""
+                SELECT id, meeting_id, owner, action, deadline_or_context, status 
+                FROM commitments 
+                WHERE meeting_id = ? OR action LIKE ?
+            """, (m_id, f"%{acc}%"))
+            d['tasks'] = [dict(t) for t in cursor.fetchall()]
+        return deals
 
 def delete_deal_by_id(deal_id: int):
     with db.get_connection() as conn:
@@ -870,3 +882,11 @@ def save_user_notification_preferences(user_id: str = "felipe_donato", prefs: di
                 updated_at = CURRENT_TIMESTAMP
         """, (user_id, json.dumps(prefs)))
         conn.commit()
+
+
+def update_deal_value(deal_id: int, new_value: int):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE accounts_deals SET value_amount = ? WHERE id = ?", (new_value, deal_id))
+        conn.commit()
+        logging.info(f"Updated deal {deal_id} value to R$ {new_value}")
