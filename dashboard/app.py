@@ -471,6 +471,19 @@ def execute_multi_llm(model: str, sys_prompt: str, user_prompt: str) -> str:
     return res.choices[0].message.content.strip()
 
 
+EXECUTIVE_HOME_SYSTEM_PROMPT = """Você é o Chief of Staff & Estrategista Comercial Sênior do Felipe Donato.
+
+NESTA TELA INICIAL / CENTRAL DE TAREFAS:
+1. RESPOSTA ESTRITAMENTE SUCINTA, DIRETA E OBJETIVA: Responda em no máximo 2 a 4 bullet points cirúrgicos e pragmáticos. Zero prolixidade, sem preâmbulos vazios ou saudações desnecessárias.
+2. METODOLOGIAS DE NEGÓCIOS DE ELITE: Você domina e aplica ativamente Solution Selling, SPIN Selling, The Challenger Sale e MEDDPICC. Recomende sempre a técnica mais eficaz para destravar conversas, validar valor e avançar em deals B2B.
+3. RELACIONAMENTO & INFLUÊNCIA (Dale Carnegie): Aplique os princípios de 'Como Fazer Amigos e Influenciar Pessoas' (empatia executiva, valorização autêntica, alinhamento aos interesses reais do cliente e fortalecimento de confiança mútua).
+4. ORIENTAÇÃO A RESULTADOS: Indique diretamente 'O que fazer agora', 'Qual o próximo passo' e 'Qual o argumento de valor'."""
+
+EXECUTIVE_MEETING_SYSTEM_PROMPT = """Você é o Chief of Staff e Especialista em Inteligência de Reuniões do Felipe Donato.
+
+NESTA REUNIÃO ESPECÍFICA:
+Seja COMPLETO, CONCISO, RIGOROSO e DETALHISTA. Analise minuciosamente todas as falas, objeções, valores, prazos, compromissos e nuances estratégicas com máxima precisão e fidelidade à transcrição."""
+
 EXECUTIVE_AGENT_SYSTEM_PROMPT = """Você é o Jarvis Executive Copilot — Chief of Staff e Diretor de Revenue Operations do Felipe Donato.
 
 SUAS DIRETIVAS DE RESPOSTA OBRIGATÓRIAS:
@@ -508,7 +521,7 @@ async def api_ai_action(file_id: str, payload: dict = Body(...)):
 
 SOLICITAÇÃO DO EXECUTIVO:
 {custom_prompt}"""
-        result_text = execute_multi_llm(model_choice, EXECUTIVE_AGENT_SYSTEM_PROMPT, prompt_text)
+        result_text = execute_multi_llm(model_choice, EXECUTIVE_HOME_SYSTEM_PROMPT, prompt_text)
         return JSONResponse({"status": "SUCCESS", "result": result_text, "model": model_choice})
 
     meeting = db.get_meeting(file_id)
@@ -581,7 +594,7 @@ SOLICITAÇÃO DO EXECUTIVO:
 """
 
     try:
-        result_text = execute_multi_llm(model_choice, EXECUTIVE_AGENT_SYSTEM_PROMPT, prompt_text)
+        result_text = execute_multi_llm(model_choice, EXECUTIVE_HOME_SYSTEM_PROMPT, prompt_text)
         return JSONResponse({"status": "SUCCESS", "result": result_text, "model": model_choice})
     except Exception as e:
         logging.error(f"Error running AI action with model {model_choice}: {e}")
@@ -1255,3 +1268,24 @@ async def api_save_user_preferences(payload: dict = Body(...)):
     from modules.executive_voice_os.database import save_user_notification_preferences
     save_user_notification_preferences("felipe_donato", payload)
     return JSONResponse({"status": "SUCCESS", "message": "Preferências salvas com sucesso!", "preferences": payload})
+
+
+@app.post("/api/danger/reset-all")
+async def api_danger_reset_all():
+    """Danger Zone: Permanently wipes all meetings, tasks, profiles and cache."""
+    try:
+        db.reset_all_data()
+        if CACHE_DIR.exists():
+            for item in CACHE_DIR.iterdir():
+                try:
+                    if item.is_file():
+                        item.unlink()
+                    elif item.is_dir():
+                        import shutil
+                        shutil.rmtree(item)
+                except Exception as e:
+                    logging.warning(f"Could not delete cache file {item}: {e}")
+        return JSONResponse({"status": "SUCCESS", "message": "Todas as gravações e dados foram apagados com sucesso. Sistema reiniciado do zero!"})
+    except Exception as e:
+        logging.error(f"Error resetting database: {e}")
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)

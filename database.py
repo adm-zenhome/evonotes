@@ -11,6 +11,22 @@ DB_PATH = DATA_DIR / "executive_voice.db"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 class ExecutiveDatabase:
+    def reset_all_data(self):
+        """Wipes all meetings, commitments, sources, categories, and resets database to clean state."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM meetings")
+            cursor.execute("DELETE FROM commitments")
+            cursor.execute("DELETE FROM meeting_sources")
+            cursor.execute("DELETE FROM accounts_deals")
+            cursor.execute("DELETE FROM vocabulary_corrections")
+            cursor.execute("DELETE FROM keyword_votes")
+            cursor.execute("DELETE FROM custom_categories")
+            cursor.execute("DELETE FROM user_profiles")
+            cursor.execute("DELETE FROM inferred_exclusions_feedback")
+            conn.commit()
+            logging.info("🔥 DATABASE COMPLETELY WIPED AND RESET TO ZERO!")
+
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
         self.init_db()
