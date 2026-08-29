@@ -5,9 +5,615 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Executive Voice OS — Second Brain</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // ==============================================================
+        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
+        // ==============================================================
+
+        async function loadWhatsAppVipContacts() {
+            const container = document.getElementById('wa-vip-contacts-dynamic-container');
+            const countBadge = document.getElementById('wa-vip-contacts-count-badge');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/vip-contacts');
+                const data = await res.json();
+                const contacts = data.contacts || [];
+
+                if (countBadge) {
+                    countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+
+                if (contacts.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
+                                <i class="ph-bold ph-user-plus"></i>
+                            </div>
+                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
+                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
+                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="ph-bold ph-plus text-emerald-400"></i>
+                                <span>Adicionar Contato VIP</span>
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        ${contacts.map(c => `
+                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
+                                    </span>
+                                    <div class="truncate">
+                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
+                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
+            }
+        }
+
+        // ==============================================================
+        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
+        // ==============================================================
+
+        async function renderPlaudHardwareTab() {
+            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                const isConnected = data.is_connected;
+                const account = data.account_email || 'Minha Conta Plaud';
+                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+
+                if (!isConnected) {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform-slash"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                            <span>Dispositivo Desconectado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
+                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
+                                <p class="text-[11px] text-gray-500 leading-relaxed">
+                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
+                                </p>
+                                <div class="space-y-2 pt-1">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
+                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
+                                        <input type="password" id="tab-plaud-token-input" placeholder="••••••••••••••••" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                </div>
+                                <div class="pt-2">
+                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
+                                        <span>Conectar Dispositivo Plaud</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>Conectado & Sincronizado via Nuvem</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
+                                <div>
+                                    <div class="text-gray-400">Dispositivo</div>
+                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Modo de Captura Ativo</div>
+                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Conta Plaud Conectada</div>
+                                    <div class="font-bold text-gray-800 truncate">${account}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Status da Nuvem</div>
+                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
+                                </button>
+                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
+                                    Desconectar Conta
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function savePlaudAccountFromTab() {
+            const email = document.getElementById('tab-plaud-email-input').value.trim();
+            const token = document.getElementById('tab-plaud-token-input').value.trim();
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({account_email: email, token: token})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    await renderPlaudHardwareTab();
+                    await updatePlaudSyncButtonState();
+                } else {
+                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na conexão: ' + e.message, 'error');
+            }
+        }
+
+</script>
+    <script src="https://unpkg.com/@phosphor-icons/web">
+        // ==============================================================
+        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
+        // ==============================================================
+
+        async function loadWhatsAppVipContacts() {
+            const container = document.getElementById('wa-vip-contacts-dynamic-container');
+            const countBadge = document.getElementById('wa-vip-contacts-count-badge');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/vip-contacts');
+                const data = await res.json();
+                const contacts = data.contacts || [];
+
+                if (countBadge) {
+                    countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+
+                if (contacts.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
+                                <i class="ph-bold ph-user-plus"></i>
+                            </div>
+                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
+                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
+                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="ph-bold ph-plus text-emerald-400"></i>
+                                <span>Adicionar Contato VIP</span>
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        ${contacts.map(c => `
+                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
+                                    </span>
+                                    <div class="truncate">
+                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
+                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
+            }
+        }
+
+        // ==============================================================
+        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
+        // ==============================================================
+
+        async function renderPlaudHardwareTab() {
+            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                const isConnected = data.is_connected;
+                const account = data.account_email || 'Minha Conta Plaud';
+                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+
+                if (!isConnected) {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform-slash"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                            <span>Dispositivo Desconectado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
+                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
+                                <p class="text-[11px] text-gray-500 leading-relaxed">
+                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
+                                </p>
+                                <div class="space-y-2 pt-1">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
+                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
+                                        <input type="password" id="tab-plaud-token-input" placeholder="••••••••••••••••" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                </div>
+                                <div class="pt-2">
+                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
+                                        <span>Conectar Dispositivo Plaud</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>Conectado & Sincronizado via Nuvem</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
+                                <div>
+                                    <div class="text-gray-400">Dispositivo</div>
+                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Modo de Captura Ativo</div>
+                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Conta Plaud Conectada</div>
+                                    <div class="font-bold text-gray-800 truncate">${account}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Status da Nuvem</div>
+                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
+                                </button>
+                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
+                                    Desconectar Conta
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function savePlaudAccountFromTab() {
+            const email = document.getElementById('tab-plaud-email-input').value.trim();
+            const token = document.getElementById('tab-plaud-token-input').value.trim();
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({account_email: email, token: token})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    await renderPlaudHardwareTab();
+                    await updatePlaudSyncButtonState();
+                } else {
+                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na conexão: ' + e.message, 'error');
+            }
+        }
+
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+        // ==============================================================
+        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
+        // ==============================================================
+
+        async function loadWhatsAppVipContacts() {
+            const container = document.getElementById('wa-vip-contacts-dynamic-container');
+            const countBadge = document.getElementById('wa-vip-contacts-count-badge');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/vip-contacts');
+                const data = await res.json();
+                const contacts = data.contacts || [];
+
+                if (countBadge) {
+                    countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+
+                if (contacts.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
+                                <i class="ph-bold ph-user-plus"></i>
+                            </div>
+                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
+                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
+                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="ph-bold ph-plus text-emerald-400"></i>
+                                <span>Adicionar Contato VIP</span>
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        ${contacts.map(c => `
+                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
+                                    </span>
+                                    <div class="truncate">
+                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
+                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
+            }
+        }
+
+        // ==============================================================
+        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
+        // ==============================================================
+
+        async function renderPlaudHardwareTab() {
+            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                const isConnected = data.is_connected;
+                const account = data.account_email || 'Minha Conta Plaud';
+                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+
+                if (!isConnected) {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform-slash"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                            <span>Dispositivo Desconectado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
+                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
+                                <p class="text-[11px] text-gray-500 leading-relaxed">
+                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
+                                </p>
+                                <div class="space-y-2 pt-1">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
+                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
+                                        <input type="password" id="tab-plaud-token-input" placeholder="••••••••••••••••" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                </div>
+                                <div class="pt-2">
+                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
+                                        <span>Conectar Dispositivo Plaud</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>Conectado & Sincronizado via Nuvem</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
+                                <div>
+                                    <div class="text-gray-400">Dispositivo</div>
+                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Modo de Captura Ativo</div>
+                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Conta Plaud Conectada</div>
+                                    <div class="font-bold text-gray-800 truncate">${account}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Status da Nuvem</div>
+                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
+                                </button>
+                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
+                                    Desconectar Conta
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function savePlaudAccountFromTab() {
+            const email = document.getElementById('tab-plaud-email-input').value.trim();
+            const token = document.getElementById('tab-plaud-token-input').value.trim();
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({account_email: email, token: token})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    await renderPlaudHardwareTab();
+                    await updatePlaudSyncButtonState();
+                } else {
+                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na conexão: ' + e.message, 'error');
+            }
+        }
+
+</script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -1116,33 +1722,14 @@
                                 </button>
                             </div>
 
-                            <!-- Lista de Contatos VIP Selecionados -->
+                            <!-- Lista de Contatos VIP Selecionados (100% Dinâmico do SQLite) -->
                             <div class="pt-3 border-t border-gray-100 space-y-2">
                                 <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
-                                    <span>Contatos Selecionados para Receber Áudios & Notificações:</span>
-                                    <span class="text-emerald-700 font-bold font-mono">2 Ativos</span>
+                                    <span>Contatos Autorizados para Áudios & Notificações:</span>
+                                    <span id="wa-vip-contacts-count-badge" class="text-emerald-700 font-bold font-mono">0 Ativos</span>
                                 </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                    <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-7 h-7 rounded-full bg-pink-100 text-pink-700 font-bold flex items-center justify-center text-xs">AD</span>
-                                            <div>
-                                                <div class="font-bold text-emerald-950">Anna Donato</div>
-                                                <div class="text-[10px] text-emerald-800">Esposa • Admin VIP</div>
-                                            </div>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs">Ativo</span>
-                                    </div>
-                                    <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-7 h-7 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-xs">FD</span>
-                                            <div>
-                                                <div class="font-bold text-emerald-950">Felipe Donato</div>
-                                                <div class="text-[10px] text-emerald-800 font-mono">+55 11 97430-7292</div>
-                                            </div>
-                                        </div>
-                                        <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs">Principal</span>
-                                    </div>
+                                <div id="wa-vip-contacts-dynamic-container" class="space-y-2">
+                                    <!-- Rendered dynamically by loadWhatsAppVipContacts() -->
                                 </div>
                             </div>
                         </div>
@@ -1277,52 +1864,10 @@
                         </div>
                     </div>
 
-                    <!-- PANEL 3: Hardware & Plaud Note Pro -->
+                    <!-- PANEL 3: Hardware & Plaud Note Pro (100% Dinâmico do SQLite & Multi-User) -->
                     <div id="settings-content-tab-hardware" class="space-y-4 hidden">
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Conectado & Sincronizado via Nuvem</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
-                                <div>
-                                    <div class="text-gray-400">Número de Série (SN)</div>
-                                    <div class="font-mono font-bold text-gray-800">8810B30300504129</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Modo de Captura Ativo</div>
-                                    <div class="font-bold text-gray-800">Presencial + Ligação MagSafe (VCS)</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Conta Plaud Conectada</div>
-                                    <div class="font-bold text-gray-800">feee.deluca (Apple ID)</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Status da Nuvem</div>
-                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
-                                </div>
-                            </div>
-
-                            <div class="pt-2 flex items-center justify-between border-t border-gray-100">
-                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
-                                </button>
-                                <span class="text-[11px] text-gray-400 font-medium">Sensor de Condução Óssea Ativo</span>
-                            </div>
+                        <div id="plaud-hardware-tab-dynamic-container" class="space-y-3.5">
+                            <!-- Rendered dynamically by checkPlaudModalStatus() -->
                         </div>
                     </div>
 
@@ -1349,14 +1894,20 @@
                             </div>
 
                             <div class="flex flex-wrap gap-1.5 pt-1 max-h-48 overflow-y-auto pr-1" id="keywords-container">
-                                {% for kw in profile.vocabulary_and_jargon %}
-                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-medium transition" id="kw-tag-{{ loop.index }}">
-                                    <span>{{ kw }}</span>
-                                    <button onclick="removeCustomKeyword('{{ kw }}', {{ loop.index }})" class="text-gray-400 hover:text-red-600 transition">
-                                        <i class="ph-bold ph-x text-[10px]"></i>
-                                    </button>
-                                </div>
-                                {% endfor %}
+                                {% if profile.vocabulary_and_jargon and profile.vocabulary_and_jargon|length > 0 %}
+                                    {% for kw in profile.vocabulary_and_jargon %}
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-medium transition" id="kw-tag-{{ loop.index }}">
+                                        <span>{{ kw }}</span>
+                                        <button onclick="removeCustomKeyword('{{ kw }}', {{ loop.index }})" class="text-gray-400 hover:text-red-600 transition cursor-pointer">
+                                            <i class="ph-bold ph-x text-[10px]"></i>
+                                        </button>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="w-full py-5 text-center text-xs text-gray-400 bg-gray-50/60 rounded-xl border border-dashed border-gray-200" id="keywords-empty-state">
+                                        Nenhum termo cadastrado ainda. Digite jargões técnicos ou nomes de contas acima para guiar o Whisper.
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -1407,13 +1958,26 @@
                             </div>
                         </div>
 
-                        <!-- Fonte do Leitor -->
-                        <div class="bg-white p-5 rounded-2xl space-y-2 shadow-xs border-0">
-                            <div class="text-xs font-bold text-gray-900">Tamanho da Fonte de Leitura</div>
-                            <div class="flex items-center gap-2 pt-1 bg-gray-100 p-1 rounded-xl w-fit">
-                                <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">14px</button>
-                                <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">16px</button>
-                                <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">18px</button>
+                        <!-- Fonte do Leitor & Largura da Interface (Lado a Lado) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Fonte do Leitor -->
+                            <div class="bg-white p-5 rounded-2xl space-y-2 shadow-xs border-0">
+                                <div class="text-xs font-bold text-gray-900">Tamanho da Fonte de Leitura</div>
+                                <div class="flex items-center gap-2 pt-1 bg-gray-100 p-1 rounded-xl w-fit">
+                                    <button onclick="setTextSize('14px')" id="size-btn-14" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">14px</button>
+                                    <button onclick="setTextSize('16px')" id="size-btn-16" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">16px</button>
+                                    <button onclick="setTextSize('18px')" id="size-btn-18" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">18px</button>
+                                </div>
+                            </div>
+
+                            <!-- Largura da Interface (Mais Amplo, Padrão, Estreito) -->
+                            <div class="bg-white p-5 rounded-2xl space-y-2 shadow-xs border-0">
+                                <div class="text-xs font-bold text-gray-900">Largura da Interface</div>
+                                <div class="flex items-center gap-2 pt-1 bg-gray-100 p-1 rounded-xl w-fit">
+                                    <button onclick="setLayoutWidth('narrow')" id="width-btn-narrow" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">Estreito</button>
+                                    <button onclick="setLayoutWidth('default')" id="width-btn-default" class="px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black cursor-pointer">Padrão</button>
+                                    <button onclick="setLayoutWidth('wide')" id="width-btn-wide" class="px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs cursor-pointer">Mais Amplo</button>
+                                </div>
                             </div>
                         </div>
 
@@ -1851,41 +2415,77 @@
 
         
         // =========================================================================
-        // 📐 PERSISTENT LAYOUT WIDTH MODE (PADRÃO, ESTREITO, AMPLO)
+        // 📐 UNIFIED PERSISTENT LAYOUT WIDTH SYSTEM (ESTREITO, PADRÃO, MAIS AMPLO)
         // =========================================================================
+        function setLayoutWidth(mode) {
+            if (!mode) mode = 'default';
+            currentLayoutWidth = mode;
+            localStorage.setItem('evonotes_layout_width', mode);
+            localStorage.setItem('evonotes_layout_width_mode', mode);
+
+            // Dynamic Width Style Injection covering the entire page layout
+            let widthStyle = document.getElementById('dynamic-width-override');
+            if (!widthStyle) {
+                widthStyle = document.createElement('style');
+                widthStyle.id = 'dynamic-width-override';
+                document.head.appendChild(widthStyle);
+            }
+
+            let maxW = '1024px'; // default
+            let paddingX = '1rem';
+            if (mode === 'narrow') {
+                maxW = '768px'; // narrow
+            } else if (mode === 'wide') {
+                maxW = '100%'; // wide (100% full width)
+                paddingX = '1.5rem';
+            }
+
+            widthStyle.innerHTML = `
+                #workspace-inner-container,
+                .layout-width-container,
+                #bottom-input-inner,
+                #chat-stream-container,
+                #home-dashboard-view,
+                #tasks-central-view,
+                #meeting-detail-view {
+                    max-width: ${maxW} !important;
+                    width: 100% !important;
+                }
+                #main-content {
+                    overflow-y: auto !important;
+                    scroll-behavior: smooth !important;
+                }
+            `;
+
+            // Update button visual active state in Settings Modal
+            ['narrow', 'default', 'wide'].forEach(w => {
+                const btn = document.getElementById(`width-btn-${w}`);
+                if (btn) {
+                    if (w === mode) {
+                        btn.className = 'px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs border-0 outline-none transition cursor-pointer';
+                    } else {
+                        btn.className = 'px-3 py-1 rounded-lg text-xs text-gray-600 hover:text-black border-0 outline-none transition cursor-pointer';
+                    }
+                }
+            });
+
+            // Update select in header
+            const selector = document.getElementById('layout-width-selector');
+            if (selector) selector.value = mode;
+        }
+
         function applyLayoutWidthMode(mode) {
-            const modeClsMap = {
-                'default': 'max-w-4xl',
-                'narrow': 'max-w-2xl',
-                'wide': 'max-w-7xl'
-            };
-            const targetClass = modeClsMap[mode] || 'max-w-4xl';
-            
-            const workspaceInner = document.getElementById('workspace-inner-container');
-            if (workspaceInner) {
-                workspaceInner.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl');
-                workspaceInner.classList.add(targetClass);
-            }
-
-            const bottomInputInner = document.getElementById('bottom-input-inner');
-            if (bottomInputInner) {
-                bottomInputInner.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl');
-                bottomInputInner.classList.add(targetClass);
-            }
-
-            const sel = document.getElementById('layout-width-selector');
-            if (sel) sel.value = mode;
+            setLayoutWidth(mode);
         }
 
         function changeLayoutWidthMode(newMode) {
-            localStorage.setItem('evonotes_layout_width_mode', newMode);
-            applyLayoutWidthMode(newMode);
-            showInAppToast(`Largura ajustada: ${newMode === 'narrow' ? 'Estreito' : newMode === 'wide' ? 'Amplo' : 'Padrão'}`, 'info');
+            setLayoutWidth(newMode);
+            showInAppToast(`Largura ajustada: ${newMode === 'narrow' ? 'Estreito' : newMode === 'wide' ? 'Mais Amplo' : 'Padrão'}`, 'info');
         }
 
         function initLayoutWidthMode() {
-            const savedMode = localStorage.getItem('evonotes_layout_width_mode') || 'default';
-            applyLayoutWidthMode(savedMode);
+            const savedMode = localStorage.getItem('evonotes_layout_width') || localStorage.getItem('evonotes_layout_width_mode') || 'default';
+            setLayoutWidth(savedMode);
         }
 
         
@@ -2956,6 +3556,8 @@
         }
 
         function openSettingsModal() {
+            renderPlaudHardwareTab();
+            loadWhatsAppVipContacts();
             document.getElementById('settings-modal').classList.remove('hidden');
         }
 
@@ -7685,6 +8287,208 @@ Felipe Donato`);
                     btn.disabled = false;
                     btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
                 }
+            }
+        }
+
+
+        // ==============================================================
+        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
+        // ==============================================================
+
+        async function loadWhatsAppVipContacts() {
+            const container = document.getElementById('wa-vip-contacts-dynamic-container');
+            const countBadge = document.getElementById('wa-vip-contacts-count-badge');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/vip-contacts');
+                const data = await res.json();
+                const contacts = data.contacts || [];
+
+                if (countBadge) {
+                    countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+
+                if (contacts.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
+                                <i class="ph-bold ph-user-plus"></i>
+                            </div>
+                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
+                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
+                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="ph-bold ph-plus text-emerald-400"></i>
+                                <span>Adicionar Contato VIP</span>
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        ${contacts.map(c => `
+                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
+                                    </span>
+                                    <div class="truncate">
+                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
+                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
+            }
+        }
+
+        // ==============================================================
+        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
+        // ==============================================================
+
+        async function renderPlaudHardwareTab() {
+            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                const isConnected = data.is_connected;
+                const account = data.account_email || 'Minha Conta Plaud';
+                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+
+                if (!isConnected) {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform-slash"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                            <span>Dispositivo Desconectado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
+                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
+                                <p class="text-[11px] text-gray-500 leading-relaxed">
+                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
+                                </p>
+                                <div class="space-y-2 pt-1">
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
+                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
+                                        <input type="password" id="tab-plaud-token-input" placeholder="••••••••••••••••" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                    </div>
+                                </div>
+                                <div class="pt-2">
+                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
+                                        <span>Conectar Dispositivo Plaud</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
+                                        <i class="ph-bold ph-waveform"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
+                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span>Conectado & Sincronizado via Nuvem</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
+                                <div>
+                                    <div class="text-gray-400">Dispositivo</div>
+                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Modo de Captura Ativo</div>
+                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Conta Plaud Conectada</div>
+                                    <div class="font-bold text-gray-800 truncate">${account}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400">Status da Nuvem</div>
+                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
+                                </button>
+                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
+                                    Desconectar Conta
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function savePlaudAccountFromTab() {
+            const email = document.getElementById('tab-plaud-email-input').value.trim();
+            const token = document.getElementById('tab-plaud-token-input').value.trim();
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({account_email: email, token: token})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    await renderPlaudHardwareTab();
+                    await updatePlaudSyncButtonState();
+                } else {
+                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na conexão: ' + e.message, 'error');
             }
         }
 

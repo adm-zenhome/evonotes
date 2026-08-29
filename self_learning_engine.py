@@ -39,25 +39,14 @@ class SelfLearningEngine:
             "calibration_meetings_processed": 0,
             "calibration_target": 10,
             "calibration_status": "LEARNING", # LEARNING | CALIBRATED
-            "vocabulary_and_jargon": ["ZCC", "ASW", "ARs", "Resell", "Deal Size", "Finder's Fee", "Diarização"],
-            "stakeholders": [
-                {"name": "Dani", "role": "Diretora / Zendesk", "relationship": "Liderança Direta"},
-                {"name": "Valéria", "role": "Enterprise AE / Zendesk", "relationship": "Parceira Interna"},
-                {"name": "Mineiro", "role": "Enterprise AE / Zendesk", "relationship": "Parceiro Interno"},
-                {"name": "Bruno Rodrigues", "role": "CEO / BCR", "relationship": "Parceiro Estratégico"},
-                {"name": "Felipe Bastos", "role": "Executivo / BCR", "relationship": "Parceiro Estratégico"},
-                {"name": "Caio", "role": "Especialista ZX / Zendesk", "relationship": "Time Técnico"},
-                {"name": "Max", "role": "Cliente / Blue3", "relationship": "Prospect / Cliente"}
-            ],
+            "vocabulary_and_jargon": [],
+            "stakeholders": [],
             "style_preferences": {
                 "bullet_format": "Conciso e orientado a decisões",
                 "email_tone": "Profissional, elegante, focado em próximos passos",
                 "risk_sensitivity": "ALTA"
             },
-            "learned_insights": [
-                "Felipe prioriza agilidade de fechamento e proteção de margem/preço.",
-                "Prefere resumos em tópicos diretos e matriz clara de compromissos."
-            ],
+            "learned_insights": [],
             "last_updated": datetime.now().isoformat()
         }
         self.save_profile(user_id, default_profile)

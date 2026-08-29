@@ -1810,3 +1810,30 @@ async def api_ingestion_process_item(payload: dict = Body(...)):
         return JSONResponse({"status": "SUCCESS", "message": "Áudio de WhatsApp processado com sucesso!", "file_id": f"wa_{item_id}"})
     
     raise HTTPException(status_code=400, detail="Fonte inválida")
+
+
+# ========== 📱 DYNAMIC VIP CONTACTS API ==========
+
+@app.get("/api/whatsapp/vip-contacts")
+async def api_get_whatsapp_vip_contacts():
+    """Returns dynamic VIP contacts list from user integrations / SQLite."""
+    status = db.get_user_integration("whatsapp")
+    contacts = []
+    if status and status.get("is_connected") and status.get("config"):
+        contacts = status["config"].get("vip_contacts", [])
+    return JSONResponse({
+        "status": "SUCCESS",
+        "is_connected": bool(status and status.get("is_connected")),
+        "total_contacts": len(contacts),
+        "contacts": contacts
+    })
+
+@app.post("/api/whatsapp/vip-contacts")
+async def api_save_whatsapp_vip_contacts(payload: dict = Body(...)):
+    """Saves dynamic VIP contacts list."""
+    contacts = payload.get("contacts", [])
+    current = db.get_user_integration("whatsapp") or {"is_connected": False, "config": {}}
+    cfg = current.get("config") or {}
+    cfg["vip_contacts"] = contacts
+    db.save_user_integration("whatsapp", is_connected=bool(contacts or current.get("is_connected")), config=cfg)
+    return JSONResponse({"status": "SUCCESS", "contacts": contacts, "total_contacts": len(contacts)})
