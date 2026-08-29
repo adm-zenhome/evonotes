@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
-from .config import DATA_DIR, DATABASE_FILE
+from config import DATA_DIR, DATABASE_FILE
 
 DB_PATH = DATA_DIR / "executive_voice.db"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

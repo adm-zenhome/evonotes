@@ -5,7 +5,7 @@ import subprocess
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from .config import CACHE_DIR, OPENAI_API_KEY
+from config import CACHE_DIR, OPENAI_API_KEY
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

@@ -15,11 +15,27 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 
-from ..config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
-from ..database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources
-from ..self_learning_engine import SelfLearningEngine
-from ..voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
-from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
+import sys
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+try:
+    from config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
+    from database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources
+    from self_learning_engine import SelfLearningEngine
+    from voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
+    from whatsapp_voice_ingest import WhatsAppVoiceIngest
+except ImportError:
+    from ..config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
+    from ..database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources
+    from ..self_learning_engine import SelfLearningEngine
+    from ..voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
+    try:
+        from whatsapp_voice_ingest import WhatsAppVoiceIngest
+    except ImportError:
+        from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -166,7 +182,10 @@ async def api_sync_plaud(payload: dict = Body(default={})):
             else:
                 # Real dynamic intelligence extraction from actual audio transcript
                 try:
-                    from ..intelligence_engine import IntelligenceEngine
+                    try:
+                        from intelligence_engine import IntelligenceEngine
+                    except ImportError:
+                        from ..intelligence_engine import IntelligenceEngine
                     engine = IntelligenceEngine()
                     intel = engine.analyze(
                         transcript_text=raw_text,
@@ -405,7 +424,10 @@ async def api_reprocess_meeting_template(file_id: str, payload: dict = Body(defa
     if not raw_transcript:
         raise HTTPException(status_code=400, detail="Transcript text is empty")
 
-    from ..intelligence_engine import IntelligenceEngine
+    try:
+                        from intelligence_engine import IntelligenceEngine
+                    except ImportError:
+                        from ..intelligence_engine import IntelligenceEngine
     engine = IntelligenceEngine()
     
     new_intel = engine.analyze(
@@ -610,7 +632,10 @@ SOLICITAÇÃO DO EXECUTIVO:
     stakeholder_context_block = ""
     
     if mentioned_stakeholders:
-        from ..database import get_stakeholder_profile_data
+        try:
+            from database import get_stakeholder_profile_data
+        except ImportError:
+            from ..database import get_stakeholder_profile_data
         for s_name in mentioned_stakeholders:
             s_prof = get_stakeholder_profile_data(s_name)
             # Find tasks & meetings for this stakeholder
@@ -924,7 +949,10 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
     phone = payload.get("phone", "")
     chat_name = payload.get("chat_name", "WhatsApp Voice")
     
-    from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
+    try:
+        from whatsapp_voice_ingest import WhatsAppVoiceIngest
+    except ImportError:
+        from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
     ingest_engine = WhatsAppVoiceIngest()
     
     res = await ingest_engine.fetch_and_process_latest_audio(phone=phone)
@@ -1015,7 +1043,10 @@ async def api_update_participants(file_id: str, payload: dict = Body(...)):
 async def api_get_stakeholder_360(name: str):
     """Fetches rich 360 profile of a participant with treatment style, meetings and commitments."""
     decoded_name = urllib.parse.unquote(name).strip()
-    from ..database import get_stakeholder_profile_data
+    try:
+            from database import get_stakeholder_profile_data
+        except ImportError:
+            from ..database import get_stakeholder_profile_data
     profile_info = get_stakeholder_profile_data(decoded_name)
     
     meetings = db.get_all_meetings()
@@ -1087,7 +1118,10 @@ async def api_meeting_raw_audio(file_id: str, request: Request):
     )
 
 
-from ..resend_engine import resend_engine
+try:
+    from resend_engine import resend_engine
+except ImportError:
+    from ..resend_engine import resend_engine
 
 @app.post("/api/resend/daily-closing")
 async def api_resend_daily_closing(payload: dict = Body(default={})):
@@ -1132,7 +1166,10 @@ async def api_resend_prospect_followup(payload: dict = Body(...)):
     return JSONResponse(result)
 
 
-from ..google_workspace_bridge import google_bridge
+try:
+    from google_workspace_bridge import google_bridge
+except ImportError:
+    from ..google_workspace_bridge import google_bridge
 
 @app.post("/api/google/compose-email")
 async def api_google_compose_email(payload: dict = Body(...)):
@@ -1475,7 +1512,10 @@ async def api_update_deal_value(deal_id: int, payload: dict = Body(...)):
 async def api_save_stakeholders_batch(payload: dict = Body(...)):
     """Saves user-edited stakeholder profiles permanently into SQLite."""
     stakeholders = payload.get("stakeholders", [])
-    from ..database import save_stakeholder_profile
+    try:
+        from database import save_stakeholder_profile
+    except ImportError:
+        from ..database import save_stakeholder_profile
     
     for s in stakeholders:
         if s.get("name"):

@@ -14,10 +14,10 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from .config import CACHE_DIR, DESKTOP_ZENDESK_DIR
-from .database import db
+from config import CACHE_DIR, DESKTOP_ZENDESK_DIR
+from database import db
 from .audio_pipeline import AudioPipeline
-from .intelligence_engine import IntelligenceEngine
+from intelligence_engine import IntelligenceEngine
 
 logger = logging.getLogger("WhatsAppVoiceIngest")
 

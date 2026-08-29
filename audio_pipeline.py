@@ -6,7 +6,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Any
 from openai import OpenAI
-from .config import CACHE_DIR, OPENAI_API_KEY, CHUNK_DURATION_SECONDS
+from config import CACHE_DIR, OPENAI_API_KEY, CHUNK_DURATION_SECONDS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

@@ -4,8 +4,8 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from openai import OpenAI
-from .config import OPENAI_API_KEY
-from .self_learning_engine import SelfLearningEngine
+from config import OPENAI_API_KEY
+from self_learning_engine import SelfLearningEngine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

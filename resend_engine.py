@@ -6,8 +6,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from pathlib import Path
 
-from .config import DATA_DIR
-from .database import db
+from config import DATA_DIR
+from database import db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

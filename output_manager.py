@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List
-from .config import DESKTOP_ZENDESK_DIR, DATABASE_FILE, DATA_DIR
+from config import DESKTOP_ZENDESK_DIR, DATABASE_FILE, DATA_DIR
 from .notifier import InductionNotifier
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

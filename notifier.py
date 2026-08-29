@@ -5,7 +5,7 @@ import urllib.request
 import urllib.parse
 import logging
 from typing import Dict, Any, Optional
-from .config import DASHBOARD_HOST, DASHBOARD_PORT
+from config import DASHBOARD_HOST, DASHBOARD_PORT
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

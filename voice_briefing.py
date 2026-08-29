@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from openai import OpenAI
 
-from .config import OPENAI_API_KEY, CACHE_DIR
-from ..eleven_client import ElevenLabsClient, DEFAULT_VOICES
+from config import OPENAI_API_KEY, CACHE_DIR
+from eleven_client import ElevenLabsClient, DEFAULT_VOICES
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

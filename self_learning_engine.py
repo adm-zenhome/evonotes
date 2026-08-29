@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 
-from .config import DATA_DIR, OPENAI_API_KEY
+from config import DATA_DIR, OPENAI_API_KEY
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
