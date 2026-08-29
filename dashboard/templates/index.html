@@ -20,6 +20,135 @@
             }
         });
 
+    
+        // ==========================================
+        // 🔄 PULL TO REFRESH ENGINE (iOS / Mobile Native)
+        // ==========================================
+        let ptrStartY = 0;
+        let ptrCurrentY = 0;
+        let ptrIsPulling = false;
+        let ptrIsRefreshing = false;
+        const PTR_THRESHOLD = 65;
+
+        function initPullToRefresh() {
+            const container = document.getElementById('chat-stream-container');
+            const indicator = document.getElementById('pull-to-refresh-indicator');
+            const icon = document.getElementById('ptr-icon');
+            const label = document.getElementById('ptr-label');
+            if (!container || !indicator || !icon || !label) return;
+
+            container.addEventListener('touchstart', (e) => {
+                if (container.scrollTop <= 0 && !ptrIsRefreshing) {
+                    ptrStartY = e.touches[0].clientY;
+                    ptrIsPulling = true;
+                } else {
+                    ptrIsPulling = false;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrCurrentY = e.touches[0].clientY;
+                const diff = ptrCurrentY - ptrStartY;
+
+                if (diff > 0 && container.scrollTop <= 0) {
+                    const pullDistance = Math.min(diff * 0.4, 90);
+                    indicator.style.height = `${pullDistance}px`;
+                    indicator.style.opacity = `${Math.min(pullDistance / 40, 1)}`;
+
+                    if (pullDistance >= PTR_THRESHOLD) {
+                        icon.className = 'ph-bold ph-arrows-clockwise text-emerald-600 text-sm animate-spin';
+                        label.innerText = 'Solte para atualizar...';
+                    } else {
+                        icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                        label.innerText = 'Puxe para atualizar...';
+                    }
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchend', async () => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrIsPulling = false;
+                const diff = ptrCurrentY - ptrStartY;
+                const pullDistance = Math.min(diff * 0.4, 90);
+
+                if (pullDistance >= PTR_THRESHOLD && container.scrollTop <= 0) {
+                    ptrIsRefreshing = true;
+                    indicator.style.height = '48px';
+                    indicator.style.opacity = '1';
+                    icon.className = 'ph-bold ph-spinner text-emerald-600 text-sm animate-spin';
+                    label.innerText = 'Atualizando dados...';
+
+                    try {
+                        await refreshCompleteDashboardData();
+                        icon.className = 'ph-bold ph-check-circle text-emerald-600 text-sm';
+                        label.innerText = 'Atualizado!';
+                        if (window.navigator && window.navigator.vibrate) {
+                            window.navigator.vibrate(40);
+                        }
+                    } catch (err) {
+                        console.error('PTR error:', err);
+                        label.innerText = 'Erro ao atualizar';
+                    }
+
+                    setTimeout(() => {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                        setTimeout(() => {
+                            ptrIsRefreshing = false;
+                            icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                            label.innerText = 'Puxe para atualizar...';
+                        }, 250);
+                    }, 500);
+                } else {
+                    indicator.style.height = '0px';
+                    indicator.style.opacity = '0';
+                }
+                ptrStartY = 0;
+                ptrCurrentY = 0;
+            });
+        }
+
+        async function refreshCompleteDashboardData() {
+            try {
+                const [mRes, tRes, aRes] = await Promise.all([
+                    fetch('/api/meetings'),
+                    fetch('/api/tasks'),
+                    fetch('/api/dashboard/analytics')
+                ]);
+                
+                if (mRes.ok) {
+                    meetingsData = await mRes.json();
+                    renderSidebarMeetings();
+                    if (currentMeetingId) {
+                        const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                        if (m) {
+                            checkAndRenderAudioBriefing(currentMeetingId);
+                        }
+                    }
+                }
+                if (tRes.ok) {
+                    currentTasksList = await tRes.json();
+                    renderTasksList();
+                }
+                if (aRes.ok) {
+                    const analyticsData = await aRes.json();
+                    if (analyticsData && analyticsData.bifocal) {
+                        const hSaved = document.getElementById('metric-hours-saved');
+                        if (hSaved) hSaved.innerHTML = `<span>${analyticsData.bifocal.hours_saved || '0.0'}h</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const cCount = document.getElementById('metric-calls-count');
+                        if (cCount) cCount.innerHTML = `<span>${analyticsData.bifocal.meetings_processed || 0}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const pVal = document.getElementById('metric-pipeline-val');
+                        if (pVal) pVal.innerHTML = `<span>${analyticsData.bifocal.pipeline_value || 'R$ 0'}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                    }
+                }
+                showInAppToast('🔄 Dados atualizados com sucesso!', 'success');
+            } catch (e) {
+                console.error('Error in refreshCompleteDashboardData:', e);
+                showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
+
     </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web">
@@ -37,6 +166,135 @@
             }
         });
 
+    
+        // ==========================================
+        // 🔄 PULL TO REFRESH ENGINE (iOS / Mobile Native)
+        // ==========================================
+        let ptrStartY = 0;
+        let ptrCurrentY = 0;
+        let ptrIsPulling = false;
+        let ptrIsRefreshing = false;
+        const PTR_THRESHOLD = 65;
+
+        function initPullToRefresh() {
+            const container = document.getElementById('chat-stream-container');
+            const indicator = document.getElementById('pull-to-refresh-indicator');
+            const icon = document.getElementById('ptr-icon');
+            const label = document.getElementById('ptr-label');
+            if (!container || !indicator || !icon || !label) return;
+
+            container.addEventListener('touchstart', (e) => {
+                if (container.scrollTop <= 0 && !ptrIsRefreshing) {
+                    ptrStartY = e.touches[0].clientY;
+                    ptrIsPulling = true;
+                } else {
+                    ptrIsPulling = false;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrCurrentY = e.touches[0].clientY;
+                const diff = ptrCurrentY - ptrStartY;
+
+                if (diff > 0 && container.scrollTop <= 0) {
+                    const pullDistance = Math.min(diff * 0.4, 90);
+                    indicator.style.height = `${pullDistance}px`;
+                    indicator.style.opacity = `${Math.min(pullDistance / 40, 1)}`;
+
+                    if (pullDistance >= PTR_THRESHOLD) {
+                        icon.className = 'ph-bold ph-arrows-clockwise text-emerald-600 text-sm animate-spin';
+                        label.innerText = 'Solte para atualizar...';
+                    } else {
+                        icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                        label.innerText = 'Puxe para atualizar...';
+                    }
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchend', async () => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrIsPulling = false;
+                const diff = ptrCurrentY - ptrStartY;
+                const pullDistance = Math.min(diff * 0.4, 90);
+
+                if (pullDistance >= PTR_THRESHOLD && container.scrollTop <= 0) {
+                    ptrIsRefreshing = true;
+                    indicator.style.height = '48px';
+                    indicator.style.opacity = '1';
+                    icon.className = 'ph-bold ph-spinner text-emerald-600 text-sm animate-spin';
+                    label.innerText = 'Atualizando dados...';
+
+                    try {
+                        await refreshCompleteDashboardData();
+                        icon.className = 'ph-bold ph-check-circle text-emerald-600 text-sm';
+                        label.innerText = 'Atualizado!';
+                        if (window.navigator && window.navigator.vibrate) {
+                            window.navigator.vibrate(40);
+                        }
+                    } catch (err) {
+                        console.error('PTR error:', err);
+                        label.innerText = 'Erro ao atualizar';
+                    }
+
+                    setTimeout(() => {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                        setTimeout(() => {
+                            ptrIsRefreshing = false;
+                            icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                            label.innerText = 'Puxe para atualizar...';
+                        }, 250);
+                    }, 500);
+                } else {
+                    indicator.style.height = '0px';
+                    indicator.style.opacity = '0';
+                }
+                ptrStartY = 0;
+                ptrCurrentY = 0;
+            });
+        }
+
+        async function refreshCompleteDashboardData() {
+            try {
+                const [mRes, tRes, aRes] = await Promise.all([
+                    fetch('/api/meetings'),
+                    fetch('/api/tasks'),
+                    fetch('/api/dashboard/analytics')
+                ]);
+                
+                if (mRes.ok) {
+                    meetingsData = await mRes.json();
+                    renderSidebarMeetings();
+                    if (currentMeetingId) {
+                        const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                        if (m) {
+                            checkAndRenderAudioBriefing(currentMeetingId);
+                        }
+                    }
+                }
+                if (tRes.ok) {
+                    currentTasksList = await tRes.json();
+                    renderTasksList();
+                }
+                if (aRes.ok) {
+                    const analyticsData = await aRes.json();
+                    if (analyticsData && analyticsData.bifocal) {
+                        const hSaved = document.getElementById('metric-hours-saved');
+                        if (hSaved) hSaved.innerHTML = `<span>${analyticsData.bifocal.hours_saved || '0.0'}h</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const cCount = document.getElementById('metric-calls-count');
+                        if (cCount) cCount.innerHTML = `<span>${analyticsData.bifocal.meetings_processed || 0}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const pVal = document.getElementById('metric-pipeline-val');
+                        if (pVal) pVal.innerHTML = `<span>${analyticsData.bifocal.pipeline_value || 'R$ 0'}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                    }
+                }
+                showInAppToast('🔄 Dados atualizados com sucesso!', 'success');
+            } catch (e) {
+                console.error('Error in refreshCompleteDashboardData:', e);
+                showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
+
     </script>
     <!-- Marked.js (Markdown Renderer) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
@@ -53,6 +311,135 @@
                 e.target.classList.add('hidden');
             }
         });
+
+    
+        // ==========================================
+        // 🔄 PULL TO REFRESH ENGINE (iOS / Mobile Native)
+        // ==========================================
+        let ptrStartY = 0;
+        let ptrCurrentY = 0;
+        let ptrIsPulling = false;
+        let ptrIsRefreshing = false;
+        const PTR_THRESHOLD = 65;
+
+        function initPullToRefresh() {
+            const container = document.getElementById('chat-stream-container');
+            const indicator = document.getElementById('pull-to-refresh-indicator');
+            const icon = document.getElementById('ptr-icon');
+            const label = document.getElementById('ptr-label');
+            if (!container || !indicator || !icon || !label) return;
+
+            container.addEventListener('touchstart', (e) => {
+                if (container.scrollTop <= 0 && !ptrIsRefreshing) {
+                    ptrStartY = e.touches[0].clientY;
+                    ptrIsPulling = true;
+                } else {
+                    ptrIsPulling = false;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrCurrentY = e.touches[0].clientY;
+                const diff = ptrCurrentY - ptrStartY;
+
+                if (diff > 0 && container.scrollTop <= 0) {
+                    const pullDistance = Math.min(diff * 0.4, 90);
+                    indicator.style.height = `${pullDistance}px`;
+                    indicator.style.opacity = `${Math.min(pullDistance / 40, 1)}`;
+
+                    if (pullDistance >= PTR_THRESHOLD) {
+                        icon.className = 'ph-bold ph-arrows-clockwise text-emerald-600 text-sm animate-spin';
+                        label.innerText = 'Solte para atualizar...';
+                    } else {
+                        icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                        label.innerText = 'Puxe para atualizar...';
+                    }
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchend', async () => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrIsPulling = false;
+                const diff = ptrCurrentY - ptrStartY;
+                const pullDistance = Math.min(diff * 0.4, 90);
+
+                if (pullDistance >= PTR_THRESHOLD && container.scrollTop <= 0) {
+                    ptrIsRefreshing = true;
+                    indicator.style.height = '48px';
+                    indicator.style.opacity = '1';
+                    icon.className = 'ph-bold ph-spinner text-emerald-600 text-sm animate-spin';
+                    label.innerText = 'Atualizando dados...';
+
+                    try {
+                        await refreshCompleteDashboardData();
+                        icon.className = 'ph-bold ph-check-circle text-emerald-600 text-sm';
+                        label.innerText = 'Atualizado!';
+                        if (window.navigator && window.navigator.vibrate) {
+                            window.navigator.vibrate(40);
+                        }
+                    } catch (err) {
+                        console.error('PTR error:', err);
+                        label.innerText = 'Erro ao atualizar';
+                    }
+
+                    setTimeout(() => {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                        setTimeout(() => {
+                            ptrIsRefreshing = false;
+                            icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                            label.innerText = 'Puxe para atualizar...';
+                        }, 250);
+                    }, 500);
+                } else {
+                    indicator.style.height = '0px';
+                    indicator.style.opacity = '0';
+                }
+                ptrStartY = 0;
+                ptrCurrentY = 0;
+            });
+        }
+
+        async function refreshCompleteDashboardData() {
+            try {
+                const [mRes, tRes, aRes] = await Promise.all([
+                    fetch('/api/meetings'),
+                    fetch('/api/tasks'),
+                    fetch('/api/dashboard/analytics')
+                ]);
+                
+                if (mRes.ok) {
+                    meetingsData = await mRes.json();
+                    renderSidebarMeetings();
+                    if (currentMeetingId) {
+                        const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                        if (m) {
+                            checkAndRenderAudioBriefing(currentMeetingId);
+                        }
+                    }
+                }
+                if (tRes.ok) {
+                    currentTasksList = await tRes.json();
+                    renderTasksList();
+                }
+                if (aRes.ok) {
+                    const analyticsData = await aRes.json();
+                    if (analyticsData && analyticsData.bifocal) {
+                        const hSaved = document.getElementById('metric-hours-saved');
+                        if (hSaved) hSaved.innerHTML = `<span>${analyticsData.bifocal.hours_saved || '0.0'}h</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const cCount = document.getElementById('metric-calls-count');
+                        if (cCount) cCount.innerHTML = `<span>${analyticsData.bifocal.meetings_processed || 0}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const pVal = document.getElementById('metric-pipeline-val');
+                        if (pVal) pVal.innerHTML = `<span>${analyticsData.bifocal.pipeline_value || 'R$ 0'}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                    }
+                }
+                showInAppToast('🔄 Dados atualizados com sucesso!', 'success');
+            } catch (e) {
+                console.error('Error in refreshCompleteDashboardData:', e);
+                showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
 
     </script>
     <style>
@@ -463,6 +850,14 @@
 
         <!-- Main Workspace Flow (Edge-to-Edge Scrollable with Inner Width Constraint) -->
         <div id="chat-stream-container" class="flex-1 overflow-y-auto w-full transition-all duration-300 pt-14 md:pt-0">
+            
+            <!-- 🔄 PULL TO REFRESH INDICATOR (iOS Native Feel) -->
+            <div id="pull-to-refresh-indicator" class="w-full flex items-center justify-center overflow-hidden transition-all duration-200 pointer-events-none opacity-0" style="height: 0px;">
+                <div class="flex items-center gap-2 py-2 px-4 bg-white/95 backdrop-blur-md rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-200/90 text-xs font-bold text-gray-800 my-2">
+                    <i id="ptr-icon" class="ph-bold ph-arrow-down text-emerald-600 text-sm transition-transform duration-200"></i>
+                    <span id="ptr-label">Puxe para atualizar...</span>
+                </div>
+            </div>
             <div id="workspace-inner-container" class="w-full mx-auto px-4 sm:px-6 py-6 space-y-6 transition-all duration-300 layout-width-container max-w-4xl">
             
             <!-- 🌟 HOME / OVERVIEW EXECUTIVE DASHBOARD (BIFOCAL STRATEGY) -->
@@ -5463,6 +5858,7 @@ ${transcriptText}
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            initPullToRefresh();
             initMentionListeners();
         });
 
@@ -6521,6 +6917,135 @@ Felipe Donato`);
                 e.target.classList.add('hidden');
             }
         });
+
+    
+        // ==========================================
+        // 🔄 PULL TO REFRESH ENGINE (iOS / Mobile Native)
+        // ==========================================
+        let ptrStartY = 0;
+        let ptrCurrentY = 0;
+        let ptrIsPulling = false;
+        let ptrIsRefreshing = false;
+        const PTR_THRESHOLD = 65;
+
+        function initPullToRefresh() {
+            const container = document.getElementById('chat-stream-container');
+            const indicator = document.getElementById('pull-to-refresh-indicator');
+            const icon = document.getElementById('ptr-icon');
+            const label = document.getElementById('ptr-label');
+            if (!container || !indicator || !icon || !label) return;
+
+            container.addEventListener('touchstart', (e) => {
+                if (container.scrollTop <= 0 && !ptrIsRefreshing) {
+                    ptrStartY = e.touches[0].clientY;
+                    ptrIsPulling = true;
+                } else {
+                    ptrIsPulling = false;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrCurrentY = e.touches[0].clientY;
+                const diff = ptrCurrentY - ptrStartY;
+
+                if (diff > 0 && container.scrollTop <= 0) {
+                    const pullDistance = Math.min(diff * 0.4, 90);
+                    indicator.style.height = `${pullDistance}px`;
+                    indicator.style.opacity = `${Math.min(pullDistance / 40, 1)}`;
+
+                    if (pullDistance >= PTR_THRESHOLD) {
+                        icon.className = 'ph-bold ph-arrows-clockwise text-emerald-600 text-sm animate-spin';
+                        label.innerText = 'Solte para atualizar...';
+                    } else {
+                        icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                        label.innerText = 'Puxe para atualizar...';
+                    }
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchend', async () => {
+                if (!ptrIsPulling || ptrIsRefreshing) return;
+                ptrIsPulling = false;
+                const diff = ptrCurrentY - ptrStartY;
+                const pullDistance = Math.min(diff * 0.4, 90);
+
+                if (pullDistance >= PTR_THRESHOLD && container.scrollTop <= 0) {
+                    ptrIsRefreshing = true;
+                    indicator.style.height = '48px';
+                    indicator.style.opacity = '1';
+                    icon.className = 'ph-bold ph-spinner text-emerald-600 text-sm animate-spin';
+                    label.innerText = 'Atualizando dados...';
+
+                    try {
+                        await refreshCompleteDashboardData();
+                        icon.className = 'ph-bold ph-check-circle text-emerald-600 text-sm';
+                        label.innerText = 'Atualizado!';
+                        if (window.navigator && window.navigator.vibrate) {
+                            window.navigator.vibrate(40);
+                        }
+                    } catch (err) {
+                        console.error('PTR error:', err);
+                        label.innerText = 'Erro ao atualizar';
+                    }
+
+                    setTimeout(() => {
+                        indicator.style.height = '0px';
+                        indicator.style.opacity = '0';
+                        setTimeout(() => {
+                            ptrIsRefreshing = false;
+                            icon.className = 'ph-bold ph-arrow-down text-emerald-600 text-sm';
+                            label.innerText = 'Puxe para atualizar...';
+                        }, 250);
+                    }, 500);
+                } else {
+                    indicator.style.height = '0px';
+                    indicator.style.opacity = '0';
+                }
+                ptrStartY = 0;
+                ptrCurrentY = 0;
+            });
+        }
+
+        async function refreshCompleteDashboardData() {
+            try {
+                const [mRes, tRes, aRes] = await Promise.all([
+                    fetch('/api/meetings'),
+                    fetch('/api/tasks'),
+                    fetch('/api/dashboard/analytics')
+                ]);
+                
+                if (mRes.ok) {
+                    meetingsData = await mRes.json();
+                    renderSidebarMeetings();
+                    if (currentMeetingId) {
+                        const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                        if (m) {
+                            checkAndRenderAudioBriefing(currentMeetingId);
+                        }
+                    }
+                }
+                if (tRes.ok) {
+                    currentTasksList = await tRes.json();
+                    renderTasksList();
+                }
+                if (aRes.ok) {
+                    const analyticsData = await aRes.json();
+                    if (analyticsData && analyticsData.bifocal) {
+                        const hSaved = document.getElementById('metric-hours-saved');
+                        if (hSaved) hSaved.innerHTML = `<span>${analyticsData.bifocal.hours_saved || '0.0'}h</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const cCount = document.getElementById('metric-calls-count');
+                        if (cCount) cCount.innerHTML = `<span>${analyticsData.bifocal.meetings_processed || 0}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                        const pVal = document.getElementById('metric-pipeline-val');
+                        if (pVal) pVal.innerHTML = `<span>${analyticsData.bifocal.pipeline_value || 'R$ 0'}</span><i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>`;
+                    }
+                }
+                showInAppToast('🔄 Dados atualizados com sucesso!', 'success');
+            } catch (e) {
+                console.error('Error in refreshCompleteDashboardData:', e);
+                showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
 
     </script>
 
