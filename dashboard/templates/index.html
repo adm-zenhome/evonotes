@@ -5794,7 +5794,7 @@ Reunião de Origem: ${meetingTitle}`);
                 renderStakeholderDirectoryCards(allDirectoryStakeholders);
                 
                 const totalBadge = document.getElementById('stk-directory-total-badge');
-                if (totalBadge) totalBadge.innerText = `${data.total} profissionais mapeados de forma autônoma`;
+                if (totalBadge) totalBadge.innerText = `${data.total_count !== undefined ? data.total_count : (data.total || 0)} profissionais mapeados de forma autônoma`;
             } catch (e) {
                 container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
             }
