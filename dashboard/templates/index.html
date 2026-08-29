@@ -697,99 +697,93 @@
             <!-- 📝 INDIVIDUAL MEETING VIEW -->
             <div id="conversation-thread" class="space-y-6 hidden">
                 
-                <!-- 🏛️ CABEÇALHO UNIFICADO & ULTRA-COMPACTO DA REUNIÃO (ECONOMIA DE 70% DE ESPAÇO) -->
-                <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 space-y-3 animate-fade-in" id="unified-meeting-header-card">
+                <!-- 📝 HEADER EXECUTIVO LIMPO (ESTILO APPLE NOTES & NOTION - ZERO POLUIÇÃO) -->
+                <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-[0_4px_25px_rgb(0,0,0,0.03)] border-0 space-y-3 animate-fade-in" id="unified-meeting-header-card">
                     
-                    <!-- Linha 1: Título da Nota Editável Inline + Categoria + Fonte -->
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-gray-100 pb-3">
-                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-900 text-white font-bold text-[11px] shadow-2xs flex-shrink-0">
-                                <i class="ph-bold ph-waveform text-emerald-400 text-xs"></i>
-                                <span id="meta-meeting-source">Plaud Note Pro</span>
-                            </span>
-                            <div id="inline-meeting-title-display" 
-                                 contenteditable="true" 
-                                 onblur="saveMeetingTitleFromTopBar(this.innerText)"
-                                 onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
-                                 class="font-extrabold text-sm sm:text-base text-gray-900 truncate outline-none focus:bg-emerald-50 px-2 py-0.5 rounded-xl cursor-text transition flex-1 min-w-0" 
-                                 title="Clique para renomear esta nota">
-                                Título da Reunião
-                            </div>
-                            <button onclick="document.getElementById('inline-meeting-title-display').focus()" class="text-gray-400 hover:text-black transition p-1 cursor-pointer flex-shrink-0" title="Editar título inline">
-                                <i class="ph-bold ph-pencil-simple text-xs"></i>
-                            </button>
-                        </div>
-
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <!-- Category Pill Dropdown -->
-                            <div class="relative inline-flex items-center" id="meta-meeting-category-container">
-                                <button onclick="toggleCategoryModal()" id="meta-meeting-category-pill" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs transition cursor-pointer">
-                                    <span id="meta-meeting-category-label">Geral</span>
-                                    <i class="ph-bold ph-caret-down text-[9px] text-gray-400"></i>
-                                </button>
-                            </div>
-                            <!-- Connect external source @ button -->
-                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-black hover:text-white text-[10px] font-bold text-gray-700 transition cursor-pointer flex items-center gap-1" title="Vincular fonte externa (@)">
-                                <i class="ph-bold ph-plus"></i> Conectar @
-                            </button>
-                        </div>
+                    <!-- 1. TÍTULO REAL DA REUNIÃO EM DESTAQUE ABSOLUTO -->
+                    <div class="flex items-start justify-between gap-2.5">
+                        <h1 id="inline-meeting-title-display" 
+                            contenteditable="true" 
+                            onblur="saveMeetingTitleFromTopBar(this.innerText)"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
+                            class="text-base sm:text-lg font-extrabold text-gray-900 leading-snug tracking-tight outline-none focus:bg-emerald-50/80 px-1 py-0.5 rounded-xl cursor-text transition flex-1 break-words" 
+                            title="Toque para editar o título desta reunião">
+                            Reunião Executiva
+                        </h1>
+                        <button onclick="document.getElementById('inline-meeting-title-display').focus()" class="p-1 text-gray-400 hover:text-black transition cursor-pointer flex-shrink-0" title="Editar título inline">
+                            <i class="ph-bold ph-pencil-simple text-sm"></i>
+                        </button>
                     </div>
 
-                    <!-- Linha 2: Chips de Metadados + Players Compactos de Áudio Integrados -->
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+                    <!-- 2. METADADOS ELEGANTES EM UMA LINHA FLUIDA -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 font-medium">
                         
-                        <!-- Metadados: Data, Horário, Duração, Participantes, Canal -->
-                        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-900 font-bold shadow-2xs">
-                                <i class="ph-bold ph-calendar-blank text-emerald-600"></i>
-                                <span id="meta-meeting-date">--</span>
-                            </span>
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-900 font-bold shadow-2xs">
-                                <i class="ph-bold ph-clock text-blue-600"></i>
-                                <span id="meta-meeting-time">--</span>
-                            </span>
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-50 text-purple-900 font-bold shadow-2xs">
-                                <i class="ph-bold ph-hourglass text-purple-600"></i>
-                                <span id="meta-meeting-duration">--</span>
-                            </span>
-                            <button onclick="openMeetingParticipantsModal()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold shadow-2xs cursor-pointer transition active:scale-95" id="meta-meeting-participants-badge" title="Gerenciar participantes desta reunião">
-                                <i class="ph-bold ph-users text-amber-600"></i>
-                                <span id="meta-meeting-participants">-- participantes</span>
+                        <!-- Categoria Badge -->
+                        <div class="relative inline-flex items-center">
+                            <button onclick="toggleCategoryModal()" id="meta-meeting-category-pill" class="inline-flex items-center gap-1 text-gray-800 bg-gray-100 hover:bg-gray-200 font-bold px-2.5 py-1 rounded-xl transition cursor-pointer">
+                                <i class="ph-bold ph-tag text-emerald-600 text-[10px]"></i>
+                                <span id="meta-meeting-category-label">Geral</span>
+                                <i class="ph-bold ph-caret-down text-[8px] text-gray-400"></i>
                             </button>
-                            
-                            <!-- Canal Dropdown Pill -->
-                            <div class="relative inline-flex items-center">
-                                <button onclick="toggleChannelDropdown(event)" id="meta-meeting-channel-pill" 
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-gray-800 font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer" 
-                                        title="Clique para alterar o canal de entrada">
-                                    <i class="ph-bold ph-broadcast text-emerald-600 text-xs" id="meta-meeting-channel-icon"></i>
-                                    <span id="meta-meeting-channel-text">Videoconferência</span>
-                                    <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i>
+                        </div>
+
+                        <span class="inline-flex items-center gap-1 text-gray-600">
+                            <i class="ph-bold ph-calendar text-gray-400 text-xs"></i>
+                            <span id="meta-meeting-date">--</span>
+                        </span>
+
+                        <span class="text-gray-300">•</span>
+
+                        <span class="inline-flex items-center gap-1 text-gray-600">
+                            <i class="ph-bold ph-clock text-gray-400 text-xs"></i>
+                            <span id="meta-meeting-time">--</span>
+                            <span class="text-gray-400 text-[11px]">(<span id="meta-meeting-duration">--</span>)</span>
+                        </span>
+
+                        <span class="text-gray-300">•</span>
+
+                        <!-- Participantes Chip -->
+                        <button onclick="openMeetingParticipantsModal()" class="inline-flex items-center gap-1 text-emerald-900 bg-emerald-50 hover:bg-emerald-100 font-bold px-2.5 py-1 rounded-xl transition cursor-pointer" id="meta-meeting-participants-badge" title="Gerenciar participantes">
+                            <i class="ph-bold ph-users text-emerald-600 text-xs"></i>
+                            <span id="meta-meeting-participants">-- participantes</span>
+                        </button>
+
+                        <!-- Canal Dropdown Pill -->
+                        <div class="relative inline-flex items-center">
+                            <button onclick="toggleChannelDropdown(event)" id="meta-meeting-channel-pill" 
+                                    class="inline-flex items-center gap-1 text-gray-700 bg-gray-100 hover:bg-gray-200 font-bold px-2.5 py-1 rounded-xl transition cursor-pointer" 
+                                    title="Alterar canal">
+                                <i class="ph-bold ph-broadcast text-emerald-600 text-[10px]" id="meta-meeting-channel-icon"></i>
+                                <span id="meta-meeting-channel-text">Videoconferência</span>
+                                <i class="ph-bold ph-caret-down text-[8px] text-gray-400"></i>
+                            </button>
+                            <div id="channel-dropdown-popover" class="hidden absolute left-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl p-1.5 z-50 text-xs border border-gray-100">
+                                <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Canal de Entrada</div>
+                                <div id="channel-dropdown-options" class="space-y-0.5 max-h-48 overflow-y-auto"></div>
+                                <div class="my-1 border-t border-gray-100"></div>
+                                <button onclick="openChannelManagerModal(); closeChannelDropdown();" class="w-full flex items-center gap-2 px-3 py-1.5 text-gray-700 hover:bg-gray-50 rounded-xl text-left font-medium">
+                                    <i class="ph-bold ph-gear-six text-gray-400"></i> Gerenciar Canais...
                                 </button>
-                                <div id="channel-dropdown-popover" class="hidden absolute left-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] p-1.5 z-50 text-xs select-none border border-gray-100 animate-fade-in">
-                                    <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Canal de Entrada</div>
-                                    <div id="channel-dropdown-options" class="space-y-0.5 max-h-48 overflow-y-auto"></div>
-                                    <div class="my-1 border-t border-gray-100"></div>
-                                    <button onclick="openChannelManagerModal(); closeChannelDropdown();" class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition text-left font-medium">
-                                        <i class="ph-bold ph-gear-six text-gray-400 text-sm"></i>
-                                        <span>Gerenciar Canais...</span>
-                                    </button>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Audio Controls Compact Bar: Áudio Original + Briefing 60s -->
-                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 flex-shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100">
-                            <!-- Original Audio Player Pill -->
-                            <div id="meeting-sources-list" class="flex-1 sm:flex-initial min-w-[200px]">
-                                <!-- Audio Player injected by JS -->
-                            </div>
-                            <!-- Briefing in Audio Button Pill -->
-                            <div id="audio-briefing-section" class="flex-1 sm:flex-initial">
-                                <!-- Briefing Player or Generate Button injected by JS -->
-                            </div>
+                        <!-- Conectar @ -->
+                        <button onclick="openLinkSourceModal()" class="inline-flex items-center gap-1 text-gray-500 hover:text-black bg-gray-50 hover:bg-gray-100 px-2 py-0.5 rounded-lg text-[11px] font-medium transition cursor-pointer" title="Vincular fonte externa (@)">
+                            <i class="ph-bold ph-plus text-[9px]"></i> Fonte @
+                        </button>
+                    </div>
+
+                    <!-- 3. BARRA DE ÁUDIO MINIMALISTA (1 LINHA SLIM) -->
+                    <div class="pt-2 border-t border-gray-100/70 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                        <!-- Player Original Slim -->
+                        <div id="meeting-sources-list" class="flex-1 min-w-[200px]">
+                            <!-- Compact Audio Player Injected Here -->
                         </div>
 
+                        <!-- Briefing 60s Slim -->
+                        <div id="audio-briefing-section" class="flex-shrink-0">
+                            <!-- Briefing Button Injected Here -->
+                        </div>
                     </div>
 
                 </div>
@@ -3679,6 +3673,20 @@
         // =========================================================================
         function updateMeetingMetadataBanner(m) {
             if (!m) return;
+            const actualTitle = (m.intelligence && m.intelligence.meeting_title) || m.title || 'Reunião Executiva';
+            
+            // Set H1 title on page
+            const inlineTitleEl = document.getElementById('inline-meeting-title-display');
+            if (inlineTitleEl) inlineTitleEl.innerText = actualTitle;
+
+            // Set Top Sticky Bar title
+            const topTitleEl = document.getElementById('topbar-title');
+            if (topTitleEl) topTitleEl.innerText = actualTitle;
+            const renameBtn = document.getElementById('topbar-rename-btn');
+            if (renameBtn) renameBtn.classList.remove('hidden');
+
+            const catLabel = document.getElementById('meta-meeting-category-label');
+            if (catLabel) catLabel.innerText = m.category || 'Geral';
             const intel = m.intelligence || {};
             const { timeStr, dateStr, durationMin } = formatMeetingTimeDisplay(m);
 
