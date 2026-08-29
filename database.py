@@ -54,6 +54,38 @@ class ExecutiveDatabase:
         self.init_db()
         # self.migrate_from_json_if_needed() disabled for 100% clean control
 
+    
+    def get_user_integration(self, service_name: str):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, service_name, is_active, config_json, updated_at FROM user_integrations WHERE service_name = ? OR id = ?", (service_name, service_name))
+            row = cursor.fetchone()
+            if row:
+                import json
+                return {
+                    "id": row["id"],
+                    "service_name": row["service_name"],
+                    "is_connected": bool(row["is_active"]),
+                    "config": json.loads(row["config_json"] or "{}"),
+                    "updated_at": row["updated_at"]
+                }
+            return None
+
+    def save_user_integration(self, service_name: str, is_connected: bool = True, config: dict = None):
+        import json
+        cfg_str = json.dumps(config or {})
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_integrations (id, user_id, service_name, is_active, config_json, updated_at)
+                VALUES (?, 'felipe_donato', ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(id) DO UPDATE SET
+                    is_active = excluded.is_active,
+                    config_json = excluded.config_json,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (service_name, service_name, 1 if is_connected else 0, cfg_str))
+            conn.commit()
+
     def get_connection(self):
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row

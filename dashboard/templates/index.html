@@ -23,6 +23,16 @@
                 if (countBadge) {
                     countBadge.innerText = `${contacts.length} Ativo(s)`;
                 }
+                const statusPill = document.getElementById('wa-gateway-status-pill');
+                if (statusPill) {
+                    if (data.is_connected && contacts.length > 0) {
+                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
+                    } else {
+                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
+                    }
+                }
 
                 if (contacts.length === 0) {
                     container.innerHTML = `
@@ -226,6 +236,16 @@
                 if (countBadge) {
                     countBadge.innerText = `${contacts.length} Ativo(s)`;
                 }
+                const statusPill = document.getElementById('wa-gateway-status-pill');
+                if (statusPill) {
+                    if (data.is_connected && contacts.length > 0) {
+                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
+                    } else {
+                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
+                    }
+                }
 
                 if (contacts.length === 0) {
                     container.innerHTML = `
@@ -428,6 +448,16 @@
 
                 if (countBadge) {
                     countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+                const statusPill = document.getElementById('wa-gateway-status-pill');
+                if (statusPill) {
+                    if (data.is_connected && contacts.length > 0) {
+                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
+                    } else {
+                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
+                    }
                 }
 
                 if (contacts.length === 0) {
@@ -1710,9 +1740,9 @@
                                     </div>
                                     <div>
                                         <div class="text-xs font-bold text-gray-900">Canal de Notificações & Briefings WhatsApp</div>
-                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Gateway Ativo • Instância Conectada</span>
+                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5" id="wa-gateway-status-pill">
+                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                            <span>Gateway Desconectado • Sem Instância</span>
                                         </div>
                                     </div>
                                 </div>
@@ -8307,6 +8337,16 @@ Felipe Donato`);
 
                 if (countBadge) {
                     countBadge.innerText = `${contacts.length} Ativo(s)`;
+                }
+                const statusPill = document.getElementById('wa-gateway-status-pill');
+                if (statusPill) {
+                    if (data.is_connected && contacts.length > 0) {
+                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
+                    } else {
+                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
+                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
+                    }
                 }
 
                 if (contacts.length === 0) {
