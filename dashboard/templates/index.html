@@ -707,26 +707,33 @@
 
                         <!-- 5. Participantes -->
                         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-950 font-bold shadow-2xs cursor-pointer hover:bg-amber-100 transition" 
-                              id="meta-meeting-participants-badge" onclick="openAllStakeholdersDirectoryModal()" title="Ver participantes mapeados">
+                              id="meta-meeting-participants-badge" onclick="openMeetingParticipantsModal()" title="Gerenciar participantes desta reunião">
                             <i class="ph-bold ph-users text-amber-600"></i>
                             <span id="meta-meeting-participants">-- participantes</span>
                         </span>
 
-                        <!-- 6. Canal de Entrada (WhatsApp, Ligação, Videoconferência, etc.) -->
-                        <div class="relative inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200/80 px-3 py-1 rounded-xl shadow-2xs transition">
-                            <i class="ph-bold ph-broadcast text-gray-600 text-xs"></i>
-                            <select id="meta-meeting-channel-select" onchange="changeMeetingChannel(this.value)" 
-                                    class="bg-transparent text-xs font-bold text-gray-800 focus:outline-none cursor-pointer pr-1 border-0" 
-                                    title="Alterar canal de entrada desta reunião">
-                                <option value="WhatsApp">📱 WhatsApp</option>
-                                <option value="Ligação Telefônica">📞 Ligação Telefônica</option>
-                                <option value="Videoconferência (Meet/Zoom)">💻 Videoconferência</option>
-                                <option value="Reunião Presencial">👥 Presencial</option>
-                                <option value="Podcast / Entrevista">🎙️ Podcast</option>
-                            </select>
-                            <button onclick="openChannelManagerModal()" class="text-gray-400 hover:text-black transition p-0.5" title="Gerenciar canais (criar novos, excluir, reordenar)">
-                                <i class="ph-bold ph-gear-six text-[11px]"></i>
+                        <!-- 6. Canal de Entrada: Pílula Executiva com Menu Popover -->
+                        <div class="relative inline-flex items-center">
+                            <button onclick="toggleChannelDropdown(event)" id="meta-meeting-channel-pill" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-gray-800 font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer" 
+                                    title="Clique para alterar o canal de entrada desta reunião">
+                                <i class="ph-bold ph-broadcast text-emerald-600 text-xs" id="meta-meeting-channel-icon"></i>
+                                <span id="meta-meeting-channel-text">Videoconferência</span>
+                                <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i>
                             </button>
+
+                            <!-- Executive Channel Dropdown Popover -->
+                            <div id="channel-dropdown-popover" class="hidden absolute left-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] p-1.5 z-50 text-xs select-none border border-gray-100 animate-fade-in">
+                                <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Canal de Entrada</div>
+                                <div id="channel-dropdown-options" class="space-y-0.5 max-h-48 overflow-y-auto">
+                                    <!-- Populated via JS -->
+                                </div>
+                                <div class="my-1 border-t border-gray-100"></div>
+                                <button onclick="openChannelManagerModal(); closeChannelDropdown();" class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition text-left font-medium">
+                                    <i class="ph-bold ph-gear-six text-gray-400 text-sm"></i>
+                                    <span>Gerenciar Canais...</span>
+                                </button>
+                            </div>
                         </div>
 
                     </div>
@@ -1638,6 +1645,176 @@
             } catch (e) {
                 showInAppToast('Erro ao atualizar canal: ' + e.message, 'error');
             }
+        }
+
+        
+        // =========================================================================
+        // 👥 MEETING-SPECIFIC PARTICIPANTS MANAGEMENT
+        // =========================================================================
+        let localMeetingParticipantsList = [];
+
+        function openMeetingParticipantsModal() {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+
+            const intel = m.intelligence || {};
+            localMeetingParticipantsList = JSON.parse(JSON.stringify(intel.participants || []));
+
+            const subtitle = document.getElementById('meeting-parts-modal-subtitle');
+            if (subtitle) subtitle.innerText = m.title || 'Reunião';
+
+            renderMeetingParticipantsModalList();
+            document.getElementById('meeting-participants-manager-modal').classList.remove('hidden');
+        }
+
+        function closeMeetingParticipantsModal() {
+            document.getElementById('meeting-participants-manager-modal').classList.add('hidden');
+        }
+
+        function renderMeetingParticipantsModalList() {
+            const container = document.getElementById('meeting-participants-list-container');
+            if (!container) return;
+
+            if (!localMeetingParticipantsList || localMeetingParticipantsList.length === 0) {
+                container.innerHTML = `
+                    <div class="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-2xl">
+                        Nenhum participante identificado ainda nesta chamada.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = localMeetingParticipantsList.map((p, idx) => `
+                <div class="bg-gray-50 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs border border-gray-100 group">
+                    <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div class="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                            ${(p.name || 'P').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div class="flex-1 min-w-0 space-y-0.5">
+                            <div contenteditable="true" onblur="updateLocalPartName(${idx}, this.innerText)" 
+                                 class="font-bold text-gray-900 outline-none focus:bg-white p-0.5 rounded truncate" title="Editar nome">
+                                ${p.name || 'Participante'}
+                            </div>
+                            <div contenteditable="true" onblur="updateLocalPartRole(${idx}, this.innerText)" 
+                                 class="text-[11px] text-gray-500 outline-none focus:bg-white p-0.5 rounded truncate" title="Editar cargo/empresa">
+                                ${p.role || 'Participante'}
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="removeLocalMeetingParticipant(${idx})" class="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Remover desta reunião">
+                        <i class="ph-bold ph-trash text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateLocalPartName(idx, text) {
+            if (localMeetingParticipantsList[idx]) localMeetingParticipantsList[idx].name = text.trim();
+        }
+
+        function updateLocalPartRole(idx, text) {
+            if (localMeetingParticipantsList[idx]) localMeetingParticipantsList[idx].role = text.trim();
+        }
+
+        function removeLocalMeetingParticipant(idx) {
+            localMeetingParticipantsList.splice(idx, 1);
+            renderMeetingParticipantsModalList();
+        }
+
+        function addParticipantToCurrentMeetingList() {
+            const nameInput = document.getElementById('new-part-name-input');
+            const roleInput = document.getElementById('new-part-role-input');
+            const name = nameInput.value.trim();
+            const role = roleInput.value.trim() || 'Participante';
+
+            if (!name) return;
+
+            localMeetingParticipantsList.push({ name: name, role: role });
+            nameInput.value = '';
+            roleInput.value = '';
+            renderMeetingParticipantsModalList();
+        }
+
+        async function saveMeetingParticipantsAction() {
+            if (!currentMeetingId) return;
+
+            try {
+                showInAppToast('💾 Salvando participantes...', 'info');
+                const res = await fetch(`/api/meetings/${currentMeetingId}/update-participants`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ participants: localMeetingParticipantsList })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                    if (m) {
+                        if (!m.intelligence) m.intelligence = {};
+                        m.intelligence.participants = localMeetingParticipantsList;
+                        renderMeetingContent(m);
+                    }
+                    showInAppToast('✅ Participantes da reunião atualizados com sucesso!', 'success');
+                    closeMeetingParticipantsModal();
+                } else {
+                    showInAppToast('Erro ao salvar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+            }
+        }
+
+        // =========================================================================
+        // 📡 CHANNEL DROPDOWN POPOVER LOGIC
+        // =========================================================================
+        function toggleChannelDropdown(e) {
+            if (e) e.stopPropagation();
+            const popover = document.getElementById('channel-dropdown-popover');
+            if (!popover) return;
+            popover.classList.toggle('hidden');
+            if (!popover.classList.contains('hidden')) {
+                renderChannelDropdownOptions();
+            }
+        }
+
+        function closeChannelDropdown() {
+            const popover = document.getElementById('channel-dropdown-popover');
+            if (popover) popover.classList.add('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#meta-meeting-channel-pill') && !e.target.closest('#channel-dropdown-popover')) {
+                closeChannelDropdown();
+            }
+        });
+
+        function renderChannelDropdownOptions() {
+            const container = document.getElementById('channel-dropdown-options');
+            if (!container) return;
+
+            const m = currentMeetingId ? meetingsData.find(item => item.file_id === currentMeetingId) : null;
+            const currentChan = m ? (m.channel || 'Videoconferência (Meet/Zoom)') : 'Videoconferência (Meet/Zoom)';
+
+            container.innerHTML = availableChannelsList.map(c => {
+                const isSelected = c.name === currentChan;
+                return `
+                    <button onclick="selectMeetingChannelOption('${c.name}')" 
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-left ${isSelected ? 'bg-emerald-50 text-emerald-950 font-bold' : 'text-gray-700 hover:bg-gray-100'}">
+                        <div class="flex items-center gap-2">
+                            <i class="ph-bold ${c.icon || 'ph-microphone'} ${isSelected ? 'text-emerald-600' : 'text-gray-400'}"></i>
+                            <span>${c.name}</span>
+                        </div>
+                        ${isSelected ? '<i class="ph-bold ph-check text-emerald-600 text-xs"></i>' : ''}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        async function selectMeetingChannelOption(chanName) {
+            closeChannelDropdown();
+            await changeMeetingChannel(chanName);
+            const textEl = document.getElementById('meta-meeting-channel-text');
+            if (textEl) textEl.innerText = chanName;
         }
 
         function openChannelManagerModal() {
@@ -3467,10 +3644,10 @@
             }
 
             // 6. Canal
-            const channelSelect = document.getElementById('meta-meeting-channel-select');
-            if (channelSelect) {
+            const channelTextEl = document.getElementById('meta-meeting-channel-text');
+            if (channelTextEl) {
                 const activeChan = m.channel || (isWhatsApp ? 'WhatsApp' : 'Videoconferência (Meet/Zoom)');
-                channelSelect.value = activeChan;
+                channelTextEl.innerText = activeChan;
             }
         }
 
@@ -7277,6 +7454,65 @@ Felipe Donato`);
             <div class="flex items-center justify-end pt-2">
                 <button onclick="closeChannelManagerModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-700 transition cursor-pointer">
                     Concluído
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- 👥 MODAL: GERENCIADOR DE PARTICIPANTES DA REUNIÃO ESPECÍFICA -->
+    <div id="meeting-participants-manager-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 border-0">
+            
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center text-base shadow-2xs">
+                        <i class="ph-bold ph-users-three"></i>
+                    </div>
+                    <div>
+                        <div>Participantes & Interlocutores da Reunião</div>
+                        <div class="text-[10px] text-gray-400 font-normal" id="meeting-parts-modal-subtitle">Reunião Selecionada</div>
+                    </div>
+                </div>
+                <button onclick="closeMeetingParticipantsModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition cursor-pointer">
+                    <i class="ph-bold ph-x text-sm"></i>
+                </button>
+            </div>
+
+            <!-- List of Participants in this Meeting -->
+            <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1" id="meeting-participants-list-container">
+                <!-- Populated dynamically -->
+            </div>
+
+            <!-- Add Participant to This Meeting Form -->
+            <div class="pt-2 border-t border-gray-100 space-y-2">
+                <div class="text-xs font-bold text-gray-700 flex items-center justify-between">
+                    <span>Adicionar Participante nesta Reunião:</span>
+                    <button onclick="closeMeetingParticipantsModal(); openAllStakeholdersDirectoryModal();" class="text-[10px] text-blue-600 hover:underline font-semibold flex items-center gap-1">
+                        <i class="ph-bold ph-book-open"></i> Ver Diretório Geral (18)
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input type="text" id="new-part-name-input" placeholder="Nome (Ex: Bruno Rodrigues)" 
+                           class="px-3.5 py-2 rounded-xl bg-gray-100 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
+                    <input type="text" id="new-part-role-input" placeholder="Cargo / Empresa (Ex: CEO BCR)" 
+                           class="px-3.5 py-2 rounded-xl bg-gray-100 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
+                </div>
+                <button onclick="addParticipantToCurrentMeetingList()" class="w-full py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i class="ph-bold ph-plus-circle text-emerald-600"></i>
+                    <span>Adicionar à Lista</span>
+                </button>
+            </div>
+
+            <!-- Modal Action Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0">
+                <button onclick="closeMeetingParticipantsModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-700 transition cursor-pointer">
+                    Cancelar
+                </button>
+                <button onclick="saveMeetingParticipantsAction()" class="px-6 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1.5">
+                    <i class="ph-bold ph-floppy-disk text-emerald-400 text-sm"></i>
+                    <span>Salvar Participantes</span>
                 </button>
             </div>
 

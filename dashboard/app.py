@@ -792,6 +792,7 @@ async def api_whatsapp_contacts(query: Optional[str] = None):
 
 
 @app.post("/api/meetings/{file_id}/update-participants")
+@app.post("/api/meetings/{file_id}/participants")
 async def api_update_participants(file_id: str, payload: dict = Body(...)):
     """Updates participants list for a meeting."""
     participants = payload.get("participants", [])
