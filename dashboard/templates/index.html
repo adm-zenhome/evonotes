@@ -13,6 +13,16 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+        
         :root {
             --app-font-size: 15px;
             --heading-scale: 1.25;
@@ -311,12 +321,13 @@
     <!-- Main Workspace Canvas (High-Contrast Clean Modern Background) -->
     <main class="flex-1 flex flex-col h-full bg-[#f4f5f7] relative overflow-hidden min-w-0 w-full">
         
-        <!-- Top Bar with Sorting & Split Integration Dropdown -->
-        <header class="h-14 border-b border-black/[0.04] px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-[#f4f5f7]/90 backdrop-blur-md sticky top-0 z-30 gap-2">
+        <!-- Top Bar (Fixed on Mobile, Sticky on Desktop - NEVER SCROLLS OFF) -->
+        <header class="fixed md:sticky top-0 left-0 right-0 z-40 h-14 border-b border-gray-200/80 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-white/95 md:bg-[#f4f5f7]/90 backdrop-blur-md gap-2 w-full">
             <div class="flex items-center gap-2 truncate min-w-0 flex-1">
-                <!-- Mobile Hamburger Menu Button -->
-                <button onclick="toggleMobileSidebar()" class="md:hidden p-2 -ml-1 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-xl transition flex-shrink-0" title="Abrir Menu">
-                    <i class="ph-bold ph-list text-lg"></i>
+                <!-- Mobile High-Visibility Hamburger Menu Button -->
+                <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer flex-shrink-0" title="Abrir Menu">
+                    <i class="ph-bold ph-list text-emerald-400 text-sm"></i>
+                    <span>Menu</span>
                 </button>
                 <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
                     <h2 id="topbar-title" 
@@ -407,7 +418,7 @@
         </header>
 
         <!-- Main Workspace Flow (Edge-to-Edge Scrollable with Inner Width Constraint) -->
-        <div id="chat-stream-container" class="flex-1 overflow-y-auto w-full transition-all duration-300">
+        <div id="chat-stream-container" class="flex-1 overflow-y-auto w-full transition-all duration-300 pt-14 md:pt-0">
             <div id="workspace-inner-container" class="w-full mx-auto px-4 sm:px-6 py-6 space-y-6 transition-all duration-300 layout-width-container max-w-4xl">
             
             <!-- 🌟 HOME / OVERVIEW EXECUTIVE DASHBOARD (BIFOCAL STRATEGY) -->
