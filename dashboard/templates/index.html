@@ -333,6 +333,16 @@
                     </select>
                 </div>
 
+                <!-- Layout Width Mode Selector: Default (max-w-4xl), Narrow (max-w-2xl), Wide (max-w-7xl) -->
+                <div class="flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-full shadow-xs text-gray-700" id="layout-width-controls" title="Ajustar largura do layout (Persistente)">
+                    <i class="ph-bold ph-arrows-out-line-horizontal text-gray-400 text-xs"></i>
+                    <select id="layout-width-selector" onchange="changeLayoutWidthMode(this.value)" class="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer border-0">
+                        <option value="default">📐 Padrão</option>
+                        <option value="narrow">📱 Estreito</option>
+                        <option value="wide">🖥️ Amplo</option>
+                    </select>
+                </div>
+
                 <!-- Split Button: [📄 Markdown] + [▼ Setinha de Integrações] -->
                 <div class="relative inline-flex items-center rounded-full bg-white shadow-xs hover:shadow-sm transition" id="markdown-split-btn">
                     <button onclick="openDesktopMarkdown()" id="btn-open-markdown" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:text-black transition" title="Abrir arquivo Markdown no Mac">
@@ -381,8 +391,9 @@
             </div>
         </header>
 
-        <!-- Main Workspace Flow -->
-        <div id="chat-stream-container" class="flex-1 overflow-y-auto px-4 py-6 space-y-6 layout-default w-full mx-auto transition-all duration-300">
+        <!-- Main Workspace Flow (Edge-to-Edge Scrollable with Inner Width Constraint) -->
+        <div id="chat-stream-container" class="flex-1 overflow-y-auto w-full transition-all duration-300">
+            <div id="workspace-inner-container" class="w-full mx-auto px-4 sm:px-6 py-6 space-y-6 transition-all duration-300 layout-width-container max-w-4xl">
             
             <!-- 🌟 HOME / OVERVIEW EXECUTIVE DASHBOARD (BIFOCAL STRATEGY) -->
             <div id="home-dashboard-view" class="space-y-6 animate-fade-in">
@@ -796,11 +807,13 @@
 
             </div>
 
+            </div>
         </div>
 
         <!-- Floating Bottom Input Bar (Clean Borderless Floating Island) -->
-        <div id="bottom-input-container" class="p-4 bg-gradient-to-t from-[#f4f5f7] via-[#f4f5f7] to-transparent layout-default w-full mx-auto flex-shrink-0 transition-all duration-300">
-            <div class="relative bg-white rounded-[28px] shadow-[0_10px_35px_rgba(0,0,0,0.06)] focus-within:shadow-[0_14px_45px_rgba(0,0,0,0.1)] transition-all duration-300 border-0">
+        <div id="bottom-input-container" class="p-4 bg-gradient-to-t from-[#f4f5f7] via-[#f4f5f7] to-transparent w-full flex-shrink-0 transition-all duration-300">
+            <div id="bottom-input-inner" class="w-full mx-auto transition-all duration-300 layout-width-container max-w-4xl">
+                <div class="relative bg-white rounded-[28px] shadow-[0_10px_35px_rgba(0,0,0,0.06)] focus-within:shadow-[0_14px_45px_rgba(0,0,0,0.1)] transition-all duration-300 border-0">
                 <textarea id="prompt-input" rows="2" 
                           onkeydown="handleKeyDown(event)" 
                           placeholder="Trabalhe com o Executive Voice OS... (use @ para citar outra reunião)" 
@@ -830,6 +843,7 @@
             </div>
             <div class="text-[11px] text-center text-gray-400 mt-2.5">
                 Executive Voice OS processa áudios e calibra seu perfil a cada interação.
+            </div>
             </div>
         </div>
 
@@ -1693,7 +1707,40 @@
             }
         }
 
+        
+        // =========================================================================
+        // 📐 PERSISTENT LAYOUT WIDTH MODE (DEFAULT, NARROW, WIDE)
+        // =========================================================================
+        function applyLayoutWidthMode(mode) {
+            const modeClsMap = {
+                'default': 'max-w-4xl',
+                'narrow': 'max-w-2xl',
+                'wide': 'max-w-7xl'
+            };
+            const targetClass = modeClsMap[mode] || 'max-w-4xl';
+            
+            document.querySelectorAll('.layout-width-container').forEach(el => {
+                el.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl');
+                el.classList.add(targetClass);
+            });
+
+            const sel = document.getElementById('layout-width-selector');
+            if (sel) sel.value = mode;
+        }
+
+        function changeLayoutWidthMode(newMode) {
+            localStorage.setItem('evonotes_layout_width_mode', newMode);
+            applyLayoutWidthMode(newMode);
+            showInAppToast(`📐 Layout ajustado para: ${newMode.toUpperCase()}`, 'info');
+        }
+
+        function initLayoutWidthMode() {
+            const savedMode = localStorage.getItem('evonotes_layout_width_mode') || 'default';
+            applyLayoutWidthMode(savedMode);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            initLayoutWidthMode();
             fetchAvailableChannels();
             initSidebarResizer();
             initSidebarCategories();
@@ -2731,28 +2778,33 @@
 
         function renderGenerateAudioButton(fileId) {
             const section = document.getElementById('audio-briefing-section');
+            if (!section) return;
             section.innerHTML = `
-                <div class="bg-white rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs border-0 transition">
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base flex-shrink-0 shadow-2xs">
-                            <i class="ph-bold ph-waveform"></i>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5">
-                                <span>🎙️ Briefing em Áudio</span>
-                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">60s</span>
+                <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col justify-between space-y-3 h-full">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div class="w-8 h-8 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-sm font-bold shadow-2xs flex-shrink-0">
+                                <i class="ph-bold ph-waveform"></i>
                             </div>
-                            <div class="text-[11px] text-gray-500 leading-normal truncate">
-                                Sintetizar briefing em áudio com as decisões desta conversa.
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5 truncate">
+                                    <span>Briefing em Áudio</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">60s</span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 font-medium truncate">Voz: Jarvis Executivo</div>
                             </div>
                         </div>
+
+                        <button onclick="openAudioDirectorModal('${fileId}')" class="px-3 py-1.5 rounded-xl bg-zinc-900 text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer" title="Gerar síntese falada com IA">
+                            <i class="ph-bold ph-sparkle text-emerald-400 text-xs"></i>
+                            <span>Gerar Briefing</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">1 Créd.</span>
+                        </button>
                     </div>
 
-                    <button onclick="openAudioDirectorModal('${fileId}')" class="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 flex-shrink-0 cursor-pointer">
-                        <i class="ph-bold ph-sparkle text-emerald-400 text-xs"></i>
-                        <span>Gerar Briefing de Áudio</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">1 Crédito</span>
-                    </button>
+                    <div class="text-[11px] text-gray-500 leading-snug">
+                        Sintetizar áudio executivo de 60 segundos com decisões e próximos passos.
+                    </div>
                 </div>
             `;
         }
@@ -2808,6 +2860,7 @@
 
         function renderAudioPlayer(fileId) {
             const section = document.getElementById('audio-briefing-section');
+            if (!section) return;
             const totalVersions = currentAudioVersions.length;
             const currentV = selectedAudioVersion || totalVersions || 1;
             const audioSrc = currentV > 1 ? `/api/audio-briefing/${fileId}?v=${currentV}` : `/api/audio-briefing/${fileId}`;
@@ -2824,37 +2877,38 @@
             `;
 
             section.innerHTML = `
-                <div class="bg-white rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs border-0 transition">
-                    
-                    <!-- Left: Play/Pause Button + Clean Title & Version Selector -->
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <button onclick="toggleAudioBriefing()" id="btn-play-pause" class="w-9 h-9 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center text-sm transition shadow-xs flex-shrink-0 cursor-pointer">
-                            <i id="play-icon" class="ph-fill ph-play"></i>
-                        </button>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-xs font-bold text-gray-900 leading-normal flex items-center gap-1.5 truncate">
-                                <span>🎙️ Briefing em Áudio</span>
-                                ${versionSelectorHtml}
+                <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col justify-between space-y-3 h-full">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                            <button onclick="toggleAudioBriefing()" id="btn-play-pause" class="w-8 h-8 rounded-xl bg-zinc-900 text-white hover:bg-black flex items-center justify-center text-sm transition shadow-xs flex-shrink-0 cursor-pointer">
+                                <i id="play-icon" class="ph-fill ph-play"></i>
+                            </button>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5 truncate">
+                                    <span>Briefing em Áudio</span>
+                                    ${versionSelectorHtml}
+                                </div>
+                                <div class="text-[10px] text-gray-400 font-medium truncate">
+                                    <span id="audio-time" class="font-mono font-semibold text-gray-700">0:00 / ~1:15</span>
+                                    <span>• Voz: Jarvis</span>
+                                </div>
                             </div>
-                            <div class="text-[11px] text-gray-500 leading-normal flex items-center gap-1.5 truncate">
-                                <span id="audio-time" class="font-mono font-semibold">0:00 / ~1:15</span>
-                                <span>•</span>
-                                <span class="text-gray-400">Voz: Jarvis Executivo</span>
-                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <button onclick="togglePlaybackSpeed()" id="btn-speed" class="text-xs font-bold px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition border-0 cursor-pointer">
+                                1.0x
+                            </button>
+                            <button onclick="confirmRegenerateAudio('${fileId}')" class="p-1 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition border-0 cursor-pointer" title="Regerar Novo Take">
+                                <i class="ph-bold ph-arrows-clockwise text-xs"></i>
+                            </button>
+                            <audio id="briefing-audio-player" src="${audioSrc}" ontimeupdate="updateAudioProgress()" onended="onAudioEnded()"></audio>
                         </div>
                     </div>
 
-                    <!-- Right Controls: Speed + Regenerate Button -->
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <button onclick="togglePlaybackSpeed()" id="btn-speed" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition border-0 cursor-pointer">
-                            1.0x
-                        </button>
-                        <button onclick="confirmRegenerateAudio('${fileId}')" class="p-1.5 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition border-0 cursor-pointer" title="Regerar Novo Take (Preserva Anteriores)">
-                            <i class="ph-bold ph-arrows-clockwise text-xs"></i>
-                        </button>
-                        <audio id="briefing-audio-player" src="${audioSrc}" ontimeupdate="updateAudioProgress()" onended="onAudioEnded()"></audio>
+                    <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div id="briefing-progress-bar" class="bg-zinc-900 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
                     </div>
-
                 </div>
             `;
             isPlaying = false;
