@@ -50,27 +50,27 @@
                                     <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.context_title || a.chat_name}</div>
                                     <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
                                 </div>
                             </div>
                             
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
-                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                                ${a.category || (a.is_group ? '👥 Grupo' : '👤 Privado')}
                             </span>
                         </div>
 
-                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 truncate">
-                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
-                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
-                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                        <div class="text-[11px] text-gray-600 bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-lg flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-xs">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[11px]">${a.preview}</span>
                             </div>
 
-                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
-                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.context_title || a.chat_name)}', this)" 
+                                    class="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
                                 <i class="ph-bold ph-sparkle text-emerald-400"></i>
-                                <span>Ingerir com IA</span>
+                                <span>Criar Nota</span>
                             </button>
                         </div>
                     </div>
@@ -124,6 +124,41 @@
                     btnEl.disabled = false;
                     btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
                 }
+            }
+        }
+
+
+        // ==============================================================
+        // 🏛️ EXECUTIVE LOGIN & WORKSPACE GATE
+        // ==============================================================
+
+        function checkExecutiveAuth() {
+            const isAuth = localStorage.getItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (!gate) return;
+
+            if (isAuth === 'true') {
+                gate.classList.add('hidden');
+            } else {
+                gate.classList.remove('hidden');
+            }
+        }
+
+        function unlockExecutiveWorkspace() {
+            localStorage.setItem('evonotes_auth', 'true');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => gate.classList.add('hidden'), 400);
+            }
+            showInAppToast('🏛️ Workspace Executivo Desbloqueado!', 'success');
+        }
+
+        function logoutExecutive() {
+            localStorage.removeItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
             }
         }
 
@@ -174,27 +209,27 @@
                                     <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.context_title || a.chat_name}</div>
                                     <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
                                 </div>
                             </div>
                             
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
-                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                                ${a.category || (a.is_group ? '👥 Grupo' : '👤 Privado')}
                             </span>
                         </div>
 
-                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 truncate">
-                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
-                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
-                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                        <div class="text-[11px] text-gray-600 bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-lg flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-xs">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[11px]">${a.preview}</span>
                             </div>
 
-                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
-                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.context_title || a.chat_name)}', this)" 
+                                    class="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
                                 <i class="ph-bold ph-sparkle text-emerald-400"></i>
-                                <span>Ingerir com IA</span>
+                                <span>Criar Nota</span>
                             </button>
                         </div>
                     </div>
@@ -248,6 +283,41 @@
                     btnEl.disabled = false;
                     btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
                 }
+            }
+        }
+
+
+        // ==============================================================
+        // 🏛️ EXECUTIVE LOGIN & WORKSPACE GATE
+        // ==============================================================
+
+        function checkExecutiveAuth() {
+            const isAuth = localStorage.getItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (!gate) return;
+
+            if (isAuth === 'true') {
+                gate.classList.add('hidden');
+            } else {
+                gate.classList.remove('hidden');
+            }
+        }
+
+        function unlockExecutiveWorkspace() {
+            localStorage.setItem('evonotes_auth', 'true');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => gate.classList.add('hidden'), 400);
+            }
+            showInAppToast('🏛️ Workspace Executivo Desbloqueado!', 'success');
+        }
+
+        function logoutExecutive() {
+            localStorage.removeItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
             }
         }
 
@@ -298,27 +368,27 @@
                                     <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.context_title || a.chat_name}</div>
                                     <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
                                 </div>
                             </div>
                             
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
-                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                                ${a.category || (a.is_group ? '👥 Grupo' : '👤 Privado')}
                             </span>
                         </div>
 
-                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 truncate">
-                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
-                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
-                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                        <div class="text-[11px] text-gray-600 bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-lg flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-xs">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[11px]">${a.preview}</span>
                             </div>
 
-                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
-                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.context_title || a.chat_name)}', this)" 
+                                    class="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
                                 <i class="ph-bold ph-sparkle text-emerald-400"></i>
-                                <span>Ingerir com IA</span>
+                                <span>Criar Nota</span>
                             </button>
                         </div>
                     </div>
@@ -372,6 +442,41 @@
                     btnEl.disabled = false;
                     btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
                 }
+            }
+        }
+
+
+        // ==============================================================
+        // 🏛️ EXECUTIVE LOGIN & WORKSPACE GATE
+        // ==============================================================
+
+        function checkExecutiveAuth() {
+            const isAuth = localStorage.getItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (!gate) return;
+
+            if (isAuth === 'true') {
+                gate.classList.add('hidden');
+            } else {
+                gate.classList.remove('hidden');
+            }
+        }
+
+        function unlockExecutiveWorkspace() {
+            localStorage.setItem('evonotes_auth', 'true');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => gate.classList.add('hidden'), 400);
+            }
+            showInAppToast('🏛️ Workspace Executivo Desbloqueado!', 'success');
+        }
+
+        function logoutExecutive() {
+            localStorage.removeItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
             }
         }
 
@@ -2324,6 +2429,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            checkExecutiveAuth();
             initDisplayMode();
             initLayoutWidthMode();
             fetchAvailableChannels();
@@ -7580,27 +7686,27 @@ Felipe Donato`);
                                     <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
                                 </div>
                                 <div class="truncate">
-                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.context_title || a.chat_name}</div>
                                     <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
                                 </div>
                             </div>
                             
                             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
-                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                                ${a.category || (a.is_group ? '👥 Grupo' : '👤 Privado')}
                             </span>
                         </div>
 
-                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 truncate">
-                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
-                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
-                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                        <div class="text-[11px] text-gray-600 bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-lg flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-xs">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[11px]">${a.preview}</span>
                             </div>
 
-                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
-                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.context_title || a.chat_name)}', this)" 
+                                    class="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
                                 <i class="ph-bold ph-sparkle text-emerald-400"></i>
-                                <span>Ingerir com IA</span>
+                                <span>Criar Nota</span>
                             </button>
                         </div>
                     </div>
@@ -7654,6 +7760,41 @@ Felipe Donato`);
                     btnEl.disabled = false;
                     btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
                 }
+            }
+        }
+
+
+        // ==============================================================
+        // 🏛️ EXECUTIVE LOGIN & WORKSPACE GATE
+        // ==============================================================
+
+        function checkExecutiveAuth() {
+            const isAuth = localStorage.getItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (!gate) return;
+
+            if (isAuth === 'true') {
+                gate.classList.add('hidden');
+            } else {
+                gate.classList.remove('hidden');
+            }
+        }
+
+        function unlockExecutiveWorkspace() {
+            localStorage.setItem('evonotes_auth', 'true');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => gate.classList.add('hidden'), 400);
+            }
+            showInAppToast('🏛️ Workspace Executivo Desbloqueado!', 'success');
+        }
+
+        function logoutExecutive() {
+            localStorage.removeItem('evonotes_auth');
+            const gate = document.getElementById('executive-login-gate');
+            if (gate) {
+                gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
             }
         }
 
@@ -8854,7 +8995,8 @@ Felipe Donato`);
     </div>
 
 
-    <!-- 📱 MODAL: INBOX DE ÁUDIOS DO WHATSAPP (GRUPOS & CONTATOS) -->
+    
+    <!-- 📱 MODAL: INBOX DE TRIAGEM DE ÁUDIOS DO WHATSAPP -->
     <div id="whatsapp-audio-inbox-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[88vh] flex flex-col border border-gray-100/90">
             
@@ -8865,8 +9007,8 @@ Felipe Donato`);
                         <i class="ph-bold ph-whatsapp-logo"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 leading-tight">Inbox de Áudios do WhatsApp</h3>
-                        <p class="text-[11px] text-gray-500 font-medium">Áudios e mensagens de voz recebidos em grupos e conversas privadas</p>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight">Triagem de Áudios do WhatsApp</h3>
+                        <p class="text-[11px] text-gray-500 font-medium">Selecione os áudios que deseja transcrever e converter em notas executivas</p>
                     </div>
                 </div>
                 <button onclick="closeWhatsAppAudioInboxModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition cursor-pointer">
@@ -8874,11 +9016,19 @@ Felipe Donato`);
                 </button>
             </div>
 
+            <!-- Notice / Triagem Rule -->
+            <div class="bg-blue-50/70 border border-blue-100/80 rounded-2xl p-3 flex items-center gap-2.5 text-xs text-blue-900 flex-shrink-0">
+                <i class="ph-bold ph-info text-blue-600 text-base flex-shrink-0"></i>
+                <div class="text-[11px] leading-tight">
+                    <b>Controle Total:</b> Nenhum áudio vira reunião automaticamente. Você escolhe quais áudios processar clicando em <b>Criar Nota</b>.
+                </div>
+            </div>
+
             <!-- Modal Body (Feed List) -->
-            <div class="flex-1 overflow-y-auto pr-1 space-y-3 min-h-[250px]" id="whatsapp-audio-feed-container">
+            <div class="flex-1 overflow-y-auto pr-1 space-y-3 min-h-[260px]" id="whatsapp-audio-feed-container">
                 <div class="p-8 text-center text-xs text-gray-400 animate-pulse">
                     <i class="ph-bold ph-spinner animate-spin text-2xl text-emerald-600 mb-2 block mx-auto"></i>
-                    Buscando mensagens de áudio na instância Z-API...
+                    Carregando mensagens de áudio dos chats...
                 </div>
             </div>
 
@@ -8891,6 +9041,62 @@ Felipe Donato`);
                 <button onclick="closeWhatsAppAudioInboxModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition cursor-pointer">
                     Fechar
                 </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- 🏛️ EXECUTIVE PREMIUM LIGHT LOGIN / GATE SCREEN -->
+    <div id="executive-login-gate" class="fixed inset-0 z-[100] bg-[#f8f9fa] flex items-center justify-center p-4 sm:p-6 select-none transition-all duration-500 hidden">
+        <div class="w-full max-w-md bg-white rounded-[32px] p-8 sm:p-10 shadow-[0_20px_70px_rgba(0,0,0,0.04)] border border-gray-200/70 space-y-8 animate-fade-in relative overflow-hidden">
+            
+            <!-- Subtle Top Glow/Accent -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-zinc-900"></div>
+
+            <!-- Brand Monogram & Title -->
+            <div class="text-center space-y-2.5">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-zinc-900 text-white flex items-center justify-center font-serif text-2xl font-bold tracking-tight shadow-sm">
+                    EV
+                </div>
+                <div class="space-y-1">
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900 font-sans">Executive Voice OS</h1>
+                    <p class="text-xs text-gray-500 font-medium">Segundo cérebro executivo orientado a voz</p>
+                </div>
+            </div>
+
+            <!-- Profile & Quick Access Card -->
+            <div class="bg-[#f8f9fa] rounded-2xl p-4 border border-gray-100/90 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 truncate">
+                    <div class="w-10 h-10 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+                        FD
+                    </div>
+                    <div class="truncate">
+                        <div class="text-xs font-bold text-gray-900 truncate">Felipe Donato</div>
+                        <div class="text-[11px] text-gray-500 font-medium">Enterprise AE • Liderança</div>
+                    </div>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" title="Perfil Ativo"></span>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="space-y-3">
+                <button onclick="unlockExecutiveWorkspace()" class="w-full py-3.5 px-5 bg-zinc-900 hover:bg-black text-white text-xs sm:text-sm font-bold rounded-2xl shadow-sm hover:shadow-md transition active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
+                    <span>Acessar Workspace Executivo</span>
+                    <i class="ph-bold ph-arrow-right text-sm"></i>
+                </button>
+                <div class="text-center">
+                    <span class="text-[11px] text-gray-400 font-medium flex items-center justify-center gap-1.5">
+                        <i class="ph-bold ph-shield-check text-emerald-600 text-sm"></i>
+                        <span>Guardian Auth v4 • Criptografia Ativa</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Subtle Workspace Meta Footer -->
+            <div class="pt-4 border-t border-gray-100 text-center text-[10px] text-gray-400 space-y-1">
+                <div>Jarvis OS v4 — Instância Mac Pessoal</div>
+                <div class="font-mono text-gray-300">Zendesk Hyper-Growth • 2026</div>
             </div>
         </div>
     </div>
