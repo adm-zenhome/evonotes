@@ -3157,6 +3157,37 @@
 
     <!-- Scripts -->
     <script>
+
+        // ==============================================================
+        // 🍞 GLOBAL IN-APP TOAST SYSTEM (HOISTED)
+        // ==============================================================
+        function showInAppToast(message, type = 'info') {
+            const toast = document.getElementById('in-app-toast');
+            const msgEl = document.getElementById('in-app-toast-message');
+            const iconEl = document.getElementById('in-app-toast-icon');
+            if (!toast || !msgEl) return;
+
+            msgEl.innerText = message;
+            
+            if (type === 'success') {
+                if (iconEl) iconEl.className = 'ph-bold ph-check-circle text-emerald-400 text-base';
+                toast.className = 'fixed bottom-6 right-6 z-[9999] bg-zinc-950 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-500/30 transition-all duration-300 transform translate-y-0 opacity-100';
+            } else if (type === 'error') {
+                if (iconEl) iconEl.className = 'ph-bold ph-warning-circle text-red-400 text-base';
+                toast.className = 'fixed bottom-6 right-6 z-[9999] bg-zinc-950 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-red-500/30 transition-all duration-300 transform translate-y-0 opacity-100';
+            } else {
+                if (iconEl) iconEl.className = 'ph-bold ph-info text-blue-400 text-base';
+                toast.className = 'fixed bottom-6 right-6 z-[9999] bg-zinc-950 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-zinc-800 transition-all duration-300 transform translate-y-0 opacity-100';
+            }
+
+            toast.classList.remove('hidden');
+            
+            clearTimeout(window.__toastTimeout);
+            window.__toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
         marked.setOptions({ breaks: true, gfm: true });
         
         // =========================================================================
