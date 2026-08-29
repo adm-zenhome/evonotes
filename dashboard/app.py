@@ -1129,7 +1129,7 @@ Zendesk Ecosystem"""
 
 @app.post("/api/whatsapp/activate-and-sync-latest")
 async def api_whatsapp_activate_and_sync_latest(payload: dict = Body(...)):
-    """Activates WhatsApp webhook ingestion for contacts and immediately ingests the latest audio memo."""
+    """Activates WhatsApp webhook ingestion and immediately fetches the latest audio memo on demand."""
     contacts = payload.get("contacts", []) # list of {"phone": "...", "name": "..."}
     if not contacts and "phone" in payload:
         contacts = [{"phone": payload.get("phone"), "name": payload.get("name", "Contato")}]
@@ -1138,43 +1138,8 @@ async def api_whatsapp_activate_and_sync_latest(payload: dict = Body(...)):
     
     for c in contacts:
         phone = c.get("phone", "")
-        name = c.get("name", "Contato WhatsApp")
-        msg_id = f"wa_{phone.replace('@c.us', '').replace('@g.us', '')}_{int(time.time())}"
-        
-        # Generate initial synthesized audio note
-        memo_title = f"📱 WhatsApp Voice Memo — {name}"
-        summary = f"Canal de voz do WhatsApp ativado para {name} ({phone}). O sistema está configurado para interceptar, transcrever via Whisper e sintetizar qualquer novo áudio recebido em tempo real via Webhook Z-API."
-        
-        intel = {
-            "meeting_title": memo_title,
-            "executive_summary": summary,
-            "category": "WhatsApp",
-            "participants": [
-                {"name": "Felipe Donato", "role": "Enterprise AE / Liderança"},
-                {"name": name, "role": "Contato WhatsApp"}
-            ],
-            "commitments_and_promises": [
-                {
-                    "action": f"Acompanhar próximos áudios e mensagens de {name} via Webhook ativo",
-                    "owner": "Felipe Donato",
-                    "deadline_or_context": "Contínuo"
-                }
-            ],
-            "accounts_discussed": []
-        }
-        
-        db.save_meeting({
-            "file_id": msg_id,
-            "title": memo_title,
-            "category": "WhatsApp",
-            "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "duration_seconds": 95,
-            "executive_summary": summary,
-            "intelligence": intel,
-            "transcription": f"Áudio de voz inicial sincronizado do WhatsApp para o contato {name} ({phone}). Escuta ativa iniciada."
-        })
-        
-        created_meetings.append({"file_id": msg_id, "title": memo_title, "name": name, "phone": phone})
+        res = await whatsapp_engine.fetch_and_process_latest_audio(phone, user_id="felipe_donato")
+        created_meetings.append(res)
 
     return JSONResponse({
         "status": "SUCCESS",
