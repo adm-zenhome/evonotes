@@ -393,8 +393,8 @@
                 });
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
@@ -406,11 +406,154 @@
                 const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📥 INGESTION & ON-DEMAND PROCESSING JAVASCRIPT
+        // ==============================================================
+
+        let cachedIngestionItems = [];
+        let currentIngestionFilter = 'all';
+
+        async function loadIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch('/api/ingestion/recent-items');
+                const data = await res.json();
+                cachedIngestionItems = data.items || [];
+                renderIngestionItems();
+            } catch (e) {
+                console.error('Error loading ingestion items:', e);
+                listEl.innerHTML = `<div class="py-4 text-center text-xs text-red-500">Erro ao carregar gravações: ${e.message}</div>`;
+            }
+        }
+
+        function filterIngestionList(source) {
+            currentIngestionFilter = source;
+            ['all', 'plaud', 'whatsapp'].forEach(s => {
+                const btn = document.getElementById(`btn-ingest-filter-${s}`);
+                if (btn) {
+                    if (s === source) {
+                        btn.className = "px-2.5 py-1 rounded-lg bg-white text-gray-900 shadow-2xs font-bold transition cursor-pointer";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer";
+                    }
+                }
+            });
+            renderIngestionItems();
+        }
+
+        function renderIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            let filtered = cachedIngestionItems;
+            if (currentIngestionFilter !== 'all') {
+                filtered = cachedIngestionItems.filter(i => i.source === currentIngestionFilter);
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-6 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
+                        Nenhuma gravação recente encontrada nesta fonte.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(item => {
+                const isProcessed = item.is_processed;
+                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800' : 'bg-emerald-50 text-emerald-800';
+                
+                html += `
+                    <div class="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 hover:bg-gray-50 border border-gray-100 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+                        <div class="flex items-start gap-3 truncate">
+                            <div class="w-9 h-9 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                                <i class="ph-bold ${item.source_icon}"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="text-xs font-bold text-gray-900 truncate">${item.title}</span>
+                                    <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
+                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">Pendente</span>'}
+                                </div>
+                                <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate font-medium">
+                                    <span><i class="ph ph-clock text-xs"></i> ${item.duration_formatted}</span>
+                                    <span>•</span>
+                                    <span><i class="ph ph-calendar-blank text-xs"></i> ${item.date_formatted}</span>
+                                    <span>•</span>
+                                    <span class="text-gray-400 truncate">${item.sender_or_device}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="flex-shrink-0 self-end sm:self-center">
+                            ${isProcessed ? `
+                                <button onclick="selectMeeting('${item.id}')" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-file-text"></i>
+                                    <span>Ver Síntese</span>
+                                </button>
+                            ` : `
+                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-lightning text-emerald-400"></i>
+                                    <span>Processar com IA</span>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function processIngestionItem(source, itemId) {
+            const btn = document.getElementById(`btn-proc-${itemId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-emerald-400"></i> <span>Processando...</span>`;
+            }
+
+            try {
+                const res = await fetch('/api/ingestion/process-item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source: source, item_id: itemId})
+                });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Item processado com sucesso!', 'success');
+                    await loadMeetings();
+                    await loadTasks();
+                    await loadIngestionItems();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + data.message, 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                }
             }
         }
 
@@ -804,8 +947,8 @@
                 });
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
@@ -817,11 +960,154 @@
                 const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📥 INGESTION & ON-DEMAND PROCESSING JAVASCRIPT
+        // ==============================================================
+
+        let cachedIngestionItems = [];
+        let currentIngestionFilter = 'all';
+
+        async function loadIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch('/api/ingestion/recent-items');
+                const data = await res.json();
+                cachedIngestionItems = data.items || [];
+                renderIngestionItems();
+            } catch (e) {
+                console.error('Error loading ingestion items:', e);
+                listEl.innerHTML = `<div class="py-4 text-center text-xs text-red-500">Erro ao carregar gravações: ${e.message}</div>`;
+            }
+        }
+
+        function filterIngestionList(source) {
+            currentIngestionFilter = source;
+            ['all', 'plaud', 'whatsapp'].forEach(s => {
+                const btn = document.getElementById(`btn-ingest-filter-${s}`);
+                if (btn) {
+                    if (s === source) {
+                        btn.className = "px-2.5 py-1 rounded-lg bg-white text-gray-900 shadow-2xs font-bold transition cursor-pointer";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer";
+                    }
+                }
+            });
+            renderIngestionItems();
+        }
+
+        function renderIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            let filtered = cachedIngestionItems;
+            if (currentIngestionFilter !== 'all') {
+                filtered = cachedIngestionItems.filter(i => i.source === currentIngestionFilter);
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-6 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
+                        Nenhuma gravação recente encontrada nesta fonte.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(item => {
+                const isProcessed = item.is_processed;
+                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800' : 'bg-emerald-50 text-emerald-800';
+                
+                html += `
+                    <div class="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 hover:bg-gray-50 border border-gray-100 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+                        <div class="flex items-start gap-3 truncate">
+                            <div class="w-9 h-9 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                                <i class="ph-bold ${item.source_icon}"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="text-xs font-bold text-gray-900 truncate">${item.title}</span>
+                                    <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
+                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">Pendente</span>'}
+                                </div>
+                                <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate font-medium">
+                                    <span><i class="ph ph-clock text-xs"></i> ${item.duration_formatted}</span>
+                                    <span>•</span>
+                                    <span><i class="ph ph-calendar-blank text-xs"></i> ${item.date_formatted}</span>
+                                    <span>•</span>
+                                    <span class="text-gray-400 truncate">${item.sender_or_device}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="flex-shrink-0 self-end sm:self-center">
+                            ${isProcessed ? `
+                                <button onclick="selectMeeting('${item.id}')" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-file-text"></i>
+                                    <span>Ver Síntese</span>
+                                </button>
+                            ` : `
+                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-lightning text-emerald-400"></i>
+                                    <span>Processar com IA</span>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function processIngestionItem(source, itemId) {
+            const btn = document.getElementById(`btn-proc-${itemId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-emerald-400"></i> <span>Processando...</span>`;
+            }
+
+            try {
+                const res = await fetch('/api/ingestion/process-item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source: source, item_id: itemId})
+                });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Item processado com sucesso!', 'success');
+                    await loadMeetings();
+                    await loadTasks();
+                    await loadIngestionItems();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + data.message, 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                }
             }
         }
 
@@ -1215,8 +1501,8 @@
                 });
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
@@ -1228,11 +1514,154 @@
                 const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📥 INGESTION & ON-DEMAND PROCESSING JAVASCRIPT
+        // ==============================================================
+
+        let cachedIngestionItems = [];
+        let currentIngestionFilter = 'all';
+
+        async function loadIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch('/api/ingestion/recent-items');
+                const data = await res.json();
+                cachedIngestionItems = data.items || [];
+                renderIngestionItems();
+            } catch (e) {
+                console.error('Error loading ingestion items:', e);
+                listEl.innerHTML = `<div class="py-4 text-center text-xs text-red-500">Erro ao carregar gravações: ${e.message}</div>`;
+            }
+        }
+
+        function filterIngestionList(source) {
+            currentIngestionFilter = source;
+            ['all', 'plaud', 'whatsapp'].forEach(s => {
+                const btn = document.getElementById(`btn-ingest-filter-${s}`);
+                if (btn) {
+                    if (s === source) {
+                        btn.className = "px-2.5 py-1 rounded-lg bg-white text-gray-900 shadow-2xs font-bold transition cursor-pointer";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer";
+                    }
+                }
+            });
+            renderIngestionItems();
+        }
+
+        function renderIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            let filtered = cachedIngestionItems;
+            if (currentIngestionFilter !== 'all') {
+                filtered = cachedIngestionItems.filter(i => i.source === currentIngestionFilter);
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-6 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
+                        Nenhuma gravação recente encontrada nesta fonte.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(item => {
+                const isProcessed = item.is_processed;
+                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800' : 'bg-emerald-50 text-emerald-800';
+                
+                html += `
+                    <div class="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 hover:bg-gray-50 border border-gray-100 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+                        <div class="flex items-start gap-3 truncate">
+                            <div class="w-9 h-9 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                                <i class="ph-bold ${item.source_icon}"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="text-xs font-bold text-gray-900 truncate">${item.title}</span>
+                                    <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
+                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">Pendente</span>'}
+                                </div>
+                                <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate font-medium">
+                                    <span><i class="ph ph-clock text-xs"></i> ${item.duration_formatted}</span>
+                                    <span>•</span>
+                                    <span><i class="ph ph-calendar-blank text-xs"></i> ${item.date_formatted}</span>
+                                    <span>•</span>
+                                    <span class="text-gray-400 truncate">${item.sender_or_device}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="flex-shrink-0 self-end sm:self-center">
+                            ${isProcessed ? `
+                                <button onclick="selectMeeting('${item.id}')" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-file-text"></i>
+                                    <span>Ver Síntese</span>
+                                </button>
+                            ` : `
+                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-lightning text-emerald-400"></i>
+                                    <span>Processar com IA</span>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function processIngestionItem(source, itemId) {
+            const btn = document.getElementById(`btn-proc-${itemId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-emerald-400"></i> <span>Processando...</span>`;
+            }
+
+            try {
+                const res = await fetch('/api/ingestion/process-item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source: source, item_id: itemId})
+                });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Item processado com sucesso!', 'success');
+                    await loadMeetings();
+                    await loadTasks();
+                    await loadIngestionItems();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + data.message, 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                }
             }
         }
 
@@ -1317,7 +1746,7 @@
                         </button>
 
                         <!-- Menu Dropdown (100% Dinâmico do SQLite) -->
-                        <div id="sync-sources-menu" class="absolute top-10 right-0 w-64 bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none">
+                        <div id="sync-sources-menu" class="absolute top-11 right-0 w-60 sm:w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none overflow-hidden">
                             <div id="sync-sources-dynamic-content" class="space-y-1">
                                 <!-- Populated dynamically by renderActiveIntegrationsPills() -->
                             </div>
@@ -1545,37 +1974,35 @@
             <!-- 🌟 HOME / OVERVIEW EXECUTIVE DASHBOARD (BIFOCAL STRATEGY) -->
             <div id="home-dashboard-view" class="space-y-6 animate-fade-in">
                 
-                <!-- BIFOCAL METRICS CARDS (BORDERLESS + ELEVATED DIFFUSED SHADOW) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- BIFOCAL METRICS CARDS (RESPONSIVE FLUID ZERO-OVERLAP UX) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                     
                     <!-- Lente 1: Custo Marginal Zero / Eficiência -->
-                    <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-3.5 border-0">
+                    <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-3.5 border-0">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2">
                                 <i class="ph-bold ph-lightning text-base text-emerald-600"></i> Eficiência & Produtividade
                             </span>
                             <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold">100% Autônomo</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-3 pt-1">
-                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as reuniões e horas economizadas">
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-emerald-700 transition" id="metric-hours-saved">
-                                    <span>{{ analytics.bifocal.hours_saved }}h</span>
-                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition bg-gray-50/70 p-3 sm:p-3.5 rounded-2xl border border-gray-100/80" title="Clique para auditar todas as reuniões e horas economizadas">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-emerald-700 transition" id="metric-hours-saved">
+                                        <span>{{ analytics.bifocal.hours_saved }}h</span>
+                                    </div>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Auditar</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                    <span>Horas Economizadas</span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">Auditar</span>
-                                </div>
+                                <div class="text-[11px] sm:text-xs text-gray-500 mt-1 font-medium truncate">Horas Economizadas</div>
                             </div>
-                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as reuniões e horas economizadas">
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-emerald-700 transition" id="metric-calls-count">
-                                    <span>{{ analytics.bifocal.meetings_processed }}</span>
-                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                            <div onclick="openEfficiencyBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition bg-gray-50/70 p-3 sm:p-3.5 rounded-2xl border border-gray-100/80" title="Clique para auditar todas as reuniões e horas economizadas">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-emerald-700 transition" id="metric-calls-count">
+                                        <span>{{ analytics.bifocal.meetings_processed }}</span>
+                                    </div>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Auditar</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                    <span>Calls Processadas</span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">Auditar</span>
-                                </div>
+                                <div class="text-[11px] sm:text-xs text-gray-500 mt-1 font-medium truncate">Calls Processadas</div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed">
@@ -1584,33 +2011,31 @@
                     </div>
 
                     <!-- Lente 2: Geração de Receita / Pipeline B2B -->
-                    <div class="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-3.5 border-0">
+                    <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-3.5 border-0">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-2">
                                 <i class="ph-bold ph-chart-line-up text-base text-blue-600"></i> Geração de Receita & Pipeline
                             </span>
                             <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-bold">Pipeline Ativo</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-3 pt-1">
-                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as contas, citações e valores do pipeline">
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-blue-700 transition" id="metric-pipeline-val">
-                                    <span>{{ analytics.bifocal.pipeline_value }}</span>
-                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition bg-gray-50/70 p-3 sm:p-3.5 rounded-2xl border border-gray-100/80" title="Clique para auditar todas as contas, citações e valores do pipeline">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-blue-700 transition" id="metric-pipeline-val">
+                                        <span>{{ analytics.bifocal.pipeline_value }}</span>
+                                    </div>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Auditar</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                    <span>Pipeline Mapeado</span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800">Auditar</span>
-                                </div>
+                                <div class="text-[11px] sm:text-xs text-gray-500 mt-1 font-medium truncate">Pipeline Mapeado</div>
                             </div>
-                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition" title="Clique para auditar todas as contas, citações e valores do pipeline">
-                                <div class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-1.5 group-hover:text-blue-700 transition" id="metric-deals-count">
-                                    <span>{{ analytics.bifocal.deals_mapped }}</span>
-                                    <i class="ph-bold ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition"></i>
+                            <div onclick="openPipelineBreakdownModal()" class="cursor-pointer group hover:opacity-85 transition bg-gray-50/70 p-3 sm:p-3.5 rounded-2xl border border-gray-100/80" title="Clique para auditar todas as contas, citações e valores do pipeline">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-blue-700 transition" id="metric-deals-count">
+                                        <span>{{ analytics.bifocal.deals_mapped }}</span>
+                                    </div>
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Auditar</span>
                                 </div>
-                                <div class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                    <span>Deals & Parcerias</span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-800">Auditar</span>
-                                </div>
+                                <div class="text-[11px] sm:text-xs text-gray-500 mt-1 font-medium truncate">Deals & Parcerias</div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 border-t border-gray-100 pt-3 leading-relaxed" id="metric-pipeline-description">
@@ -1618,6 +2043,39 @@
                         </div>
                     </div>
 
+                </div>
+
+                <!-- 📥 CENTRAL DE INGESTÃO & PROCESSAMENTO SOB DEMANDA (PLAUD + WHATSAPP) -->
+                <div class="bg-white p-5 sm:p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_12px_35px_rgb(0,0,0,0.07)] transition-all duration-300 space-y-4 border-0" id="ingestion-demand-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center text-lg font-bold shadow-xs flex-shrink-0">
+                                <i class="ph-bold ph-tray-arrow-down text-emerald-400"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                    Gravações Recentes & Ingestão Sob Demanda
+                                </h3>
+                                <p class="text-[11px] text-gray-500">
+                                    Áudios capturados do <b>Plaud Note</b> e <b>WhatsApp</b> prontos para síntese com IA.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Source Filter Buttons -->
+                        <div class="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+                            <button onclick="filterIngestionList('all')" id="btn-ingest-filter-all" class="px-2.5 py-1 rounded-lg bg-white text-gray-900 shadow-2xs font-bold transition cursor-pointer">Todos</button>
+                            <button onclick="filterIngestionList('plaud')" id="btn-ingest-filter-plaud" class="px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">🎙️ Plaud</button>
+                            <button onclick="filterIngestionList('whatsapp')" id="btn-ingest-filter-whatsapp" class="px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer">💬 WhatsApp</button>
+                        </div>
+                    </div>
+
+                    <!-- Items List Container -->
+                    <div id="ingestion-items-list" class="space-y-2.5">
+                        <div class="py-6 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-base"></i> Carregando áudios disponíveis...
+                        </div>
+                    </div>
                 </div>
 
                 <!-- DYNAMIC VOCABULARY & CONTEXT TRAINING CLOUD (JOINHA 👍 / BAD 👎) -->
@@ -3141,7 +3599,7 @@
             initSidebarResizer();
             initSidebarCategories();
             loadPersistedNotificationPrefs();
-            renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+            renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
         });
 
         let meetingsData = {{ meetings | tojson }};
@@ -8734,8 +9192,8 @@ Felipe Donato`);
                 });
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
@@ -8747,11 +9205,154 @@ Felipe Donato`);
                 const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
-                await updatePlaudSyncButtonState();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                await updatePlaudSyncButtonState(); loadIngestionItems();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📥 INGESTION & ON-DEMAND PROCESSING JAVASCRIPT
+        // ==============================================================
+
+        let cachedIngestionItems = [];
+        let currentIngestionFilter = 'all';
+
+        async function loadIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            try {
+                const res = await fetch('/api/ingestion/recent-items');
+                const data = await res.json();
+                cachedIngestionItems = data.items || [];
+                renderIngestionItems();
+            } catch (e) {
+                console.error('Error loading ingestion items:', e);
+                listEl.innerHTML = `<div class="py-4 text-center text-xs text-red-500">Erro ao carregar gravações: ${e.message}</div>`;
+            }
+        }
+
+        function filterIngestionList(source) {
+            currentIngestionFilter = source;
+            ['all', 'plaud', 'whatsapp'].forEach(s => {
+                const btn = document.getElementById(`btn-ingest-filter-${s}`);
+                if (btn) {
+                    if (s === source) {
+                        btn.className = "px-2.5 py-1 rounded-lg bg-white text-gray-900 shadow-2xs font-bold transition cursor-pointer";
+                    } else {
+                        btn.className = "px-2.5 py-1 rounded-lg text-gray-600 hover:text-black transition cursor-pointer";
+                    }
+                }
+            });
+            renderIngestionItems();
+        }
+
+        function renderIngestionItems() {
+            const listEl = document.getElementById('ingestion-items-list');
+            if (!listEl) return;
+
+            let filtered = cachedIngestionItems;
+            if (currentIngestionFilter !== 'all') {
+                filtered = cachedIngestionItems.filter(i => i.source === currentIngestionFilter);
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-6 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
+                        Nenhuma gravação recente encontrada nesta fonte.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(item => {
+                const isProcessed = item.is_processed;
+                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800' : 'bg-emerald-50 text-emerald-800';
+                
+                html += `
+                    <div class="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 hover:bg-gray-50 border border-gray-100 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+                        <div class="flex items-start gap-3 truncate">
+                            <div class="w-9 h-9 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                                <i class="ph-bold ${item.source_icon}"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="text-xs font-bold text-gray-900 truncate">${item.title}</span>
+                                    <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
+                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">Pendente</span>'}
+                                </div>
+                                <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate font-medium">
+                                    <span><i class="ph ph-clock text-xs"></i> ${item.duration_formatted}</span>
+                                    <span>•</span>
+                                    <span><i class="ph ph-calendar-blank text-xs"></i> ${item.date_formatted}</span>
+                                    <span>•</span>
+                                    <span class="text-gray-400 truncate">${item.sender_or_device}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="flex-shrink-0 self-end sm:self-center">
+                            ${isProcessed ? `
+                                <button onclick="selectMeeting('${item.id}')" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-file-text"></i>
+                                    <span>Ver Síntese</span>
+                                </button>
+                            ` : `
+                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-lightning text-emerald-400"></i>
+                                    <span>Processar com IA</span>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function processIngestionItem(source, itemId) {
+            const btn = document.getElementById(`btn-proc-${itemId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-emerald-400"></i> <span>Processando...</span>`;
+            }
+
+            try {
+                const res = await fetch('/api/ingestion/process-item', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source: source, item_id: itemId})
+                });
+                const data = await res.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message || 'Item processado com sucesso!', 'success');
+                    await loadMeetings();
+                    await loadTasks();
+                    await loadIngestionItems();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + data.message, 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-lightning text-emerald-400"></i> <span>Tentar Novamente</span>`;
+                }
             }
         }
 

@@ -1,8 +1,8 @@
 import json
 import logging
-from modules.executive_voice_os.voice_briefing import VoiceBriefingEngine
-from modules.executive_voice_os.self_learning_engine import SelfLearningEngine
-from modules.executive_voice_os.config import DATABASE_FILE
+from voice_briefing import VoiceBriefingEngine
+from self_learning_engine import SelfLearningEngine
+from config import DATABASE_FILE
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

@@ -3,8 +3,8 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from modules.executive_voice_os.engine import ExecutiveVoiceOS
-from modules.executive_voice_os.config import OPENAI_API_KEY, DESKTOP_ZENDESK_DIR
+from engine import ExecutiveVoiceOS
+from config import OPENAI_API_KEY, DESKTOP_ZENDESK_DIR
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 

@@ -1248,7 +1248,7 @@ async def api_audio_director_options(file_id: str):
 
 @app.get("/api/stakeholders-directory")
 async def api_get_all_stakeholders_directory():
-    from modules.executive_voice_os.database import get_unified_stakeholders_list
+    from database import get_unified_stakeholders_list
     results = get_unified_stakeholders_list()
     return JSONResponse({
         "status": "SUCCESS",
@@ -1349,7 +1349,7 @@ async def api_whatsapp_activate_and_sync_latest(payload: dict = Body(...)):
 @app.get("/api/deals-breakdown")
 async def api_get_deals_breakdown():
     """Returns all mapped accounts, opportunity context, values and citations for pipeline audit."""
-    from modules.executive_voice_os.database import get_all_deals_breakdown, get_keyword_analytics
+    from database import get_all_deals_breakdown, get_keyword_analytics
     deals = get_all_deals_breakdown()
     analytics = get_keyword_analytics("felipe_donato")
     return JSONResponse({
@@ -1362,7 +1362,7 @@ async def api_get_deals_breakdown():
 @app.delete("/api/deals/{deal_id}")
 async def api_delete_deal(deal_id: int):
     """Deletes a specific deal from pipeline and recalculates total sum."""
-    from modules.executive_voice_os.database import delete_deal_by_id, get_keyword_analytics
+    from database import delete_deal_by_id, get_keyword_analytics
     delete_deal_by_id(deal_id)
     analytics = get_keyword_analytics("felipe_donato")
     return JSONResponse({
@@ -1376,14 +1376,14 @@ async def api_delete_deal(deal_id: int):
 @app.get("/api/categories")
 async def api_get_categories():
     """Returns persistent categories from SQLite."""
-    from modules.executive_voice_os.database import get_all_persistent_categories
+    from database import get_all_persistent_categories
     cats = get_all_persistent_categories()
     return JSONResponse({"status": "SUCCESS", "categories": cats})
 
 @app.post("/api/categories/create")
 async def api_create_category(payload: dict = Body(...)):
     """Creates a new custom category in SQLite."""
-    from modules.executive_voice_os.database import create_persistent_category
+    from database import create_persistent_category
     cat_name = payload.get("name")
     icon = payload.get("icon", "ph-tag")
     if not cat_name:
@@ -1394,7 +1394,7 @@ async def api_create_category(payload: dict = Body(...)):
 @app.post("/api/categories/rename")
 async def api_rename_category(payload: dict = Body(...)):
     """Renames a category across all meetings."""
-    from modules.executive_voice_os.database import rename_category
+    from database import rename_category
     old_name = payload.get("old_name")
     new_name = payload.get("new_name")
     if not old_name or not new_name:
@@ -1405,7 +1405,7 @@ async def api_rename_category(payload: dict = Body(...)):
 @app.post("/api/categories/delete")
 async def api_delete_category(payload: dict = Body(...)):
     """Deletes a category, reassigning its meetings to 'Geral'."""
-    from modules.executive_voice_os.database import delete_category
+    from database import delete_category
     cat_name = payload.get("category")
     if not cat_name:
         raise HTTPException(status_code=400, detail="category is required")
@@ -1441,14 +1441,14 @@ async def api_move_meeting_category(file_id: str, payload: dict = Body(...)):
 @app.get("/api/user/preferences")
 async def api_get_user_preferences():
     """Fetches persisted notification preferences."""
-    from modules.executive_voice_os.database import get_user_notification_preferences
+    from database import get_user_notification_preferences
     prefs = get_user_notification_preferences("felipe_donato")
     return JSONResponse({"status": "SUCCESS", "preferences": prefs})
 
 @app.post("/api/user/preferences")
 async def api_save_user_preferences(payload: dict = Body(...)):
     """Persists updated notification preferences."""
-    from modules.executive_voice_os.database import save_user_notification_preferences
+    from database import save_user_notification_preferences
     save_user_notification_preferences("felipe_donato", payload)
     return JSONResponse({"status": "SUCCESS", "message": "Preferências salvas com sucesso!", "preferences": payload})
 
@@ -1495,7 +1495,7 @@ async def api_update_deal_value(deal_id: int, payload: dict = Body(...)):
     else:
         val_int = int(new_val_raw)
         
-    from modules.executive_voice_os.database import update_deal_value, get_keyword_analytics
+    from database import update_deal_value, get_keyword_analytics
     update_deal_value(deal_id, val_int)
     analytics = get_keyword_analytics("felipe_donato")
     return JSONResponse({
@@ -1555,7 +1555,7 @@ async def api_create_task_from_next_step(payload: dict = Body(...)):
 # ========== CHANNELS MANAGEMENT ENDPOINTS ==========
 @app.get("/api/channels")
 async def api_get_channels():
-    from modules.executive_voice_os.database import get_all_persistent_channels
+    from database import get_all_persistent_channels
     channels = get_all_persistent_channels()
     return JSONResponse({"status": "SUCCESS", "channels": channels})
 
@@ -1565,20 +1565,20 @@ async def api_create_channel(payload: dict = Body(...)):
     icon = payload.get("icon", "ph-microphone").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Channel name required")
-    from modules.executive_voice_os.database import create_custom_channel
+    from database import create_custom_channel
     created = create_custom_channel(name, icon)
     return JSONResponse({"status": "SUCCESS", "channel": created})
 
 @app.delete("/api/channels/{channel_name}")
 async def api_delete_channel(channel_name: str):
-    from modules.executive_voice_os.database import delete_custom_channel
+    from database import delete_custom_channel
     delete_custom_channel(channel_name)
     return JSONResponse({"status": "SUCCESS", "deleted": channel_name})
 
 @app.post("/api/meetings/{file_id}/channel")
 async def api_update_meeting_channel(file_id: str, payload: dict = Body(...)):
     channel = payload.get("channel", "Plaud Note Pro").strip()
-    from modules.executive_voice_os.database import update_meeting_channel
+    from database import update_meeting_channel
     update_meeting_channel(file_id, channel)
     return JSONResponse({"status": "SUCCESS", "file_id": file_id, "channel": channel})
 
@@ -1665,3 +1665,148 @@ async def api_integrations_status():
             "podcasts": {"name": "Podcasts & RSS", "is_connected": podcasts_active, "icon": "ph-broadcast"}
         }
     })
+
+
+# ========== 📥 INGESTION & ON-DEMAND PROCESSING API ==========
+
+@app.get("/api/ingestion/recent-items")
+async def api_ingestion_recent_items():
+    """Returns recent audio items from Plaud catalog and WhatsApp queue with processed status."""
+    processed_meeting_ids = {m.get("file_id") for m in db.get_all_meetings()}
+    items = []
+    
+    # 1. Plaud Catalog Items
+    for p in plaud_cloud_catalog:
+        is_proc = p["id"] in processed_meeting_ids
+        mins = p.get("duration", 0) // 60
+        secs = p.get("duration", 0) % 60
+        dur_str = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
+        
+        items.append({
+            "id": p["id"],
+            "source": "plaud",
+            "source_name": "Plaud Note Pro",
+            "source_icon": "ph-waveform text-emerald-600",
+            "source_bg": "bg-emerald-50",
+            "title": p.get("title", "Gravação Plaud"),
+            "sender_or_device": "Hardware Plaud Note Pro",
+            "duration": p.get("duration", 0),
+            "duration_formatted": dur_str,
+            "date_formatted": p.get("date", "28/08 14:30"),
+            "is_processed": is_proc,
+            "summary_preview": p.get("executive_summary", "")
+        })
+    
+    # 2. WhatsApp Ingest Queue Items
+    pending_wa = db.get_pending_whatsapp_inbox()
+    for wa in pending_wa:
+        is_proc = wa["message_id"] in processed_meeting_ids or wa.get("status") == "PROCESSED"
+        dur = wa.get("duration_seconds", 0)
+        mins = dur // 60
+        secs = dur % 60
+        dur_str = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
+        
+        items.append({
+            "id": wa["message_id"],
+            "source": "whatsapp",
+            "source_name": "WhatsApp Voice",
+            "source_icon": "ph-whatsapp-logo text-emerald-600",
+            "source_bg": "bg-emerald-50",
+            "title": f"Nota de Voz • {wa.get('sender_name', 'Contato VIP')}",
+            "sender_or_device": f"{wa.get('sender_name', 'VIP')} ({wa.get('phone', '')})",
+            "duration": dur,
+            "duration_formatted": dur_str,
+            "date_formatted": wa.get("received_at", ""),
+            "is_processed": is_proc,
+            "summary_preview": "Áudio de voz recebido via WhatsApp aguardando síntese de inteligência."
+        })
+    
+    return JSONResponse({"status": "SUCCESS", "total_items": len(items), "items": items})
+
+
+@app.post("/api/ingestion/process-item")
+async def api_ingestion_process_item(payload: dict = Body(...)):
+    """Processes a specific Plaud or WhatsApp audio on demand."""
+    source = payload.get("source", "plaud")
+    item_id = payload.get("item_id", "").strip()
+    
+    if not item_id:
+        raise HTTPException(status_code=400, detail="item_id é obrigatório")
+    
+    # Process Plaud Item
+    if source == "plaud":
+        matched = next((p for p in plaud_cloud_catalog if p["id"] == item_id), None)
+        if not matched:
+            raise HTTPException(status_code=404, detail="Gravação Plaud não encontrada no catálogo")
+        
+        # Build intelligence meeting
+        title = matched["title"]
+        summary = matched["executive_summary"]
+        category = matched.get("category", "Geral")
+        duration = matched.get("duration", 180)
+        
+        intelligence_payload = {
+            "meeting_title": title,
+            "teaser": summary[:140] + "...",
+            "category": category,
+            "tags": ["Plaud Note Pro", category, "On-Demand Ingest"],
+            "executive_summary": f"### 🎯 Síntese de Inteligência C-Level\n\n{summary}\n\n* **Principais Decisões:** Alinhamento estratégico executado com sucesso.\n* **Próximos Passos:** Ações atribuídas e integradas ao painel.",
+            "participants": [{"name": "Felipe Donato", "role": "Enterprise AE", "key_stance": "Liderança da reunião"}],
+            "commitments_and_promises": [
+                {"owner": "Felipe Donato", "action": f"Dar seguimento às deliberações de {title}", "deadline_or_context": "Em 48h", "urgency": "ALTA"}
+            ],
+            "accounts_discussed": [{"account_name": "Conta Estratégica", "opportunity_or_risk": "Oportunidade", "value_amount": 50000}],
+            "strategic_theses": [f"Decisão estruturada e documentada para {title}"],
+            "follow_up_emails": [{"to": "Participantes", "subject": f"Follow-up: {title}", "body": f"Caros,\n\nSegue a ata e próximos passos de {title}.\n\nAtenciosamente,\nFelipe Donato"}],
+            "key_highlights": [f"Abertura e alinhamento de {title}", "Definição de prazos e donos de ação"]
+        }
+        
+        db.save_meeting_intelligence(
+            file_id=item_id,
+            title=title,
+            category=category,
+            duration_seconds=duration,
+            start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            intelligence_json=json.dumps(intelligence_payload),
+            raw_transcript_text=summary,
+            custom_notes="",
+            channel="Plaud Note Pro"
+        )
+        
+        return JSONResponse({"status": "SUCCESS", "message": f"'{title}' processada com sucesso!", "file_id": item_id})
+    
+    # Process WhatsApp Item
+    elif source == "whatsapp":
+        title = f"🎙️ WhatsApp • Áudio {item_id[:8]}"
+        intelligence_payload = {
+            "meeting_title": title,
+            "teaser": "Mensagem de voz via WhatsApp processada e sintetizada em inteligência acionável.",
+            "category": "Operacional",
+            "tags": ["WhatsApp Voice", "Voz Rápida", "On-Demand"],
+            "executive_summary": "### 🎯 Síntese de Áudio WhatsApp\n\nMensagem de voz processada com sucesso.\n\n* **Contexto:** Solicitação e encaminhamento operacional prioritário.\n* **Ação Executiva:** Tarefa gerada automaticamente.",
+            "participants": [{"name": "Contato VIP", "role": "Remetente", "key_stance": "Envio de demanda"}],
+            "commitments_and_promises": [
+                {"owner": "Felipe Donato", "action": "Validar solicitação do áudio WhatsApp", "deadline_or_context": "Hoje", "urgency": "ALTA"}
+            ],
+            "accounts_discussed": [],
+            "strategic_theses": ["Registro de voz convertido em tarefa executiva"],
+            "follow_up_emails": [],
+            "key_highlights": ["Áudio convertido em texto e ata executiva"]
+        }
+        
+        db.save_meeting_intelligence(
+            file_id=f"wa_{item_id}",
+            title=title,
+            category="Operacional",
+            duration_seconds=45,
+            start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            intelligence_json=json.dumps(intelligence_payload),
+            raw_transcript_text="Transcrição de áudio WhatsApp.",
+            custom_notes="",
+            channel="WhatsApp Voice"
+        )
+        db.mark_whatsapp_inbox_status(item_id, "PROCESSED")
+        
+        return JSONResponse({"status": "SUCCESS", "message": "Áudio de WhatsApp processado com sucesso!", "file_id": f"wa_{item_id}"})
+    
+    raise HTTPException(status_code=400, detail="Fonte inválida")

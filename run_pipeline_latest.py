@@ -1,6 +1,6 @@
 import sys
 import logging
-from modules.executive_voice_os.engine import ExecutiveVoiceOS
+from engine import ExecutiveVoiceOS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
