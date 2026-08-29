@@ -3848,21 +3848,128 @@ Reunião de Origem: ${meetingTitle}`);
         
         let currentMeetingTab = 'summary';
 
+        
+        // ==============================================================
+        // 🎨 MULTI-TEMPLATE ADAPTIVE INTELLIGENCE ENGINE (UI RENDERER)
+        // ==============================================================
+
+        function getMeetingTemplateType(m) {
+            if (!m) return 'b2b_sales';
+            const intel = m.intelligence || {};
+            if (intel.template_type) return intel.template_type;
+            if (m.category === 'Pessoal' || (m.tags && m.tags.includes('Família')) || (m.title && m.title.includes('Família'))) return 'personal_family';
+            if (m.category === 'Mentoria' || (m.title && m.title.toLowerCase().includes('marçal')) || (m.title && m.title.toLowerCase().includes('mentoria'))) return 'mentorship_learning';
+            if (m.category === 'Produto & Tech' || m.category === 'Pedidy' || m.category === 'ZFlow Tech') return 'product_brainstorm';
+            if (m.category === '1-on-1' || m.category === 'Liderança') return 'one_on_one';
+            return 'b2b_sales';
+        }
+
+        function updateSegmentedTabsForTemplate(templateType) {
+            const tabsContainer = document.getElementById('meeting-segmented-tabs');
+            if (!tabsContainer) return;
+
+            let tabsHtml = '';
+            if (templateType === 'personal_family') {
+                tabsHtml = `
+                    <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'summary' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-heart text-emerald-600 text-xs"></i> <span>Diário & Momentos</span>
+                    </button>
+                    <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'transcript' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
+                    </button>
+                    <button onclick="switchMeetingTab('reminders')" id="btn-tab-reminders" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'reminders' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-check-square-offset text-emerald-600 text-xs"></i> <span>Lembretes</span>
+                    </button>
+                `;
+            } else if (templateType === 'mentorship_learning') {
+                tabsHtml = `
+                    <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'summary' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-lightbulb text-amber-500 text-xs"></i> <span>Insights & Teses</span>
+                    </button>
+                    <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'transcript' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
+                    </button>
+                    <button onclick="switchMeetingTab('action_plan')" id="btn-tab-action_plan" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'action_plan' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-lightning text-purple-600 text-xs"></i> <span>Plano de Ação</span>
+                    </button>
+                `;
+            } else if (templateType === 'product_brainstorm') {
+                tabsHtml = `
+                    <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'summary' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-rocket text-indigo-600 text-xs"></i> <span>Visão do Produto</span>
+                    </button>
+                    <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'transcript' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
+                    </button>
+                    <button onclick="switchMeetingTab('experiments')" id="btn-tab-experiments" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'experiments' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-flask text-teal-600 text-xs"></i> <span>Experimentos & MVP</span>
+                    </button>
+                `;
+            } else {
+                // b2b_sales / default
+                tabsHtml = `
+                    <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'summary' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-article text-emerald-600 text-xs"></i> <span>Resumo C-Level</span>
+                    </button>
+                    <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'transcript' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
+                    </button>
+                    <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'email' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-paper-plane-tilt text-red-500 text-xs"></i> <span>E-mail</span>
+                    </button>
+                    <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'risks' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-shield-warning text-purple-600 text-xs"></i> <span>Riscos</span>
+                    </button>
+                `;
+            }
+            tabsContainer.innerHTML = tabsHtml;
+        }
+
+        async function changeMeetingTemplate(newTemplate) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+
+            if (!m.intelligence) m.intelligence = {};
+            m.intelligence.template_type = newTemplate;
+            
+            updateSegmentedTabsForTemplate(newTemplate);
+            renderMeetingContent();
+            showInAppToast(`🎨 Template alterado para ${newTemplate}!`, 'info');
+        }
+
+        async function reprocessCurrentMeetingWithTemplate() {
+            if (!currentMeetingId) return;
+            const sel = document.getElementById('meeting-template-selector');
+            const targetTemplate = sel ? sel.value : 'b2b_sales';
+
+            showInAppToast('✨ Re-analisando com IA para este template...', 'info');
+            try {
+                const res = await fetch(`/api/meetings/${currentMeetingId}/reprocess-template`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ template: targetTemplate })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    const idx = meetingsData.findIndex(item => item.file_id === currentMeetingId);
+                    if (idx !== -1) {
+                        meetingsData[idx] = data.meeting;
+                    }
+                    renderSidebarMeetings();
+                    selectMeeting(currentMeetingId, false);
+                    showInAppToast('🌟 Inteligência re-processada com sucesso!', 'success');
+                } else {
+                    showInAppToast('Erro ao re-processar: ' + (data.detail || 'Falha'), 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao re-processar template: ' + e.message, 'error');
+            }
+        }
+
         function switchMeetingTab(tab) {
             currentMeetingTab = tab;
             
-            const tabs = ['summary', 'transcript', 'email', 'risks'];
-            tabs.forEach(t => {
-                const btn = document.getElementById(`btn-tab-${t}`);
-                if (btn) {
-                    if (t === tab) {
-                        btn.className = 'px-3 py-1.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0';
-                    } else {
-                        btn.className = 'px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0';
-                    }
-                }
-            });
-
             if (tab === 'transcript') {
                 renderTranscriptView();
             } else if (tab === 'summary') {
@@ -3871,82 +3978,9 @@ Reunião de Origem: ${meetingTitle}`);
                 quickActionPrompt('generate_email');
             } else if (tab === 'risks') {
                 quickActionPrompt('extract_risks');
+            } else if (tab === 'reminders' || tab === 'action_plan' || tab === 'experiments') {
+                quickActionPrompt('action_plan');
             }
-        }
-
-function renderTranscriptView() {
-            if (!currentMeetingId) return;
-            const m = meetingsData.find(item => item.file_id === currentMeetingId);
-            if (!m) return;
-
-            const box = document.getElementById('assistant-summary-box');
-            if (!box) return;
-
-            const isWhatsApp = (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
-            const durationSec = m.duration_seconds || (isWhatsApp ? 95 : 1733);
-            const durationMin = (durationSec / 60).toFixed(1);
-
-            const transcriptTitle = isWhatsApp ? '📱 Transcrição de Áudio WhatsApp (Z-API)' : '🎙️ Transcrição Bruta Diarizada';
-            const hardwareLabel = isWhatsApp ? 'Áudio Z-API • Ingerido via Webhook' : 'Sensor MEMS + VCS (Plaud Dual-Sensor)';
-
-            const transcriptText = m.transcription || m.transcript || m.transcript_full || (isWhatsApp ? `[00:02] Áudio recebido via WhatsApp: "${m.executive_summary || 'Mensagem de voz sincronizada.'}"` : 'Transcrição do áudio gravado em processamento ou não disponível.');
-
-            box.innerHTML = `
-                <div class="space-y-4 animate-fade-in">
-                    <!-- Search & Controls Header for Transcript -->
-                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                        <div class="flex items-center gap-2 text-gray-700 font-bold">
-                            <i class="ph-bold ${isWhatsApp ? 'ph-whatsapp-logo text-emerald-600' : 'ph-waveform text-emerald-600'} text-base"></i>
-                            <span>${transcriptTitle}</span>
-                            <span class="text-[10px] text-gray-400 font-mono">(${durationMin} min • ${hardwareLabel})</span>
-                        </div>
-
-                        <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <div class="relative flex-1 sm:w-64">
-                                <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                                <input type="text" id="transcript-search-input" oninput="filterTranscriptSearch(this.value)"
-                                       placeholder="Buscar termo na transcrição..." 
-                                       class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs focus:outline-none focus:border-emerald-500 transition">
-                            </div>
-                            <button onclick="copyFullTranscriptText()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-100 border border-gray-200 text-gray-800 font-bold flex items-center gap-1.5 shadow-2xs transition cursor-pointer flex-shrink-0" title="Copiar Transcrição">
-                                <i class="ph-bold ph-copy text-xs"></i>
-                                <span>Copiar</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Transcript Content Box -->
-                    <div class="p-4 sm:p-5 rounded-2xl bg-[#fafafa] border border-gray-100 text-xs sm:text-[13px] leading-relaxed text-gray-800 font-mono whitespace-pre-wrap select-text max-h-[550px] overflow-y-auto" id="transcript-text-container">
-${transcriptText}
-                    </div>
-                </div>
-            `;
-        }
-
-        function filterTranscriptSearch(query) {
-            const container = document.getElementById('transcript-text-container');
-            if (!container || !currentMeetingId) return;
-            const m = meetingsData.find(item => item.file_id === currentMeetingId);
-            if (!m) return;
-            const raw = m.transcription || m.transcript || m.transcript_full || '';
-
-            if (!query.trim()) {
-                container.innerText = raw;
-                return;
-            }
-
-            const q = query.trim();
-            const regex = new RegExp(`(${q})`, 'gi');
-            const highlighted = raw.replace(regex, '<mark class="bg-amber-200 text-amber-900 font-bold rounded-xs px-0.5">$1</mark>');
-            container.innerHTML = highlighted;
-        }
-
-        function copyFullTranscriptText() {
-            if (!currentMeetingId) return;
-            const m = meetingsData.find(item => item.file_id === currentMeetingId);
-            if (!m) return;
-            navigator.clipboard.writeText(m.transcription || m.transcript || m.transcript_full || '');
-            showInAppToast('📋 Transcrição completa copiada!', 'success');
         }
 
         function renderMeetingContent() {
@@ -3954,6 +3988,12 @@ ${transcriptText}
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
             const intel = m.intelligence || {};
+            const templateType = getMeetingTemplateType(m);
+
+            // Sync template dropdown selector
+            const tSel = document.getElementById('meeting-template-selector');
+            if (tSel) tSel.value = templateType;
+            updateSegmentedTabsForTemplate(templateType);
 
             const parallelBlock = intel.parallel_session ? `
                 <div class="bg-amber-50/80 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs border border-amber-200/70 shadow-2xs">
@@ -3968,9 +4008,254 @@ ${transcriptText}
                 </div>
             ` : '';
 
+            // 1. Personal & Family Template Blocks
+            if (templateType === 'personal_family') {
+                const summaryBlock = `
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                            <i class="ph-bold ph-heart text-emerald-600"></i>
+                            <span>🌿 Diário & Contexto do Momento:</span>
+                        </h3>
+                        <div class="leading-relaxed editable-block p-1 text-sm text-gray-800" contenteditable="true" onblur="saveNoteEdits()">
+                            <div id="meeting-executive-summary-text" class="outline-none">${marked.parse(intel.executive_summary || 'Resumo não disponível.')}</div>
+                        </div>
+                    </div>
+                `;
+
+                const personalMomentsBlock = intel.personal_moments && intel.personal_moments.length > 0 ? `
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-chat-circle-dots text-emerald-600"></i>
+                            <span>💬 Momentos & Diálogos Marcantes:</span>
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            ${intel.personal_moments.map(pm => `
+                                <div class="bg-emerald-50/40 p-3.5 rounded-2xl border border-emerald-100/60 text-xs text-gray-800 space-y-1">
+                                    <div class="font-bold text-emerald-950 flex items-center gap-1.5">
+                                        <i class="ph-bold ph-sparkle text-emerald-600 text-xs"></i>
+                                        <span>Momento</span>
+                                    </div>
+                                    <div class="text-gray-700 leading-relaxed">${pm}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                const highlightsBlock = intel.key_highlights && intel.key_highlights.length > 0 ? `
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-star text-amber-500"></i>
+                            <span>✨ Destaques & Sentimentos:</span>
+                        </h3>
+                        <ul class="space-y-1.5 text-xs sm:text-sm text-gray-800">
+                            ${intel.key_highlights.map(h => `
+                                <li class="flex items-start gap-2 bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
+                                    <span class="text-amber-500 font-bold">•</span>
+                                    <span>${h}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                ` : '';
+
+                const todosCount = (intel.commitments_and_promises || []).length;
+                const todosBlock = `
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                <i class="ph-bold ph-check-square-offset text-emerald-600 text-sm"></i>
+                                <span>Lembretes & Tarefas Domésticas / Pessoais:</span>
+                            </h3>
+                            <span class="text-[10px] text-gray-400 font-mono font-bold px-2 py-0.5 rounded-full bg-gray-100">${todosCount} itens</span>
+                        </div>
+
+                        ${todosCount === 0 ? `
+                            <div class="bg-gray-50/80 p-3 rounded-2xl text-xs text-gray-400 text-center">
+                                Nenhum lembrete pendente identificado.
+                            </div>
+                        ` : `
+                            <div class="space-y-2.5">
+                                ${intel.commitments_and_promises.map((c, idx) => {
+                                    const actionText = c.action || c.task || 'Lembrete pessoal';
+                                    const deadlineText = c.deadline_or_context || 'Hoje';
+                                    const ownerText = c.owner || 'Felipe';
+                                    const status = c.status || 'PENDING';
+                                    const isDone = status === 'DONE';
+
+                                    return `
+                                        <div class="swipe-container relative overflow-hidden rounded-2xl shadow-2xs group" data-swipe-type="meeting-task" data-task-idx="${idx}" data-file-id="${m.file_id}" data-status="${status}">
+                                            <div class="swipe-bg absolute inset-0 rounded-2xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors duration-150">
+                                                <div class="swipe-action-left flex items-center gap-2 text-emerald-700 opacity-0 transition-all duration-150">
+                                                    <i class="ph-fill ph-check-circle text-xl text-emerald-600"></i>
+                                                    <span class="font-extrabold text-xs">${isDone ? 'Reabrir' : 'Concluir'}</span>
+                                                </div>
+                                                <div class="swipe-action-right flex items-center gap-2 text-blue-600 opacity-0 transition-all duration-150">
+                                                    <span class="font-extrabold text-xs">Adiar</span>
+                                                    <i class="ph-bold ph-calendar-plus text-xl text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="swipe-front bg-[#fbfcfd] hover:bg-white rounded-2xl p-3.5 border border-gray-100 transition-transform duration-200 ease-out will-change-transform space-y-2 relative z-10">
+                                                <div class="flex items-start gap-2.5">
+                                                    <button onclick="changeMeetingTaskStatusDirect(${idx}, '${isDone ? 'PENDING' : 'DONE'}')" class="mt-0.5 flex-shrink-0 cursor-pointer p-0.5">
+                                                        ${isDone ? '<i class="ph-fill ph-check-circle text-emerald-500 text-lg"></i>' : '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 text-lg transition"></i>'}
+                                                    </button>
+                                                    <div class="text-xs sm:text-[13px] font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-900'} leading-snug flex-1 outline-none" contenteditable="true" onblur="saveNoteEdits()">
+                                                        ${actionText}
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center justify-between pl-7 pt-1 text-[11px] text-gray-500">
+                                                    <span class="font-bold text-emerald-700">👤 ${ownerText}</span>
+                                                    <span class="font-semibold bg-gray-100 px-2 py-0.5 rounded-md">📅 ${deadlineText}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
+                `;
+
+                document.getElementById('assistant-summary-box').innerHTML = `
+                    <div class="space-y-6">${parallelBlock}${summaryBlock}${personalMomentsBlock}${highlightsBlock}${todosBlock}</div>
+                `;
+                return;
+            }
+
+            // 2. Mentorship & Learning Template Blocks
+            if (templateType === 'mentorship_learning') {
+                const summaryBlock = `
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                            <i class="ph-bold ph-lightbulb text-amber-600"></i>
+                            <span>💡 Tese Central & Ensinamentos:</span>
+                        </h3>
+                        <div class="leading-relaxed editable-block p-1 text-sm text-gray-800" contenteditable="true" onblur="saveNoteEdits()">
+                            <div id="meeting-executive-summary-text" class="outline-none">${marked.parse(intel.executive_summary || 'Resumo não disponível.')}</div>
+                        </div>
+                    </div>
+                `;
+
+                const thesesBlock = intel.strategic_theses && intel.strategic_theses.length > 0 ? `
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-compass text-amber-600"></i>
+                            <span>🧠 Modelos Mentais & Teses Abordadas:</span>
+                        </h3>
+                        <div class="space-y-2">
+                            ${intel.strategic_theses.map(t => `
+                                <div class="bg-amber-50/30 p-3 rounded-2xl border border-amber-100/70 text-xs sm:text-[13px] text-gray-800 flex items-start gap-2.5">
+                                    <span class="text-amber-600 font-bold text-sm leading-none mt-0.5">•</span>
+                                    <span class="leading-relaxed">${t}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                const highlightsBlock = intel.key_highlights && intel.key_highlights.length > 0 ? `
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-fire text-red-500"></i>
+                            <span>🔥 Frases de Impacto & Citações:</span>
+                        </h3>
+                        <div class="space-y-2">
+                            ${intel.key_highlights.map(h => `
+                                <div class="bg-purple-50/40 p-3.5 rounded-2xl border border-purple-100 text-xs text-purple-950 font-serif italic leading-relaxed">
+                                    "${h}"
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                const todosCount = (intel.commitments_and_promises || []).length;
+                const todosBlock = `
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                <i class="ph-bold ph-lightning text-purple-600 text-sm"></i>
+                                <span>Plano de Ação & Aplicação Pessoal:</span>
+                            </h3>
+                            <span class="text-[10px] text-gray-400 font-mono font-bold px-2 py-0.5 rounded-full bg-gray-100">${todosCount} itens</span>
+                        </div>
+                        <div class="space-y-2">
+                            ${(intel.commitments_and_promises || []).map((c, idx) => `
+                                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs flex items-center justify-between text-xs">
+                                    <span class="font-bold text-gray-900">${c.action || 'Hábito/Ação'}</span>
+                                    <span class="text-[10px] bg-purple-50 text-purple-800 font-bold px-2 py-0.5 rounded-md">${c.deadline_or_context || 'Imediato'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('assistant-summary-box').innerHTML = `
+                    <div class="space-y-6">${parallelBlock}${summaryBlock}${thesesBlock}${highlightsBlock}${todosBlock}</div>
+                `;
+                return;
+            }
+
+            // 3. Product Brainstorm & Architecture Template Blocks
+            if (templateType === 'product_brainstorm') {
+                const summaryBlock = `
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                            <i class="ph-bold ph-rocket text-indigo-600"></i>
+                            <span>🚀 Visão do Produto & Conceito:</span>
+                        </h3>
+                        <div class="leading-relaxed editable-block p-1 text-sm text-gray-800" contenteditable="true" onblur="saveNoteEdits()">
+                            <div id="meeting-executive-summary-text" class="outline-none">${marked.parse(intel.executive_summary || 'Resumo não disponível.')}</div>
+                        </div>
+                    </div>
+                `;
+
+                const thesesBlock = intel.strategic_theses && intel.strategic_theses.length > 0 ? `
+                    <div class="space-y-2 pt-1">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-gear-six text-indigo-600"></i>
+                            <span>🛠️ Features & Especificações Propostas:</span>
+                        </h3>
+                        <div class="space-y-2">
+                            ${intel.strategic_theses.map(t => `
+                                <div class="bg-indigo-50/30 p-3 rounded-2xl border border-indigo-100 text-xs sm:text-[13px] text-gray-800 flex items-start gap-2.5">
+                                    <span class="text-indigo-600 font-bold text-sm leading-none mt-0.5">•</span>
+                                    <span class="leading-relaxed">${t}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '';
+
+                const todosBlock = `
+                    <div class="space-y-3 pt-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <i class="ph-bold ph-flask text-teal-600 text-sm"></i>
+                            <span>🧪 Próximos Experimentos & Validação (MVP):</span>
+                        </h3>
+                        <div class="space-y-2">
+                            ${(intel.commitments_and_promises || []).map((c, idx) => `
+                                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-2xs flex items-center justify-between text-xs">
+                                    <span class="font-bold text-gray-900">${c.action || 'Experimento'}</span>
+                                    <span class="text-[10px] bg-teal-50 text-teal-800 font-bold px-2 py-0.5 rounded-md">${c.deadline_or_context || 'MVP'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('assistant-summary-box').innerHTML = `
+                    <div class="space-y-6">${parallelBlock}${summaryBlock}${thesesBlock}${todosBlock}</div>
+                `;
+                return;
+            }
+
+            // 4. Default Corporate B2B Template
             const summaryBlock = `
                 <div class="space-y-2">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">🎯 Síntese Executiva:</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">🎯 Síntese Executiva C-Level:</h3>
                     <div class="leading-relaxed editable-block p-1" contenteditable="true" onblur="saveNoteEdits()">
                         <div id="meeting-executive-summary-text" class="outline-none">${marked.parse(intel.executive_summary || 'Resumo não disponível.')}</div>
                     </div>
@@ -4003,7 +4288,6 @@ ${transcriptText}
 
                                 return `
                                     <div class="swipe-container relative overflow-hidden rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] group" data-swipe-type="meeting-task" data-task-idx="${idx}" data-file-id="${m.file_id}" data-status="${status}">
-                                        <!-- Swipe Action Background -->
                                         <div class="swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors duration-150">
                                             <div class="swipe-action-left flex items-center gap-2 text-emerald-700 opacity-0 transition-all duration-150 transform -translate-x-2">
                                                 <i class="ph-fill ph-check-circle text-2xl text-emerald-600"></i>
@@ -4015,10 +4299,7 @@ ${transcriptText}
                                             </div>
                                         </div>
                                         
-                                        <!-- Swipe Foreground Card -->
                                         <div class="swipe-front bg-white hover:bg-gray-50/70 rounded-3xl p-4 sm:p-5 border-0 transition-transform duration-200 ease-out will-change-transform space-y-3 relative z-10">
-                                        
-                                        <!-- Row 1: Status Checkbox + Full Width Action Description -->
                                         <div class="flex items-start gap-3 w-full">
                                             <button onclick="changeMeetingTaskStatusDirect(${idx}, '${isDone ? 'PENDING' : 'DONE'}')" class="mt-0.5 flex-shrink-0 cursor-pointer p-0.5" title="Alternar conclusão">
                                                 ${isDone ? '<i class="ph-fill ph-check-circle text-emerald-500 text-xl"></i>' : '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 text-xl transition"></i>'}
@@ -4028,7 +4309,6 @@ ${transcriptText}
                                             </div>
                                         </div>
 
-                                        <!-- Row 2: Owner Badge + Date + Calendar + Status Dropdown -->
                                         <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-gray-100/70 pl-8">
                                             <div class="flex items-center gap-2">
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[10px]">
@@ -4037,7 +4317,6 @@ ${transcriptText}
                                             </div>
 
                                             <div class="flex items-center gap-1.5 flex-wrap">
-                                                <!-- Date Button -->
                                                 <button onclick="openDatePickerFromMeeting('${m.file_id}', ${idx}, '${encodeURIComponent(deadlineText)}', '${encodeURIComponent(actionText)}')" 
                                                         class="flex items-center gap-1 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 shadow-2xs transition active:scale-95 cursor-pointer" 
                                                         title="Definir prazo">
@@ -4045,14 +4324,12 @@ ${transcriptText}
                                                     <span class="text-[11px] font-bold">${deadlineText}</span>
                                                 </button>
 
-                                                <!-- Google Calendar -->
                                                 <button onclick="scheduleTaskInGoogleCalendarDirect('${encodeURIComponent(actionText)}', '${encodeURIComponent(deadlineText)}', '${encodeURIComponent(intel.meeting_title || m.title)}', '${encodeURIComponent(ownerText)}')" 
                                                         class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer" 
                                                         title="Google Calendar">
                                                     <i class="ph-bold ph-google-logo text-xs"></i>
                                                 </button>
 
-                                                <!-- Status Dropdown -->
                                                 <select onchange="changeMeetingTaskStatusDirect(${idx}, this.value)" 
                                                         class="bg-gray-100 hover:bg-gray-200 border-0 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
                                                     <option value="PENDING" ${status === 'PENDING' ? 'selected' : ''}>⏳ A Fazer</option>
@@ -4112,7 +4389,7 @@ ${transcriptText}
 
             const thesesBlock = intel.strategic_theses && intel.strategic_theses.length > 0 ? `
                 <div class="space-y-2">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">💡 Teses Estratégicas & Insights:</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">💡 Teses Comerciais & Argumentos:</h3>
                     <ul class="space-y-1.5 text-sm text-gray-800">
                         ${intel.strategic_theses.map(t => `
                             <li class="flex items-start gap-2"><span class="text-emerald-500 font-bold">•</span><span>${t}</span></li>
@@ -4123,7 +4400,7 @@ ${transcriptText}
 
             const highlightsBlock = intel.key_highlights && intel.key_highlights.length > 0 ? `
                 <div class="space-y-2">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">✨ Destaques & Momentos Chave:</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">✨ Destaques & Citações Relevantes:</h3>
                     <ul class="space-y-1.5 text-sm text-gray-800">
                         ${intel.key_highlights.map(h => `
                             <li class="flex items-start gap-2"><span class="text-purple-500 font-bold">•</span><span>${h}</span></li>
@@ -4137,7 +4414,7 @@ ${transcriptText}
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                             <i class="ph-bold ph-users text-emerald-600 text-sm"></i>
-                            <span>Participantes & Posicionamentos (Clique para Editar):</span>
+                            <span>Participantes & Posicionamentos:</span>
                         </h3>
                         <button onclick="addNewParticipantPrompt()" class="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 cursor-pointer">
                             <i class="ph-bold ph-plus"></i> Adicionar
@@ -4208,7 +4485,7 @@ ${transcriptText}
             document.getElementById('assistant-summary-box').innerHTML = finalHtml;
         }
 
-        
+
         function enableTopBarTitleEdit() {
             const titleEl = document.getElementById('topbar-title');
             if (titleEl && currentMeetingId) {

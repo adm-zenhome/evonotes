@@ -402,6 +402,57 @@ async def api_open_in_finder(file_id: str):
         logging.error(f"Error opening in Finder: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/api/meetings/{file_id}/reprocess-template")
+async def api_reprocess_meeting_template(file_id: str, payload: dict = Body(default={})):
+    """Re-analyzes meeting transcript with a specific or auto-detected template."""
+    meeting = db.get_meeting(file_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    
+    target_template = payload.get("template") or payload.get("template_type")
+    raw_transcript = meeting.get("transcript_full") or meeting.get("transcription") or meeting.get("transcript") or ""
+    
+    if not raw_transcript:
+        # Fallback to cache
+        cache_file = CACHE_DIR / file_id / "transcript.json"
+        if cache_file.exists():
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    t_json = json.load(f)
+                    raw_transcript = t_json.get("text", "")
+            except Exception:
+                pass
+
+    if not raw_transcript:
+        raise HTTPException(status_code=400, detail="Transcript text is empty")
+
+    from ..intelligence_engine import IntelligenceEngine
+    engine = IntelligenceEngine()
+    
+    new_intel = engine.analyze(
+        transcript_text=raw_transcript,
+        metadata={"file_id": file_id, "title": meeting.get("title")},
+        user_id="felipe_donato",
+        target_template=target_template
+    )
+    
+    # Update meeting in database
+    meeting["intelligence"] = new_intel
+    meeting["executive_summary"] = new_intel.get("executive_summary", "")
+    meeting["title"] = new_intel.get("meeting_title", meeting.get("title"))
+    meeting["category"] = new_intel.get("category", meeting.get("category"))
+    meeting["transcript_full"] = raw_transcript
+    
+    db.save_meeting(meeting)
+    
+    return JSONResponse({
+        "status": "SUCCESS",
+        "file_id": file_id,
+        "template_type": new_intel.get("template_type", "b2b_sales"),
+        "meeting": db.get_meeting(file_id)
+    })
+
 @app.post("/api/save-note/{file_id}")
 async def api_save_note(file_id: str, payload: dict = Body(...)):
     custom_notes = payload.get("custom_notes")
@@ -1384,7 +1435,6 @@ async def api_open_in_obsidian(file_id: str):
     doc_path = meeting.get("doc_path") or ""
     file_name = os.path.basename(doc_path) if doc_path else f"{file_id}.md"
     import urllib.parse
-import urllib.request
     encoded_file = urllib.parse.quote(f"07 - CONHECIMENTO/03 - Notas e Arquivos/Plaud/{file_name}")
     obsidian_uri = f"obsidian://open?vault=Jarvis&file={encoded_file}"
     try:
