@@ -149,6 +149,184 @@
             }
         }
 
+    
+        // ==============================================================
+        // 👆 UNIVERSAL SWIPE-TO-ACTION ENGINE (Mobile Gestures on Tasks)
+        // ==============================================================
+        let activeSwipeCard = null;
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeCurrentX = 0;
+        let isHorizontalSwipe = false;
+        let isSwipeLocked = false;
+
+        function initUniversalSwipeEngine() {
+            document.addEventListener('touchstart', (e) => {
+                const swipeContainer = e.target.closest('.swipe-container');
+                if (!swipeContainer) return;
+                
+                // Avoid initiating swipe if user touched an interactive input or button
+                if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('[contenteditable="true"]')) {
+                    return;
+                }
+
+                activeSwipeCard = swipeContainer;
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                isHorizontalSwipe = false;
+                isSwipeLocked = false;
+                
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                if (front) {
+                    front.style.transition = 'none';
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!activeSwipeCard || isSwipeLocked) return;
+
+                swipeCurrentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const deltaX = swipeCurrentX - swipeStartX;
+                const deltaY = currentY - swipeStartY;
+
+                // Determine swipe intent (lock to horizontal if deltaX > deltaY)
+                if (!isHorizontalSwipe) {
+                    if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                        isHorizontalSwipe = true;
+                    } else if (Math.abs(deltaY) > 8) {
+                        isSwipeLocked = true;
+                        return;
+                    }
+                }
+
+                if (isHorizontalSwipe) {
+                    if (e.cancelable) e.preventDefault();
+                    
+                    const front = activeSwipeCard.querySelector('.swipe-front');
+                    const bg = activeSwipeCard.querySelector('.swipe-bg');
+                    const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                    const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                    
+                    if (!front || !bg) return;
+
+                    // Elastic damping
+                    const translateX = deltaX * 0.72;
+                    front.style.transform = `translateX(${translateX}px)`;
+
+                    if (translateX > 0) {
+                        // Swiping Right -> Complete
+                        if (leftAction) {
+                            leftAction.style.opacity = `${Math.min(translateX / 55, 1)}`;
+                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${translateX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (rightAction) rightAction.style.opacity = '0';
+
+                        if (translateX >= 70) {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors';
+                        } else {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
+                        }
+                    } else if (translateX < 0) {
+                        // Swiping Left -> Delete / Postpone
+                        const absX = Math.abs(translateX);
+                        if (rightAction) {
+                            rightAction.style.opacity = `${Math.min(absX / 55, 1)}`;
+                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${absX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (leftAction) leftAction.style.opacity = '0';
+
+                        const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                        const bgClass = swipeType === 'meeting-task' ? 'bg-blue-50/90' : 'bg-red-50/90';
+                        const lightBgClass = swipeType === 'meeting-task' ? 'bg-blue-50/40' : 'bg-red-50/40';
+
+                        if (absX >= 70) {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${bgClass} transition-colors`;
+                        } else {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${lightBgClass} transition-colors`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', async () => {
+                if (!activeSwipeCard || !isHorizontalSwipe) {
+                    activeSwipeCard = null;
+                    return;
+                }
+
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                const bg = activeSwipeCard.querySelector('.swipe-bg');
+                const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                const deltaX = swipeCurrentX - swipeStartX;
+                const translateX = deltaX * 0.72;
+                const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                const card = activeSwipeCard;
+
+                if (front) {
+                    front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+                }
+
+                if (translateX >= 70) {
+                    // SWIPED RIGHT: COMPLETE / TOGGLE STATUS
+                    if (front) front.style.transform = 'translateX(105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await toggleSingleTaskStatus(taskId, currentStatus);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await changeMeetingTaskStatusDirect(taskIdx, currentStatus === 'DONE' ? 'PENDING' : 'DONE');
+                        }
+                    }, 180);
+
+                } else if (translateX <= -70) {
+                    // SWIPED LEFT: DELETE / POSTPONE
+                    if (front) front.style.transform = 'translateX(-105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            await deleteSingleTask(taskId);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            await postponeMeetingTaskDirect(taskIdx);
+                        }
+                    }, 180);
+
+                } else {
+                    // Snap back to 0
+                    if (front) front.style.transform = 'translateX(0px)';
+                    if (leftAction) leftAction.style.opacity = '0';
+                    if (rightAction) rightAction.style.opacity = '0';
+                    if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors';
+                }
+
+                activeSwipeCard = null;
+                isHorizontalSwipe = false;
+            });
+        }
+
+        async function postponeMeetingTaskDirect(taskIdx) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(x => x.file_id === currentMeetingId);
+            if (!m || !m.intelligence || !m.intelligence.commitments_and_promises) return;
+            
+            const task = m.intelligence.commitments_and_promises[taskIdx];
+            if (task) {
+                task.deadline_or_context = 'Amanhã 10:00';
+                await saveNoteEdits();
+                selectMeeting(currentMeetingId, false);
+                showInAppToast('📅 Tarefa adiada para Amanhã 10:00!', 'info');
+            }
+        }
+
     </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web">
@@ -295,6 +473,184 @@
             }
         }
 
+    
+        // ==============================================================
+        // 👆 UNIVERSAL SWIPE-TO-ACTION ENGINE (Mobile Gestures on Tasks)
+        // ==============================================================
+        let activeSwipeCard = null;
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeCurrentX = 0;
+        let isHorizontalSwipe = false;
+        let isSwipeLocked = false;
+
+        function initUniversalSwipeEngine() {
+            document.addEventListener('touchstart', (e) => {
+                const swipeContainer = e.target.closest('.swipe-container');
+                if (!swipeContainer) return;
+                
+                // Avoid initiating swipe if user touched an interactive input or button
+                if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('[contenteditable="true"]')) {
+                    return;
+                }
+
+                activeSwipeCard = swipeContainer;
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                isHorizontalSwipe = false;
+                isSwipeLocked = false;
+                
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                if (front) {
+                    front.style.transition = 'none';
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!activeSwipeCard || isSwipeLocked) return;
+
+                swipeCurrentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const deltaX = swipeCurrentX - swipeStartX;
+                const deltaY = currentY - swipeStartY;
+
+                // Determine swipe intent (lock to horizontal if deltaX > deltaY)
+                if (!isHorizontalSwipe) {
+                    if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                        isHorizontalSwipe = true;
+                    } else if (Math.abs(deltaY) > 8) {
+                        isSwipeLocked = true;
+                        return;
+                    }
+                }
+
+                if (isHorizontalSwipe) {
+                    if (e.cancelable) e.preventDefault();
+                    
+                    const front = activeSwipeCard.querySelector('.swipe-front');
+                    const bg = activeSwipeCard.querySelector('.swipe-bg');
+                    const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                    const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                    
+                    if (!front || !bg) return;
+
+                    // Elastic damping
+                    const translateX = deltaX * 0.72;
+                    front.style.transform = `translateX(${translateX}px)`;
+
+                    if (translateX > 0) {
+                        // Swiping Right -> Complete
+                        if (leftAction) {
+                            leftAction.style.opacity = `${Math.min(translateX / 55, 1)}`;
+                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${translateX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (rightAction) rightAction.style.opacity = '0';
+
+                        if (translateX >= 70) {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors';
+                        } else {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
+                        }
+                    } else if (translateX < 0) {
+                        // Swiping Left -> Delete / Postpone
+                        const absX = Math.abs(translateX);
+                        if (rightAction) {
+                            rightAction.style.opacity = `${Math.min(absX / 55, 1)}`;
+                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${absX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (leftAction) leftAction.style.opacity = '0';
+
+                        const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                        const bgClass = swipeType === 'meeting-task' ? 'bg-blue-50/90' : 'bg-red-50/90';
+                        const lightBgClass = swipeType === 'meeting-task' ? 'bg-blue-50/40' : 'bg-red-50/40';
+
+                        if (absX >= 70) {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${bgClass} transition-colors`;
+                        } else {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${lightBgClass} transition-colors`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', async () => {
+                if (!activeSwipeCard || !isHorizontalSwipe) {
+                    activeSwipeCard = null;
+                    return;
+                }
+
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                const bg = activeSwipeCard.querySelector('.swipe-bg');
+                const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                const deltaX = swipeCurrentX - swipeStartX;
+                const translateX = deltaX * 0.72;
+                const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                const card = activeSwipeCard;
+
+                if (front) {
+                    front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+                }
+
+                if (translateX >= 70) {
+                    // SWIPED RIGHT: COMPLETE / TOGGLE STATUS
+                    if (front) front.style.transform = 'translateX(105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await toggleSingleTaskStatus(taskId, currentStatus);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await changeMeetingTaskStatusDirect(taskIdx, currentStatus === 'DONE' ? 'PENDING' : 'DONE');
+                        }
+                    }, 180);
+
+                } else if (translateX <= -70) {
+                    // SWIPED LEFT: DELETE / POSTPONE
+                    if (front) front.style.transform = 'translateX(-105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            await deleteSingleTask(taskId);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            await postponeMeetingTaskDirect(taskIdx);
+                        }
+                    }, 180);
+
+                } else {
+                    // Snap back to 0
+                    if (front) front.style.transform = 'translateX(0px)';
+                    if (leftAction) leftAction.style.opacity = '0';
+                    if (rightAction) rightAction.style.opacity = '0';
+                    if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors';
+                }
+
+                activeSwipeCard = null;
+                isHorizontalSwipe = false;
+            });
+        }
+
+        async function postponeMeetingTaskDirect(taskIdx) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(x => x.file_id === currentMeetingId);
+            if (!m || !m.intelligence || !m.intelligence.commitments_and_promises) return;
+            
+            const task = m.intelligence.commitments_and_promises[taskIdx];
+            if (task) {
+                task.deadline_or_context = 'Amanhã 10:00';
+                await saveNoteEdits();
+                selectMeeting(currentMeetingId, false);
+                showInAppToast('📅 Tarefa adiada para Amanhã 10:00!', 'info');
+            }
+        }
+
     </script>
     <!-- Marked.js (Markdown Renderer) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
@@ -438,6 +794,184 @@
             } catch (e) {
                 console.error('Error in refreshCompleteDashboardData:', e);
                 showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
+
+    
+        // ==============================================================
+        // 👆 UNIVERSAL SWIPE-TO-ACTION ENGINE (Mobile Gestures on Tasks)
+        // ==============================================================
+        let activeSwipeCard = null;
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeCurrentX = 0;
+        let isHorizontalSwipe = false;
+        let isSwipeLocked = false;
+
+        function initUniversalSwipeEngine() {
+            document.addEventListener('touchstart', (e) => {
+                const swipeContainer = e.target.closest('.swipe-container');
+                if (!swipeContainer) return;
+                
+                // Avoid initiating swipe if user touched an interactive input or button
+                if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('[contenteditable="true"]')) {
+                    return;
+                }
+
+                activeSwipeCard = swipeContainer;
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                isHorizontalSwipe = false;
+                isSwipeLocked = false;
+                
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                if (front) {
+                    front.style.transition = 'none';
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!activeSwipeCard || isSwipeLocked) return;
+
+                swipeCurrentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const deltaX = swipeCurrentX - swipeStartX;
+                const deltaY = currentY - swipeStartY;
+
+                // Determine swipe intent (lock to horizontal if deltaX > deltaY)
+                if (!isHorizontalSwipe) {
+                    if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                        isHorizontalSwipe = true;
+                    } else if (Math.abs(deltaY) > 8) {
+                        isSwipeLocked = true;
+                        return;
+                    }
+                }
+
+                if (isHorizontalSwipe) {
+                    if (e.cancelable) e.preventDefault();
+                    
+                    const front = activeSwipeCard.querySelector('.swipe-front');
+                    const bg = activeSwipeCard.querySelector('.swipe-bg');
+                    const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                    const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                    
+                    if (!front || !bg) return;
+
+                    // Elastic damping
+                    const translateX = deltaX * 0.72;
+                    front.style.transform = `translateX(${translateX}px)`;
+
+                    if (translateX > 0) {
+                        // Swiping Right -> Complete
+                        if (leftAction) {
+                            leftAction.style.opacity = `${Math.min(translateX / 55, 1)}`;
+                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${translateX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (rightAction) rightAction.style.opacity = '0';
+
+                        if (translateX >= 70) {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors';
+                        } else {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
+                        }
+                    } else if (translateX < 0) {
+                        // Swiping Left -> Delete / Postpone
+                        const absX = Math.abs(translateX);
+                        if (rightAction) {
+                            rightAction.style.opacity = `${Math.min(absX / 55, 1)}`;
+                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${absX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (leftAction) leftAction.style.opacity = '0';
+
+                        const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                        const bgClass = swipeType === 'meeting-task' ? 'bg-blue-50/90' : 'bg-red-50/90';
+                        const lightBgClass = swipeType === 'meeting-task' ? 'bg-blue-50/40' : 'bg-red-50/40';
+
+                        if (absX >= 70) {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${bgClass} transition-colors`;
+                        } else {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${lightBgClass} transition-colors`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', async () => {
+                if (!activeSwipeCard || !isHorizontalSwipe) {
+                    activeSwipeCard = null;
+                    return;
+                }
+
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                const bg = activeSwipeCard.querySelector('.swipe-bg');
+                const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                const deltaX = swipeCurrentX - swipeStartX;
+                const translateX = deltaX * 0.72;
+                const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                const card = activeSwipeCard;
+
+                if (front) {
+                    front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+                }
+
+                if (translateX >= 70) {
+                    // SWIPED RIGHT: COMPLETE / TOGGLE STATUS
+                    if (front) front.style.transform = 'translateX(105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await toggleSingleTaskStatus(taskId, currentStatus);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await changeMeetingTaskStatusDirect(taskIdx, currentStatus === 'DONE' ? 'PENDING' : 'DONE');
+                        }
+                    }, 180);
+
+                } else if (translateX <= -70) {
+                    // SWIPED LEFT: DELETE / POSTPONE
+                    if (front) front.style.transform = 'translateX(-105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            await deleteSingleTask(taskId);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            await postponeMeetingTaskDirect(taskIdx);
+                        }
+                    }, 180);
+
+                } else {
+                    // Snap back to 0
+                    if (front) front.style.transform = 'translateX(0px)';
+                    if (leftAction) leftAction.style.opacity = '0';
+                    if (rightAction) rightAction.style.opacity = '0';
+                    if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors';
+                }
+
+                activeSwipeCard = null;
+                isHorizontalSwipe = false;
+            });
+        }
+
+        async function postponeMeetingTaskDirect(taskIdx) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(x => x.file_id === currentMeetingId);
+            if (!m || !m.intelligence || !m.intelligence.commitments_and_promises) return;
+            
+            const task = m.intelligence.commitments_and_promises[taskIdx];
+            if (task) {
+                task.deadline_or_context = 'Amanhã 10:00';
+                await saveNoteEdits();
+                selectMeeting(currentMeetingId, false);
+                showInAppToast('📅 Tarefa adiada para Amanhã 10:00!', 'info');
             }
         }
 
@@ -4495,7 +5029,21 @@ ${transcriptText}
                                 const isDone = status === 'DONE';
 
                                 return `
-                                    <div class="bg-white hover:bg-gray-50/70 rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border-0 transition-all space-y-3 group">
+                                    <div class="swipe-container relative overflow-hidden rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] group" data-swipe-type="meeting-task" data-task-idx="${idx}" data-file-id="${m.file_id}" data-status="${status}">
+                                        <!-- Swipe Action Background -->
+                                        <div class="swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors duration-150">
+                                            <div class="swipe-action-left flex items-center gap-2 text-emerald-700 opacity-0 transition-all duration-150 transform -translate-x-2">
+                                                <i class="ph-fill ph-check-circle text-2xl text-emerald-600"></i>
+                                                <span class="font-extrabold text-xs">${isDone ? 'Reabrir' : 'Concluir'}</span>
+                                            </div>
+                                            <div class="swipe-action-right flex items-center gap-2 text-blue-600 opacity-0 transition-all duration-150 transform translate-x-2">
+                                                <span class="font-extrabold text-xs">Adiar (Amanhã)</span>
+                                                <i class="ph-bold ph-calendar-plus text-2xl text-blue-600"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Swipe Foreground Card -->
+                                        <div class="swipe-front bg-white hover:bg-gray-50/70 rounded-3xl p-4 sm:p-5 border-0 transition-transform duration-200 ease-out will-change-transform space-y-3 relative z-10">
                                         
                                         <!-- Row 1: Status Checkbox + Full Width Action Description -->
                                         <div class="flex items-start gap-3 w-full">
@@ -4540,6 +5088,7 @@ ${transcriptText}
                                                     <option value="ARCHIVED" ${status === 'ARCHIVED' ? 'selected' : ''}>📦 Arquivada</option>
                                                 </select>
                                             </div>
+                                        </div>
                                         </div>
                                     </div>
                                 `;
@@ -5453,7 +6002,21 @@ ${transcriptText}
             }
 
             return `
-                <div class="${cardBgClass} rounded-3xl p-4 sm:p-5 hover:shadow-md border-0 transition-all space-y-3 group" id="task-card-${t.id}">
+                <div class="swipe-container relative overflow-hidden rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] group" data-swipe-type="central-task" data-task-id="${t.id}" data-status="${t.status}">
+                    <!-- Swipe Action Background -->
+                    <div class="swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors duration-150">
+                        <div class="swipe-action-left flex items-center gap-2 text-emerald-700 opacity-0 transition-all duration-150 transform -translate-x-2">
+                            <i class="ph-fill ph-check-circle text-2xl text-emerald-600"></i>
+                            <span class="font-extrabold text-xs">${isDone ? 'Reabrir' : 'Concluir'}</span>
+                        </div>
+                        <div class="swipe-action-right flex items-center gap-2 text-red-600 opacity-0 transition-all duration-150 transform translate-x-2">
+                            <span class="font-extrabold text-xs">Excluir</span>
+                            <i class="ph-bold ph-trash text-2xl text-red-600"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Swipe Foreground Card -->
+                    <div class="swipe-front ${cardBgClass} rounded-3xl p-4 sm:p-5 hover:shadow-md border-0 transition-transform duration-200 ease-out will-change-transform space-y-3 relative z-10" id="task-card-${t.id}">
                     
                     <!-- Row 1: Status Checkbox + Full Width Task Description -->
                     <div class="flex items-start gap-3 w-full">
@@ -5858,6 +6421,7 @@ ${transcriptText}
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
+            initUniversalSwipeEngine();
             initPullToRefresh();
             initMentionListeners();
         });
@@ -7044,6 +7608,184 @@ Felipe Donato`);
             } catch (e) {
                 console.error('Error in refreshCompleteDashboardData:', e);
                 showInAppToast('Erro ao atualizar dados: ' + e.message, 'error');
+            }
+        }
+
+    
+        // ==============================================================
+        // 👆 UNIVERSAL SWIPE-TO-ACTION ENGINE (Mobile Gestures on Tasks)
+        // ==============================================================
+        let activeSwipeCard = null;
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeCurrentX = 0;
+        let isHorizontalSwipe = false;
+        let isSwipeLocked = false;
+
+        function initUniversalSwipeEngine() {
+            document.addEventListener('touchstart', (e) => {
+                const swipeContainer = e.target.closest('.swipe-container');
+                if (!swipeContainer) return;
+                
+                // Avoid initiating swipe if user touched an interactive input or button
+                if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('[contenteditable="true"]')) {
+                    return;
+                }
+
+                activeSwipeCard = swipeContainer;
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                isHorizontalSwipe = false;
+                isSwipeLocked = false;
+                
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                if (front) {
+                    front.style.transition = 'none';
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!activeSwipeCard || isSwipeLocked) return;
+
+                swipeCurrentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const deltaX = swipeCurrentX - swipeStartX;
+                const deltaY = currentY - swipeStartY;
+
+                // Determine swipe intent (lock to horizontal if deltaX > deltaY)
+                if (!isHorizontalSwipe) {
+                    if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+                        isHorizontalSwipe = true;
+                    } else if (Math.abs(deltaY) > 8) {
+                        isSwipeLocked = true;
+                        return;
+                    }
+                }
+
+                if (isHorizontalSwipe) {
+                    if (e.cancelable) e.preventDefault();
+                    
+                    const front = activeSwipeCard.querySelector('.swipe-front');
+                    const bg = activeSwipeCard.querySelector('.swipe-bg');
+                    const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                    const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                    
+                    if (!front || !bg) return;
+
+                    // Elastic damping
+                    const translateX = deltaX * 0.72;
+                    front.style.transform = `translateX(${translateX}px)`;
+
+                    if (translateX > 0) {
+                        // Swiping Right -> Complete
+                        if (leftAction) {
+                            leftAction.style.opacity = `${Math.min(translateX / 55, 1)}`;
+                            leftAction.style.transform = `translateX(${Math.min(translateX * 0.2, 8)}px) scale(${translateX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (rightAction) rightAction.style.opacity = '0';
+
+                        if (translateX >= 70) {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/90 transition-colors';
+                        } else {
+                            bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none bg-emerald-50/40 transition-colors';
+                        }
+                    } else if (translateX < 0) {
+                        // Swiping Left -> Delete / Postpone
+                        const absX = Math.abs(translateX);
+                        if (rightAction) {
+                            rightAction.style.opacity = `${Math.min(absX / 55, 1)}`;
+                            rightAction.style.transform = `translateX(-${Math.min(absX * 0.2, 8)}px) scale(${absX >= 70 ? 1.08 : 1})`;
+                        }
+                        if (leftAction) leftAction.style.opacity = '0';
+
+                        const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                        const bgClass = swipeType === 'meeting-task' ? 'bg-blue-50/90' : 'bg-red-50/90';
+                        const lightBgClass = swipeType === 'meeting-task' ? 'bg-blue-50/40' : 'bg-red-50/40';
+
+                        if (absX >= 70) {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${bgClass} transition-colors`;
+                        } else {
+                            bg.className = `swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none ${lightBgClass} transition-colors`;
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', async () => {
+                if (!activeSwipeCard || !isHorizontalSwipe) {
+                    activeSwipeCard = null;
+                    return;
+                }
+
+                const front = activeSwipeCard.querySelector('.swipe-front');
+                const bg = activeSwipeCard.querySelector('.swipe-bg');
+                const leftAction = activeSwipeCard.querySelector('.swipe-action-left');
+                const rightAction = activeSwipeCard.querySelector('.swipe-action-right');
+                const deltaX = swipeCurrentX - swipeStartX;
+                const translateX = deltaX * 0.72;
+                const swipeType = activeSwipeCard.getAttribute('data-swipe-type');
+                const card = activeSwipeCard;
+
+                if (front) {
+                    front.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+                }
+
+                if (translateX >= 70) {
+                    // SWIPED RIGHT: COMPLETE / TOGGLE STATUS
+                    if (front) front.style.transform = 'translateX(105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await toggleSingleTaskStatus(taskId, currentStatus);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            const currentStatus = card.getAttribute('data-status') || 'PENDING';
+                            await changeMeetingTaskStatusDirect(taskIdx, currentStatus === 'DONE' ? 'PENDING' : 'DONE');
+                        }
+                    }, 180);
+
+                } else if (translateX <= -70) {
+                    // SWIPED LEFT: DELETE / POSTPONE
+                    if (front) front.style.transform = 'translateX(-105%)';
+                    if (window.navigator && window.navigator.vibrate) window.navigator.vibrate(45);
+
+                    setTimeout(async () => {
+                        if (swipeType === 'central-task') {
+                            const taskId = parseInt(card.getAttribute('data-task-id'));
+                            await deleteSingleTask(taskId);
+                        } else if (swipeType === 'meeting-task') {
+                            const taskIdx = parseInt(card.getAttribute('data-task-idx'));
+                            await postponeMeetingTaskDirect(taskIdx);
+                        }
+                    }, 180);
+
+                } else {
+                    // Snap back to 0
+                    if (front) front.style.transform = 'translateX(0px)';
+                    if (leftAction) leftAction.style.opacity = '0';
+                    if (rightAction) rightAction.style.opacity = '0';
+                    if (bg) bg.className = 'swipe-bg absolute inset-0 rounded-3xl flex items-center justify-between px-6 font-bold text-xs pointer-events-none transition-colors';
+                }
+
+                activeSwipeCard = null;
+                isHorizontalSwipe = false;
+            });
+        }
+
+        async function postponeMeetingTaskDirect(taskIdx) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(x => x.file_id === currentMeetingId);
+            if (!m || !m.intelligence || !m.intelligence.commitments_and_promises) return;
+            
+            const task = m.intelligence.commitments_and_promises[taskIdx];
+            if (task) {
+                task.deadline_or_context = 'Amanhã 10:00';
+                await saveNoteEdits();
+                selectMeeting(currentMeetingId, false);
+                showInAppToast('📅 Tarefa adiada para Amanhã 10:00!', 'info');
             }
         }
 
