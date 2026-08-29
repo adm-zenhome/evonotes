@@ -95,6 +95,24 @@ class ExecutiveDatabase:
                 )
             """)
 
+            
+            # Custom Ingestion Channels Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS custom_channels (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    icon TEXT DEFAULT 'ph-microphone',
+                    is_deleted INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Ensure channel column exists in meetings
+            try:
+                cursor.execute("ALTER TABLE meetings ADD COLUMN channel TEXT DEFAULT 'Plaud Note Pro'")
+            except Exception:
+                pass
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS commitments (
                     completed_at TIMESTAMP,
@@ -1041,3 +1059,52 @@ def get_unified_stakeholders_list() -> list:
         })
         
     return sorted(results, key=lambda x: x["count"], reverse=True)
+
+
+def get_all_persistent_channels() -> list:
+    default_channels = [
+        {"id": "whatsapp", "name": "WhatsApp", "icon": "ph-whatsapp-logo"},
+        {"id": "call", "name": "Ligação Telefônica", "icon": "ph-phone-call"},
+        {"id": "video", "name": "Videoconferência (Meet/Zoom)", "icon": "ph-video-camera"},
+        {"id": "presential", "name": "Reunião Presencial", "icon": "ph-users"},
+        {"id": "podcast", "name": "Podcast / Entrevista", "icon": "ph-broadcast"}
+    ]
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, icon FROM custom_channels WHERE is_deleted = 0 ORDER BY created_at ASC")
+        rows = cursor.fetchall()
+        db_channels = [dict(r) for r in rows]
+        
+        existing_names = {c["name"].lower() for c in db_channels}
+        # Insert defaults if table is empty
+        if not db_channels:
+            for d in default_channels:
+                cursor.execute("INSERT OR IGNORE INTO custom_channels (id, name, icon) VALUES (?, ?, ?)", (d["id"], d["name"], d["icon"]))
+            conn.commit()
+            return default_channels
+            
+        return db_channels
+
+def create_custom_channel(name: str, icon: str = "ph-microphone") -> dict:
+    chan_id = f"chan_{re.sub(r'[^a-zA-Z0-9]', '_', name.lower())}"
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO custom_channels (id, name, icon, is_deleted)
+            VALUES (?, ?, ?, 0)
+            ON CONFLICT(id) DO UPDATE SET is_deleted = 0, name = excluded.name, icon = excluded.icon
+        """, (chan_id, name, icon))
+        conn.commit()
+    return {"id": chan_id, "name": name, "icon": icon}
+
+def delete_custom_channel(channel_name: str):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM custom_channels WHERE name = ?", (channel_name,))
+        conn.commit()
+
+def update_meeting_channel(file_id: str, channel_name: str):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE meetings SET channel = ? WHERE file_id = ?", (channel_name, file_id))
+        conn.commit()

@@ -1317,3 +1317,34 @@ async def api_create_task_from_next_step(payload: dict = Body(...)):
         "action": action_text,
         "message": f"Tarefa criada com sucesso para {account_name}!"
     })
+
+
+# ========== CHANNELS MANAGEMENT ENDPOINTS ==========
+@app.get("/api/channels")
+async def api_get_channels():
+    from modules.executive_voice_os.database import get_all_persistent_channels
+    channels = get_all_persistent_channels()
+    return JSONResponse({"status": "SUCCESS", "channels": channels})
+
+@app.post("/api/channels")
+async def api_create_channel(payload: dict = Body(...)):
+    name = payload.get("name", "").strip()
+    icon = payload.get("icon", "ph-microphone").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Channel name required")
+    from modules.executive_voice_os.database import create_custom_channel
+    created = create_custom_channel(name, icon)
+    return JSONResponse({"status": "SUCCESS", "channel": created})
+
+@app.delete("/api/channels/{channel_name}")
+async def api_delete_channel(channel_name: str):
+    from modules.executive_voice_os.database import delete_custom_channel
+    delete_custom_channel(channel_name)
+    return JSONResponse({"status": "SUCCESS", "deleted": channel_name})
+
+@app.post("/api/meetings/{file_id}/channel")
+async def api_update_meeting_channel(file_id: str, payload: dict = Body(...)):
+    channel = payload.get("channel", "Plaud Note Pro").strip()
+    from modules.executive_voice_os.database import update_meeting_channel
+    update_meeting_channel(file_id, channel)
+    return JSONResponse({"status": "SUCCESS", "file_id": file_id, "channel": channel})

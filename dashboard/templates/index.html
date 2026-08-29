@@ -666,35 +666,58 @@
             <!-- 📝 INDIVIDUAL MEETING VIEW -->
             <div id="conversation-thread" class="space-y-6 hidden">
                 
-                <!-- 🏛️ EXECUTIVE MEETING METADATA & QUICK ACTIONS BANNER -->
-                <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fade-in" id="meeting-metadata-banner">
+                <!-- 🏛️ EXECUTIVE MEETING METADATA BANNER (STRICT SEQUENCE & INTERACTIVE CHANNEL) -->
+                <div class="bg-white rounded-3xl p-4 sm:p-4.5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-wrap items-center justify-between gap-2.5 animate-fade-in" id="meeting-metadata-banner">
                     <div class="flex items-center gap-2 flex-wrap text-xs">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-bold shadow-2xs">
+                        
+                        <!-- 1. Nome da Fonte SEMPRE em Primeiro -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 text-white font-bold shadow-2xs">
+                            <i class="ph-bold ph-waveform text-emerald-400"></i>
+                            <span id="meta-meeting-source">Plaud Note Pro</span>
+                        </span>
+
+                        <!-- 2. Data -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-900 font-bold shadow-2xs">
                             <i class="ph-bold ph-calendar-blank text-emerald-600"></i>
                             <span id="meta-meeting-date">--</span>
                         </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-800 font-bold shadow-2xs">
+
+                        <!-- 3. Horário -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-900 font-bold shadow-2xs">
                             <i class="ph-bold ph-clock text-blue-600"></i>
                             <span id="meta-meeting-time">--</span>
                         </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 text-purple-800 font-bold shadow-2xs">
+
+                        <!-- 4. Tempo / Duração -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-900 font-bold shadow-2xs">
                             <i class="ph-bold ph-hourglass text-purple-600"></i>
                             <span id="meta-meeting-duration">--</span>
                         </span>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-100 text-zinc-800 font-bold shadow-2xs">
-                            <i class="ph-bold ph-microphone text-zinc-600" id="meta-meeting-channel-icon"></i>
-                            <span id="meta-meeting-channel">🎙️ Plaud Note Pro</span>
-                        </span>
-                    </div>
 
-                    <!-- Header Quick Action: Google Calendar for Full Meeting -->
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button onclick="scheduleMeetingInGoogleCalendar()" 
-                                class="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer" 
-                                title="Criar evento no Google Calendar com todos os detalhes e participantes">
-                            <i class="ph-bold ph-calendar-plus text-emerald-400 text-sm"></i>
-                            <span>Google Calendar (1-Click)</span>
-                        </button>
+                        <!-- 5. Participantes -->
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-950 font-bold shadow-2xs cursor-pointer hover:bg-amber-100 transition" 
+                              id="meta-meeting-participants-badge" onclick="openAllStakeholdersDirectoryModal()" title="Ver participantes mapeados">
+                            <i class="ph-bold ph-users text-amber-600"></i>
+                            <span id="meta-meeting-participants">-- participantes</span>
+                        </span>
+
+                        <!-- 6. Canal de Entrada (WhatsApp, Ligação, Videoconferência, etc.) -->
+                        <div class="relative inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200/80 px-3 py-1 rounded-xl shadow-2xs transition">
+                            <i class="ph-bold ph-broadcast text-gray-600 text-xs"></i>
+                            <select id="meta-meeting-channel-select" onchange="changeMeetingChannel(this.value)" 
+                                    class="bg-transparent text-xs font-bold text-gray-800 focus:outline-none cursor-pointer pr-1 border-0" 
+                                    title="Alterar canal de entrada desta reunião">
+                                <option value="WhatsApp">📱 WhatsApp</option>
+                                <option value="Ligação Telefônica">📞 Ligação Telefônica</option>
+                                <option value="Videoconferência (Meet/Zoom)">💻 Videoconferência</option>
+                                <option value="Reunião Presencial">👥 Presencial</option>
+                                <option value="Podcast / Entrevista">🎙️ Podcast</option>
+                            </select>
+                            <button onclick="openChannelManagerModal()" class="text-gray-400 hover:text-black transition p-0.5" title="Gerenciar canais (criar novos, excluir, reordenar)">
+                                <i class="ph-bold ph-gear-six text-[11px]"></i>
+                            </button>
+                        </div>
+
                     </div>
                 </div>
 
@@ -1557,7 +1580,121 @@
             }
         }
 
+        
+        // =========================================================================
+        // 🎙️ CANAIS DE ENTRADA & METADATA BAR LOGIC
+        // =========================================================================
+        let availableChannelsList = [];
+
+        async function fetchAvailableChannels() {
+            try {
+                const res = await fetch('/api/channels');
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    availableChannelsList = data.channels || [];
+                    populateChannelSelectOptions();
+                }
+            } catch (e) {
+                console.error('Error fetching channels:', e);
+            }
+        }
+
+        function populateChannelSelectOptions() {
+            const selectEl = document.getElementById('meta-meeting-channel-select');
+            if (!selectEl) return;
+            
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = availableChannelsList.map(c => `
+                <option value="${c.name}">${c.name}</option>
+            `).join('');
+            if (currentVal) selectEl.value = currentVal;
+        }
+
+        async function changeMeetingChannel(newChannel) {
+            if (!currentMeetingId) return;
+            try {
+                showInAppToast(`🎙️ Canal alterado para: ${newChannel}`, 'info');
+                await fetch(`/api/meetings/${currentMeetingId}/channel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel: newChannel })
+                });
+                const m = meetingsData.find(item => item.file_id === currentMeetingId);
+                if (m) m.channel = newChannel;
+            } catch (e) {
+                showInAppToast('Erro ao atualizar canal: ' + e.message, 'error');
+            }
+        }
+
+        function openChannelManagerModal() {
+            document.getElementById('channel-manager-modal').classList.remove('hidden');
+            renderChannelManagerList();
+        }
+
+        function closeChannelManagerModal() {
+            document.getElementById('channel-manager-modal').classList.add('hidden');
+        }
+
+        function renderChannelManagerList() {
+            const listEl = document.getElementById('channel-manager-list');
+            if (!listEl) return;
+
+            if (availableChannelsList.length === 0) {
+                listEl.innerHTML = '<div class="text-xs text-gray-400 text-center py-4">Nenhum canal cadastrado.</div>';
+                return;
+            }
+
+            listEl.innerHTML = availableChannelsList.map((c, idx) => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-gray-800 transition">
+                    <div class="flex items-center gap-2">
+                        <i class="ph-bold ${c.icon || 'ph-microphone'} text-gray-600"></i>
+                        <span>${c.name}</span>
+                    </div>
+                    <button onclick="deleteCustomChannelAction('${c.name}')" class="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Remover canal">
+                        <i class="ph-bold ph-trash text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function submitCreateChannel() {
+            const input = document.getElementById('new-channel-name-input');
+            const name = input.value.trim();
+            if (!name) return;
+
+            try {
+                showInAppToast(`Criando canal "${name}"...`, 'info');
+                const res = await fetch('/api/channels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, icon: 'ph-microphone' })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    input.value = '';
+                    await fetchAvailableChannels();
+                    renderChannelManagerList();
+                    showInAppToast('✅ Canal criado com sucesso!', 'success');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao criar canal: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteCustomChannelAction(channelName) {
+            if (!confirm(`Deseja remover o canal "${channelName}"?`)) return;
+            try {
+                await fetch(`/api/channels/${encodeURIComponent(channelName)}`, { method: 'DELETE' });
+                await fetchAvailableChannels();
+                renderChannelManagerList();
+                showInAppToast('🗑️ Canal removido com sucesso!', 'info');
+            } catch (e) {
+                showInAppToast('Erro ao remover canal: ' + e.message, 'error');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            fetchAvailableChannels();
             initSidebarResizer();
             initSidebarCategories();
             loadPersistedNotificationPrefs();
@@ -3251,18 +3388,35 @@
             const endM = totalEndMin % 60;
             const endTimeFormatted = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
-            const dateLabel = document.getElementById('meta-meeting-date');
-            if (dateLabel) dateLabel.innerText = m.start_time ? m.start_time.split(' ')[0] : '28/08/2026';
+            // 1. Fonte
+            const sourceLabel = document.getElementById('meta-meeting-source');
+            if (sourceLabel) sourceLabel.innerText = isWhatsApp ? 'WhatsApp Gateway' : 'Plaud Note Pro';
 
+            // 2. Data
+            const dateLabel = document.getElementById('meta-meeting-date');
+            if (dateLabel) dateLabel.innerText = m.start_time ? m.start_time.split(' ')[0] : '2026-08-28';
+
+            // 3. Horário
             const timeLabel = document.getElementById('meta-meeting-time');
             if (timeLabel) timeLabel.innerText = `${timeStr} - ${endTimeFormatted}`;
 
+            // 4. Tempo / Duração
             const durationLabel = document.getElementById('meta-meeting-duration');
             if (durationLabel) durationLabel.innerText = `${durationMin} min`;
 
-            const channelLabel = document.getElementById('meta-meeting-channel');
-            if (channelLabel) {
-                channelLabel.innerText = isWhatsApp ? '📱 WhatsApp Gateway (Voz)' : '🎙️ Plaud Note Pro (Dual Sensor VCS)';
+            // 5. Participantes
+            const partsList = (intel.participants || []);
+            const partCount = partsList.length > 0 ? partsList.length : 1;
+            const participantsLabel = document.getElementById('meta-meeting-participants');
+            if (participantsLabel) {
+                participantsLabel.innerText = `${partCount} participante${partCount > 1 ? 's' : ''}`;
+            }
+
+            // 6. Canal
+            const channelSelect = document.getElementById('meta-meeting-channel-select');
+            if (channelSelect) {
+                const activeChan = m.channel || (isWhatsApp ? 'WhatsApp' : 'Videoconferência (Meet/Zoom)');
+                channelSelect.value = activeChan;
             }
         }
 
@@ -7022,6 +7176,53 @@ Felipe Donato`);
                 <span class="text-[11px] text-gray-400" id="efficiency-modal-count-label">0 reuniões processadas</span>
                 <button onclick="closeEfficiencyBreakdownModal()" class="px-5 py-2.5 rounded-full bg-zinc-950 hover:bg-black text-white font-bold shadow-md transition active:scale-95 cursor-pointer">
                     Fechar Auditoria
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- 🎛️ MODAL: GERENCIADOR DE CANAIS DE ENTRADA -->
+    <div id="channel-manager-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border-0">
+            
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <div class="w-8 h-8 rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center text-base shadow-2xs">
+                        <i class="ph-bold ph-broadcast"></i>
+                    </div>
+                    <div>
+                        <div>Gerenciador de Canais de Entrada</div>
+                        <div class="text-[10px] text-gray-400 font-normal">Crie, renomeie ou remova canais de captação</div>
+                    </div>
+                </div>
+                <button onclick="closeChannelManagerModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition cursor-pointer">
+                    <i class="ph-bold ph-x text-sm"></i>
+                </button>
+            </div>
+
+            <!-- List of Existing Channels -->
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1" id="channel-manager-list">
+                <!-- Populated via JS -->
+            </div>
+
+            <!-- Create New Channel Form -->
+            <div class="pt-2 border-t border-gray-100 space-y-2">
+                <div class="text-xs font-bold text-gray-700">Criar Novo Canal:</div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="new-channel-name-input" placeholder="Ex: Ligação Teams, Gravação Presencial..." 
+                           class="flex-1 px-3.5 py-2 rounded-xl bg-gray-100 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
+                    <button onclick="submitCreateChannel()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 cursor-pointer">
+                        <i class="ph-bold ph-plus text-xs"></i>
+                        <span>Adicionar</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end pt-2">
+                <button onclick="closeChannelManagerModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-700 transition cursor-pointer">
+                    Concluído
                 </button>
             </div>
 
