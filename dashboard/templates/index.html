@@ -813,6 +813,10 @@
     <!-- Context Menu for Meeting Item (3 Dots Dropdown) -->
     <div id="meeting-context-menu" class="hidden fixed z-50 bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] py-1.5 px-1 w-56 text-xs select-none border border-gray-100 animate-fade-in">
         <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Opções da Reunião</div>
+        <button onclick="triggerMarkAsUnreadFromContext()" class="w-full flex items-center gap-2.5 px-3 py-2 text-blue-700 hover:bg-blue-50 rounded-xl transition text-left font-medium">
+            <i class="ph-bold ph-eye-slash text-sm text-blue-600"></i>
+            <span>Marcar como Não Lida</span>
+        </button>
         <button onclick="triggerRenameFromContext()" class="w-full flex items-center gap-2.5 px-3 py-2 text-gray-800 hover:bg-gray-100 rounded-xl transition text-left font-medium">
             <i class="ph-bold ph-pencil-simple text-sm text-emerald-600"></i>
             <span>Renomear Reunião</span>
@@ -2876,6 +2880,15 @@
             }
         });
 
+        
+        function triggerMarkAsUnreadFromContext() {
+            if (!contextMenuMeetingId) return;
+            readMeetingsSet.delete(contextMenuMeetingId);
+            localStorage.setItem('evonotes_read_meetings', JSON.stringify(Array.from(readMeetingsSet)));
+            renderSidebarMeetings();
+            showInAppToast('🔵 Reunião marcada como Não Lida!', 'info');
+        }
+
         function triggerRenameFromContext() {
             const menu = document.getElementById('meeting-context-menu');
             if (menu) menu.classList.add('hidden');
@@ -3290,6 +3303,37 @@ Ata gravada no Executive Voice OS.`);
             showInAppToast('📅 Abrindo Google Calendar pré-preenchido com participantes!', 'success');
         }
 
+        
+        async function createTaskFromNextStepDirect(encodedAcc, encodedNextStep, meetingId) {
+            const accName = decodeURIComponent(encodedAcc);
+            const nextStep = decodeURIComponent(encodedNextStep);
+
+            try {
+                showInAppToast(`⚡ Criando tarefa para ${accName}...`, 'info');
+                const res = await fetch('/api/tasks/create-from-next-step', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account_name: accName,
+                        next_step: nextStep,
+                        meeting_id: meetingId,
+                        owner: 'Felipe Donato',
+                        deadline: 'Próxima Semana'
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(`✅ Tarefa criada com sucesso: "${data.action}"!`, 'success');
+                    // Refresh current tasks
+                    if (typeof fetchTasksData === 'function') fetchTasksData();
+                } else {
+                    showInAppToast('Erro ao criar tarefa: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na requisição: ' + e.message, 'error');
+            }
+        }
+
         function scheduleTaskInGoogleCalendarDirect(encodedAction, encodedDeadline, encodedMeetingTitle, encodedOwner) {
             const action = decodeURIComponent(encodedAction || 'Tarefa Executiva');
             const deadline = decodeURIComponent(encodedDeadline || 'Hoje');
@@ -3586,13 +3630,57 @@ ${transcriptText}
             ` : '';
 
             const accountsBlock = intel.accounts_discussed && intel.accounts_discussed.length > 0 ? `
-                <div class="space-y-2">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">🏢 Contas & Oportunidades:</h3>
-                    <ul class="space-y-1.5 text-sm text-gray-800">
-                        ${intel.accounts_discussed.map(acc => `
-                            <li><strong>${acc.account_name}:</strong> ${acc.opportunity_or_risk} <span class="text-xs text-gray-500">— Próximo passo: ${acc.next_step}</span></li>
-                        `).join('')}
-                    </ul>
+                <div class="space-y-3 pt-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <i class="ph-bold ph-buildings text-blue-600 text-sm"></i>
+                        <span>Contas & Oportunidades Mapeadas:</span>
+                    </h3>
+                    <div class="space-y-2.5">
+                        ${intel.accounts_discussed.map((acc, accIdx) => {
+                            const nextStepText = acc.next_step || 'Avançar com a conta';
+                            return `
+                                <div class="bg-gray-50/90 hover:bg-white p-3.5 rounded-2xl border border-gray-100/80 shadow-2xs hover:shadow-xs transition space-y-2 group">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center">
+                                                <i class="ph-bold ph-buildings text-[11px]"></i>
+                                            </span>
+                                            <span class="text-xs font-bold text-gray-900">${acc.account_name}</span>
+                                            <span class="text-[11px] text-gray-500">— ${acc.opportunity_or_risk}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Linked Actionable Next Step Box -->
+                                    <div class="bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-3">
+                                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
+                                            <div class="text-xs font-medium text-gray-800 truncate">
+                                                <span class="font-bold text-gray-400">Próximo passo:</span> ${nextStepText}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <!-- Button to convert next step into live board task -->
+                                            <button onclick="createTaskFromNextStepDirect('${encodeURIComponent(acc.account_name)}', '${encodeURIComponent(nextStepText)}', '${m.file_id}')" 
+                                                    class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-[10px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer" 
+                                                    title="Criar tarefa no board de compromissos">
+                                                <i class="ph-bold ph-plus-circle"></i>
+                                                <span>Criar Tarefa no Board</span>
+                                            </button>
+
+                                            <!-- 1-Click Google Calendar for this next step -->
+                                            <button onclick="scheduleTaskInGoogleCalendarDirect('${encodeURIComponent('[' + acc.account_name + '] ' + nextStepText)}', 'Próxima Semana', '${encodeURIComponent(intel.meeting_title || m.title)}', 'Felipe Donato')" 
+                                                    class="w-6 h-6 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs cursor-pointer" 
+                                                    title="Google Calendar">
+                                                <i class="ph-bold ph-google-logo text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             ` : '';
 

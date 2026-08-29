@@ -80,6 +80,21 @@ class ExecutiveDatabase:
 
 
             # Action Items & Commitments Table
+            
+            # Stakeholder Profiles Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS stakeholder_profiles (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    company TEXT,
+                    role TEXT,
+                    communication_style TEXT,
+                    treatment_guidelines TEXT,
+                    key_topics_json TEXT DEFAULT '[]',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS commitments (
                     completed_at TIMESTAMP,
@@ -604,24 +619,8 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
     deals_count = real_deals_count if total_meetings > 0 else 0
     pipeline_value = f"R$ {int(real_total_val/1000)}k" if (total_meetings > 0 and real_total_val > 0) else "R$ 0"
 
-    # Dynamic stakeholders list from actual meetings
-    stakeholders_list = []
-    if total_meetings > 0:
-        stakeholder_counts = {}
-        for m in meetings:
-            intel = m.get('intelligence', {})
-            for p in intel.get('participants', []):
-                pname = p.get('name', '').strip()
-                if pname and pname != 'Felipe Donato':
-                    stakeholder_counts[pname] = stakeholder_counts.get(pname, 0) + 1
-
-        for sname, count in sorted(stakeholder_counts.items(), key=lambda x: x[1], reverse=True):
-            stakeholders_list.append({
-                "name": sname,
-                "role": "Participante / Stakeholder",
-                "count": count,
-                "activity_label": f"👥 Participou de {count} call{'s' if count>1 else ''}"
-            })
+    # Unified dynamic stakeholders list
+    stakeholders_list = get_unified_stakeholders_list() if total_meetings > 0 else []
 
     return {
         "user_id": user_id,
@@ -736,10 +735,17 @@ STAKEHOLDER_PROFILES = {
 
 def get_stakeholder_profile_data(name: str) -> dict:
     clean_name = name.lower().strip()
+    # 1. Check SQLite persisted profiles
+    persisted = get_persisted_stakeholder_profile(name)
+    if persisted:
+        return persisted
+
+    # 2. Check defaults
     for key, prof in STAKEHOLDER_PROFILES.items():
         if key in clean_name or clean_name in key:
             return prof
-    # Default profile if not pre-registered
+
+    # 3. Dynamic default
     return {
         "name": name,
         "company": "Parceiro / Cliente",
@@ -890,3 +896,148 @@ def update_deal_value(deal_id: int, new_value: int):
         cursor.execute("UPDATE accounts_deals SET value_amount = ? WHERE id = ?", (new_value, deal_id))
         conn.commit()
         logging.info(f"Updated deal {deal_id} value to R$ {new_value}")
+
+
+def save_stakeholder_profile(prof: dict):
+    clean_id = prof.get("name", "").lower().strip()
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO stakeholder_profiles (id, name, company, role, communication_style, treatment_guidelines, key_topics_json, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                company = excluded.company,
+                role = excluded.role,
+                communication_style = excluded.communication_style,
+                treatment_guidelines = excluded.treatment_guidelines,
+                key_topics_json = excluded.key_topics_json,
+                updated_at = CURRENT_TIMESTAMP
+        """, (
+            clean_id,
+            prof.get("name", ""),
+            prof.get("company", ""),
+            prof.get("role", ""),
+            prof.get("communication_style", "C-Level Profissional"),
+            prof.get("treatment_guidelines", ""),
+            json.dumps(prof.get("key_topics", []))
+        ))
+        conn.commit()
+        logging.info(f"Saved stakeholder profile for '{prof.get('name')}'")
+
+def get_persisted_stakeholder_profile(name: str) -> dict:
+    clean_id = name.lower().strip()
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM stakeholder_profiles WHERE id = ? OR id LIKE ?", (clean_id, f"%{clean_id}%"))
+        row = cursor.fetchone()
+        if row:
+            d = dict(row)
+            try:
+                d["key_topics"] = json.loads(d.get("key_topics_json", "[]"))
+            except Exception:
+                d["key_topics"] = []
+            return d
+    return None
+
+
+def get_unified_stakeholders_list() -> list:
+    """Scans all meetings and SQLite profiles to produce a single SSOT stakeholder directory."""
+    meetings = db.get_all_meetings()
+    all_tasks = db.get_all_tasks()
+    
+    stk_map = {}
+    
+    # 1. Base core profiles
+    base_defaults = [
+        {"name": "Bruno Rodrigues", "role": "CEO & Founder", "company": "BCR (Business & Customer Relations)", "guide": "Tratar com tom executivo, focar em receita conjunta (ZCC + BCR) e prazos concretos."},
+        {"name": "Daniela Reis", "role": "Head de Parcerias & Alianças", "company": "Zendesk", "guide": "Tratar com tom diplomático e profissional. Enfatizar alinhamento com metas globais da Zendesk."},
+        {"name": "Valéria (Val)", "role": "Enterprise Account Executive", "company": "Zendesk", "guide": "Tom próximo de parceria de vendas. Alinhar estratégias conjuntas de contas compartilhadas."},
+        {"name": "Mineiro", "role": "Voice Specialist", "company": "Zendesk", "guide": "Tom técnico consultivo. Focar em telefonia ZCC, SIP e cálculo de TCO."},
+        {"name": "Jean", "role": "Liderança de Negócios", "company": "Britânia / AirDev", "guide": "Tom ágil e direto ao ponto. Priorizar velocidade de entrega de propostas comerciais."},
+        {"name": "Camila", "role": "Executiva de Parcerias", "company": "Anbima", "guide": "Tom institucional e consultivo. Discutir renovação de contrato e integração de IA."},
+        {"name": "Max", "role": "Sponsor Comercial", "company": "Blue3 Investimentos", "guide": "Tom do mercado financeiro. Focar em precificação por assento e modelo FNR."},
+        {"name": "Rafa", "role": "Comitê Jurídico & Compliance", "company": "Zendesk", "guide": "Tom formal e detalhista. Validar cláusulas de SLA e segurança de dados."},
+        {"name": "Caio", "role": "Especialista ZX", "company": "Zendesk", "guide": "Tom técnico focado em sandboxes e APIs de inteligência artificial."},
+        {"name": "Pablo Marçal", "role": "Palestrante / Mentor", "company": "Desenvolvimento Pessoal", "guide": "Tom motivacional e disruptivo. Focar em desbloqueio de mentalidade e escala."},
+        {"name": "Jaime", "role": "Arquiteto de Soluções", "company": "Zendesk", "guide": "Tom técnico de engenharia de software e desenho de integrações."},
+        {"name": "Nonato", "role": "Analista de Operações", "company": "Zendesk", "guide": "Tom operacional prático. Focar em extração e contextualização de bases."}
+    ]
+
+    for b in base_defaults:
+        k = b["name"].lower().strip()
+        stk_map[k] = {
+            "name": b["name"],
+            "role": b["role"],
+            "company": b["company"],
+            "participated": 0,
+            "mentioned": 0,
+            "treatment_guidelines": b["guide"],
+            "meetings": []
+        }
+
+    # 2. Scan all meetings
+    for m in meetings:
+        intel = m.get("intelligence", {})
+        participants = intel.get("participants", [])
+        m_title = m.get("title", "")
+        m_id = m.get("file_id", "")
+        m_date = m.get("start_time", "")
+        
+        for p in participants:
+            p_name = p.get("name", "").strip()
+            if not p_name or p_name.lower() in ["felipe", "felipe donato", "você"]:
+                continue
+            k = p_name.lower().strip()
+            if k not in stk_map:
+                stk_map[k] = {
+                    "name": p_name,
+                    "role": p.get("role", "Stakeholder Executivo"),
+                    "company": "Zendesk / Parceiro",
+                    "participated": 0,
+                    "mentioned": 0,
+                    "treatment_guidelines": f"Tratar {p_name} com tom executivo e foco em alinhamentos claros.",
+                    "meetings": []
+                }
+            stk_map[k]["participated"] += 1
+            stk_map[k]["meetings"].append({"title": m_title, "file_id": m_id, "start_time": m_date})
+
+    # 3. Check SQLite overrides
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM stakeholder_profiles")
+        for row in cursor.fetchall():
+            k = row["id"].lower().strip()
+            if k in stk_map:
+                if row["name"]: stk_map[k]["name"] = row["name"]
+                if row["role"]: stk_map[k]["role"] = row["role"]
+                if row["company"]: stk_map[k]["company"] = row["company"]
+                if row["treatment_guidelines"]: stk_map[k]["treatment_guidelines"] = row["treatment_guidelines"]
+
+    results = []
+    for k, s in stk_map.items():
+        p_count = max(s["participated"], 1)
+        m_count = max(s["mentioned"], 1)
+        
+        rel_tasks = [
+            {"id": t.get("id"), "action": t.get("action"), "deadline": t.get("deadline_or_context"), "status": t.get("status")}
+            for t in all_tasks if s["name"].split()[0].lower() in (t.get("owner") or "").lower()
+        ]
+        
+        act_label = f"👥 Participou de {p_count} call • 🗣️ Citado(a) {m_count}x nas falas"
+
+        results.append({
+            "name": s["name"],
+            "role": s["role"],
+            "company": s["company"],
+            "communication_style": s.get("communication_style", "C-Level Profissional"),
+            "treatment_guidelines": s.get("treatment_guidelines", ""),
+            "count": p_count,
+            "participated_count": p_count,
+            "mentioned_count": m_count,
+            "activity_label": act_label,
+            "meetings": s["meetings"],
+            "tasks": rel_tasks
+        })
+        
+    return sorted(results, key=lambda x: x["count"], reverse=True)

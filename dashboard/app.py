@@ -1014,62 +1014,11 @@ async def api_audio_director_options(file_id: str):
 
 @app.get("/api/stakeholders-directory")
 async def api_get_all_stakeholders_directory():
-    """Returns full directory with clear distinction between Participated vs Cited."""
-    meetings = db.get_all_meetings()
-    all_tasks = db.get_all_tasks()
-    from ..database import get_stakeholder_profile_data
-    
-    stk_base = [
-        {"name": "Bruno Rodrigues", "role": "CEO / BCR", "company": "BCR (Business & Customer Relations)", "participated": 1, "mentioned": 3},
-        {"name": "Daniela Reis", "role": "Head de Parcerias", "company": "Zendesk", "participated": 1, "mentioned": 4},
-        {"name": "Valéria (Val)", "role": "Enterprise AE", "company": "Zendesk", "participated": 1, "mentioned": 2},
-        {"name": "Mineiro", "role": "Voice Specialist", "company": "Zendesk", "participated": 1, "mentioned": 2},
-        {"name": "Max", "role": "Sponsor Blue3", "company": "Blue3 Investimentos", "participated": 1, "mentioned": 1},
-        {"name": "Rafa", "role": "Jurídico / Comitê", "company": "Comitê Jurídico", "participated": 0, "mentioned": 2},
-        {"name": "Caio", "role": "Especialista ZX", "company": "Zendesk", "participated": 1, "mentioned": 1}
-    ]
-    
-    results = []
-    for s in stk_base:
-        prof = get_stakeholder_profile_data(s["name"])
-        p_count = s["participated"]
-        m_count = s["mentioned"]
-        
-        # Related meetings where they were present
-        rel_meetings = [
-            {"title": m.get("title"), "file_id": m.get("file_id"), "start_time": m.get("start_time")}
-            for m in meetings if any(s["name"].split()[0].lower() in p.get("name", "").lower() for p in m.get("intelligence", {}).get("participants", []))
-        ]
-        
-        # Related tasks
-        rel_tasks = [
-            {"id": t.get("id"), "action": t.get("action"), "deadline": t.get("deadline_or_context"), "status": t.get("status")}
-            for t in all_tasks if s["name"].split()[0].lower() in (t.get("owner") or "").lower()
-        ]
-        
-        if p_count > 0 and m_count > 0:
-            act_label = f"👥 Participou de {p_count} call • 🗣️ Citado(a) {m_count}x nas falas"
-        elif p_count > 0:
-            act_label = f"👥 Participou de {p_count} reunião"
-        else:
-            act_label = f"🗣️ Citado(a) {m_count}x nas conversas (Ausente na call)"
-
-        results.append({
-            "name": prof.get("name", s["name"]),
-            "role": prof.get("role", s["role"]),
-            "company": prof.get("company", s["company"]),
-            "communication_style": prof.get("communication_style"),
-            "treatment_guidelines": prof.get("treatment_guidelines"),
-            "participated_count": p_count,
-            "mentioned_count": m_count,
-            "activity_label": act_label,
-            "meetings": rel_meetings,
-            "tasks": rel_tasks
-        })
-        
+    from modules.executive_voice_os.database import get_unified_stakeholders_list
+    results = get_unified_stakeholders_list()
     return JSONResponse({
         "status": "SUCCESS",
-        "total": len(results),
+        "total_count": len(results),
         "stakeholders": results
     })
 
@@ -1321,4 +1270,50 @@ async def api_update_deal_value(deal_id: int, payload: dict = Body(...)):
         "new_value": val_int,
         "formatted_value": f"R$ {(val_int/1000):.0f}k" if val_int >= 1000 else f"R$ {val_int}",
         "analytics": analytics
+    })
+
+
+@app.post("/api/stakeholders/save-batch")
+async def api_save_stakeholders_batch(payload: dict = Body(...)):
+    """Saves user-edited stakeholder profiles permanently into SQLite."""
+    stakeholders = payload.get("stakeholders", [])
+    from ..database import save_stakeholder_profile
+    
+    for s in stakeholders:
+        if s.get("name"):
+            save_stakeholder_profile(s)
+            
+    return JSONResponse({
+        "status": "SUCCESS",
+        "message": f"{len(stakeholders)} perfil(is) atualizado(s) com sucesso no banco de dados!",
+        "count": len(stakeholders)
+    })
+
+
+@app.post("/api/tasks/create-from-next-step")
+async def api_create_task_from_next_step(payload: dict = Body(...)):
+    """Creates a commitment from a meeting next step to ensure it never dies."""
+    account_name = payload.get("account_name", "Conta")
+    next_step = payload.get("next_step", "")
+    meeting_id = payload.get("meeting_id", "")
+    owner = payload.get("owner", "Felipe Donato")
+    deadline = payload.get("deadline", "Próxima Semana")
+    
+    if not next_step:
+        raise HTTPException(status_code=400, detail="Next step description required")
+        
+    action_text = f"[{account_name}] {next_step}"
+    created_id = db.create_task({
+        "meeting_id": meeting_id,
+        "owner": owner,
+        "action": action_text,
+        "deadline_or_context": deadline,
+        "status": "PENDING"
+    })
+    
+    return JSONResponse({
+        "status": "SUCCESS",
+        "task_id": created_id,
+        "action": action_text,
+        "message": f"Tarefa criada com sucesso para {account_name}!"
     })
