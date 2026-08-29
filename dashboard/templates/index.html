@@ -571,26 +571,26 @@
                             </div>
                         </div>
 
-                        <!-- Filter Tabs: Starts strictly at "Minhas Tarefas" with clean spacing -->
-                        <div class="inline-flex rounded-2xl bg-gray-100 p-1 border-0 text-xs font-semibold shadow-inner flex-wrap gap-1" id="task-filter-tabs">
-                            <button onclick="filterTasksView('MY_TASKS')" id="tab-task-my_tasks" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition cursor-pointer">
+                        <!-- Filter Tabs: Single-Row Apple Segmented Bar (Strict Zero Wrapping) -->
+                        <div class="inline-flex rounded-2xl bg-gray-100/90 p-1 border-0 text-xs font-semibold shadow-inner whitespace-nowrap overflow-x-auto scrollbar-none flex-nowrap gap-0.5 flex-shrink-0" id="task-filter-tabs">
+                            <button onclick="filterTasksView('MY_TASKS')" id="tab-task-my_tasks" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition cursor-pointer flex-shrink-0">
                                 <i class="ph-bold ph-user-check text-xs text-emerald-600"></i>
-                                <span>Minhas Tarefas</span>
-                                <span id="my-tasks-count-pill" class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">2</span>
+                                <span>Minhas</span>
+                                <span id="my-tasks-count-pill" class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">0</span>
                             </button>
-                            <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('ALL')" id="tab-task-all" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer flex-shrink-0">
                                 <i class="ph-bold ph-list-dashes text-xs"></i>
                                 <span>Todas</span>
                             </button>
-                            <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('DELEGATED')" id="tab-task-delegated" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer flex-shrink-0">
                                 <i class="ph-bold ph-user-switch text-xs text-blue-600"></i>
-                                <span>Delegadas / Time</span>
+                                <span>Delegadas</span>
                             </button>
-                            <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('DONE')" id="tab-task-done" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer flex-shrink-0">
                                 <i class="ph-bold ph-check-circle text-xs text-emerald-600"></i>
                                 <span>Concluídas</span>
                             </button>
-                            <button onclick="filterTasksView('ARCHIVED')" id="tab-task-archived" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer">
+                            <button onclick="filterTasksView('ARCHIVED')" id="tab-task-archived" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition cursor-pointer flex-shrink-0">
                                 <i class="ph-bold ph-archive text-xs text-purple-600"></i>
                                 <span>Arquivadas</span>
                             </button>
