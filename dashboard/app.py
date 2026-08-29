@@ -571,8 +571,7 @@ async def api_ai_action(file_id: str, payload: dict = Body(...)):
 • Ações & Decisões: {tasks_str}
 """)
         
-        summaries_str = "
-".join(context_blocks)
+        summaries_str = "\n".join(context_blocks)
         prompt_text = f"""=== BASE DE INTELIGÊNCIA EXECUTIVA COMPLETA (TODAS AS GRAVAÇÕES) ===
 {summaries_str}
 === FIM DA BASE ===
