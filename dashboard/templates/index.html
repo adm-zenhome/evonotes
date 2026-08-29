@@ -1027,18 +1027,21 @@
                 </button>
             </div>
 
-            <!-- Settings Navigation Tabs (Apple Segmented) -->
-            <div class="inline-flex w-full rounded-2xl bg-gray-200/70 p-1 border-0 text-xs font-semibold shadow-inner" id="settings-tabs">
-                <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" class="flex-1 py-2 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <!-- Settings Navigation Tabs (Apple Segmented - 5 Tabs) -->
+            <div class="inline-flex w-full rounded-2xl bg-gray-200/70 p-1 border-0 text-xs font-semibold shadow-inner overflow-x-auto whitespace-nowrap scrollbar-none" id="settings-tabs">
+                <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" class="flex-1 py-2 px-3 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
                     <i class="ph-bold ph-bell-simple text-emerald-600"></i> <span>Notificações & Canais</span>
                 </button>
-                <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" class="flex-1 py-2 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <i class="ph-bold ph-folders text-blue-600"></i> <span>Listas & Categorias</span>
+                </button>
+                <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
                     <i class="ph-bold ph-waveform text-purple-600"></i> <span>Hardware Plaud</span>
                 </button>
-                <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" class="flex-1 py-2 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer">
-                    <i class="ph-bold ph-book-bookmark text-blue-600"></i> <span>Dicionário & Jargões</span>
+                <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <i class="ph-bold ph-book-bookmark text-indigo-600"></i> <span>Dicionário & Jargões</span>
                 </button>
-                <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" class="flex-1 py-2 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer">
+                <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
                     <i class="ph-bold ph-brain text-amber-600"></i> <span>Motores de IA</span>
                 </button>
             </div>
@@ -1142,6 +1145,53 @@
                                 <span>Enviar Teste Agora</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+
+            </div>
+
+            
+            <!-- TAB 2: Gestão de Listas & Reuniões nas Categorias -->
+            <div id="settings-content-tab-categories" class="space-y-4 hidden">
+                
+                <!-- Category Lists Manager Card -->
+                <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-base font-bold shadow-2xs">
+                                <i class="ph-bold ph-folders"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-gray-900">Listas & Categorias Customizadas</div>
+                                <div class="text-[10px] text-gray-400">Clique na categoria para auditar e mover as reuniões associadas</div>
+                            </div>
+                        </div>
+                        <button onclick="openCategoryCreateModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
+                            <i class="ph-bold ph-plus text-xs"></i> <span>Nova Categoria</span>
+                        </button>
+                    </div>
+
+                    <!-- Categories Cards Grid -->
+                    <div id="settings-categories-list-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Meetings in Selected Category Card -->
+                <div class="bg-white p-5 rounded-2xl space-y-3 shadow-xs border-0">
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shadow-2xs">
+                                <i class="ph-bold ph-chats-circle"></i>
+                            </div>
+                            <div class="text-xs font-bold text-gray-900" id="cat-meetings-manager-title">Conversas na Categoria Selecionada</div>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700" id="cat-meetings-manager-count">0 conversas</span>
+                    </div>
+
+                    <!-- Meetings List (Scrollable) -->
+                    <div id="cat-meetings-manager-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
 
@@ -4269,6 +4319,141 @@ _Enviado via EvoNotes OS_`);
             showInAppToast('📱 WhatsApp Voice Ingest está ATIVO!\nInstância Z-API conectada e pronta para receber áudios.', 'info')
         }
 
+
+        
+        // ========== SETTINGS CATEGORIES & CONVERSATIONS MANAGER JS ==========
+        let selectedCategoryForManager = 'Pipeline & Deals';
+
+        function renderSettingsCategoriesManager() {
+            const grid = document.getElementById('settings-categories-list-grid');
+            if (!grid) return;
+
+            grid.innerHTML = categoriesState.map(cat => {
+                const count = (meetingsData || []).filter(m => {
+                    const mCat = (m.intelligence && m.intelligence.category) || m.category;
+                    return mCat === cat.filter || mCat === cat.name;
+                }).length;
+                const isSelected = selectedCategoryForManager === cat.name || selectedCategoryForManager === cat.filter;
+
+                return `
+                    <div onclick="selectCategoryInSettingsManager('${cat.name}')" 
+                         class="p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${isSelected ? 'bg-blue-50/70 border-blue-200 shadow-2xs' : 'bg-gray-50/70 hover:bg-gray-100 border-gray-100'}">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-xl bg-white text-gray-800 flex items-center justify-center text-sm shadow-2xs flex-shrink-0">
+                                <i class="ph-bold ${cat.icon || 'ph-tag'} text-blue-600"></i>
+                            </div>
+                            <div class="min-w-0 truncate">
+                                <div class="text-xs font-bold text-gray-900 truncate">${cat.name}</div>
+                                <div class="text-[10px] text-gray-500">${count} conversa(s)</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                            <button onclick="contextMenuCategory='${cat.name}'; triggerRenameCategory()" class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition cursor-pointer" title="Renomear">
+                                <i class="ph-bold ph-pencil-simple text-xs"></i>
+                            </button>
+                            <button onclick="contextMenuCategory='${cat.name}'; triggerDeleteCategory()" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-white transition cursor-pointer" title="Excluir">
+                                <i class="ph-bold ph-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            renderCategoryMeetingsManager(selectedCategoryForManager);
+        }
+
+        function selectCategoryInSettingsManager(catName) {
+            selectedCategoryForManager = catName;
+            renderSettingsCategoriesManager();
+        }
+
+        function renderCategoryMeetingsManager(catName) {
+            const titleEl = document.getElementById('cat-meetings-manager-title');
+            const countEl = document.getElementById('cat-meetings-manager-count');
+            const listEl = document.getElementById('cat-meetings-manager-list');
+            if (!listEl) return;
+
+            if (titleEl) titleEl.innerText = `Conversas em '${catName}'`;
+
+            const filteredMeetings = (meetingsData || []).filter(m => {
+                const mCat = (m.intelligence && m.intelligence.category) || m.category;
+                return mCat === catName || 
+                       (catName === 'Pipeline & Deals' && (mCat === 'Comercial' || (m.title && (m.title.toLowerCase().includes('pipeline') || m.title.toLowerCase().includes('deals'))))) ||
+                       (catName === 'Mentorias & Estratégia' && (mCat === 'Pessoal' || (m.title && m.title.toLowerCase().includes('mentoria'))));
+            });
+
+            if (countEl) countEl.innerText = `${filteredMeetings.length} conversa(s)`;
+
+            if (filteredMeetings.length === 0) {
+                listEl.innerHTML = `
+                    <div class="p-6 text-center space-y-1.5 bg-gray-50 rounded-2xl">
+                        <div class="text-xs font-bold text-gray-700">Nenhuma conversa nesta categoria ainda</div>
+                        <div class="text-[11px] text-gray-400">Você pode mover reuniões de outras categorias para cá usando o seletor abaixo.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = filteredMeetings.map(m => {
+                const title = (m.intelligence && m.intelligence.meeting_title) || m.title || 'Reunião';
+                const dateStr = m.date || (m.start_time ? m.start_time.split(' ')[0] : 'Recente');
+                const optionsHtml = categoriesState.map(c => `
+                    <option value="${c.name}" ${((m.intelligence && m.intelligence.category) || m.category) === c.name ? 'selected' : ''}>
+                        📁 Mover para ${c.name}
+                    </option>
+                `).join('');
+
+                return `
+                    <div class="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                        <div class="flex items-center gap-2.5 truncate flex-1 min-w-0">
+                            <div class="w-7 h-7 rounded-xl bg-white text-emerald-700 flex items-center justify-center text-xs font-bold shadow-2xs flex-shrink-0">
+                                <i class="ph-bold ph-waveform"></i>
+                            </div>
+                            <div class="truncate">
+                                <div class="font-bold text-gray-900 truncate">${title}</div>
+                                <div class="text-[10px] text-gray-400 font-mono">${dateStr}</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <select onchange="moveMeetingCategoryInSettings('${m.file_id}', this.value)" 
+                                    class="bg-white border border-gray-200 rounded-xl px-2.5 py-1 text-[11px] font-semibold text-gray-800 focus:outline-none cursor-pointer">
+                                ${optionsHtml}
+                            </select>
+                            <button onclick="closeSettingsModal(); selectMeeting('${m.file_id}')" 
+                                    class="px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 cursor-pointer">
+                                Abrir ↗
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function moveMeetingCategoryInSettings(fileId, newCat) {
+            try {
+                const res = await fetch(`/api/meetings/${fileId}/move-category`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: newCat })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    // Update local meetingsData
+                    const m = (meetingsData || []).find(x => x.file_id === fileId);
+                    if (m) {
+                        m.category = newCat;
+                        if (m.intelligence) m.intelligence.category = newCat;
+                    }
+                    renderSettingsCategoriesManager();
+                    renderSidebarCategories();
+                    showInAppToast(`✅ Reunião movida para '${newCat}'!`, 'success');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao mover reunião: ' + e.message, 'error');
+            }
+        }
 
         function switchSettingsTab(tabId) {
             // Hide all tab contents

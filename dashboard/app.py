@@ -1229,3 +1229,28 @@ async def api_delete_category(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="category is required")
     delete_category(cat_name)
     return JSONResponse({"status": "SUCCESS", "message": f"Categoria {cat_name} excluída com sucesso."})
+
+
+@app.post("/api/meetings/{file_id}/move-category")
+async def api_move_meeting_category(file_id: str, payload: dict = Body(...)):
+    """Reassigns a meeting to a different category list."""
+    new_cat = payload.get("category")
+    if not new_cat:
+        raise HTTPException(status_code=400, detail="category is required")
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE meetings SET category = ? WHERE file_id = ?", (new_cat, file_id))
+        conn.commit()
+    
+    # Update intelligence cache if exists
+    m = db.get_meeting(file_id)
+    if m and "intelligence" in m:
+        intel = m["intelligence"] or {}
+        intel["category"] = new_cat
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE meetings SET intelligence_json = ? WHERE file_id = ?", (json.dumps(intel), file_id))
+            conn.commit()
+
+    return JSONResponse({"status": "SUCCESS", "message": f"Reunião movida para '{new_cat}' com sucesso!", "category": new_cat})
