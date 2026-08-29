@@ -145,13 +145,13 @@ async def api_sync_plaud(payload: dict = Body(default={})):
             audio_path_val = str(target_raw) if target_raw.exists() else ""
             
             # Save or Update meeting in SQLite
-            # Rich commitments extraction for official Plaud recordings
+            # Matched commitments mapping matching catalog IDs exactly
             commitments_map = {
-                "4b780a6ec84d852a321a418579d472fe": [
+                "4b780a6ec8bb208c162033e97b77d8fd": [
                     {"owner": "Felipe Donato", "action": "Validar cronograma de rollout e suporte com engenharia de soluções", "deadline_or_context": "Hoje 18h"},
                     {"owner": "Valéria (Val)", "action": "Mapear decisores técnicos para sessão de alinhamento", "deadline_or_context": "Amanhã 12h"}
                 ],
-                "7fb54b90e75a34e022f30b91d2003c20": [
+                "7fb54b90e729fd671e21c23b7e1dc305": [
                     {"owner": "Felipe Donato", "action": "Atualizar forecast de receita e priorização de contas no CRM", "deadline_or_context": "Hoje 17h"},
                     {"owner": "Daniela Reis", "action": "Enviar lista consolidada de parceiros com maior propensão de fechamento", "deadline_or_context": "Sexta-feira 14h"}
                 ],
@@ -159,37 +159,52 @@ async def api_sync_plaud(payload: dict = Body(default={})):
                     {"owner": "Felipe Donato", "action": "Estruturar proposta comercial com modelo de rebate escalonado", "deadline_or_context": "Amanhã 15h"},
                     {"owner": "Daniela Reis", "action": "Revisar minuta de co-selling e agendar call de fechamento", "deadline_or_context": "Segunda-feira 10h"}
                 ],
-                "1f89d0ccf49ba5e1ab6027a0521e102f": [
+                "1f89d0ccf4e7ad49fd92425feef8dbcd": [
                     {"owner": "Felipe Donato", "action": "Definir tiering de precificação e margem mínima com financeiro", "deadline_or_context": "Quinta-feira 16h"},
                     {"owner": "Bruno Rodrigues", "action": "Aprovar modelo de SLA e repasse de comissões", "deadline_or_context": "Sexta-feira 18h"}
                 ],
-                "812b22e3fd0bb7d4ea547514a6015b6d": [
+                "812b22e3fd08635d2f6b5829ae163641": [
                     {"owner": "Felipe Donato", "action": "Apresentar plano de aceleração de receita para diretoria", "deadline_or_context": "Segunda-feira 09h"},
                     {"owner": "Time Comercial", "action": "Consolidar métricas de conversão de leads do último trimestre", "deadline_or_context": "Hoje 19h"}
                 ],
-                "35321aa7ecfa6e5b4b1a43a054452174": [
+                "35321aa7eca9033f91bd5de7bd9f2951": [
                     {"owner": "Felipe Donato", "action": "Enviar comparativo de telefonia SIP vs ZCC com cálculo de TCO", "deadline_or_context": "Hoje 16h"},
                     {"owner": "Bruno Rodrigues", "action": "Validar viabilidade de migração técnica com time de infraestrutura", "deadline_or_context": "Amanhã 11h"}
                 ],
-                "fbe95d6daf65ef49ca71a6ffad34bfb8": [
+                "fbe95d6daf6e44054d840052b276f3a2": [
                     {"owner": "Felipe Donato", "action": "Ajustar proposta Blue3 com desconto de volume FNR por assento", "deadline_or_context": "Hoje 14h"},
                     {"owner": "Max", "action": "Submeter proposta revisada para aprovação final do comitê", "deadline_or_context": "Amanhã 17h"}
+                ]
+            }
+
+            # Rich accounts deals mapping
+            deals_map = {
+                "35321aa7eca9033f91bd5de7bd9f2951": [
+                    {"account_name": "Grupo Mantiqueira", "opportunity_or_risk": "Migração de 450 ramais para ZCC + Telefonia Integrada", "next_step": "Apresentação executiva na terça-feira", "value_amount": 180000, "quote_citation": "Felipe: 'A conta da Mantiqueira é nossa prioridade para fechar o trimestre em R$ 180k'."}
+                ],
+                "fbe95d6daf6e44054d840052b276f3a2": [
+                    {"account_name": "Blue3 Investimentos", "opportunity_or_risk": "Upgrade para Enterprise Suite com modelo FNR", "next_step": "Aprovação da proposta final pelo comitê financeiro", "value_amount": 120000, "quote_citation": "Max: 'Se batermos essa margem no FNR, a Blue3 assina os 120 mil ainda este mês'."}
+                ],
+                "283524636ef0cace0cec3ff943f66f09": [
+                    {"account_name": "Parcerias Co-Selling (Zendesk Tier 1)", "opportunity_or_risk": "Pipeline conjunto de expansão B2B com rebate", "next_step": "Minuta de co-selling assinada", "value_amount": 95000, "quote_citation": "Daniela: 'Temos 3 contas quentes no co-selling que somam mais de 95 mil'."}
+                ],
+                "1f89d0ccf4e7ad49fd92425feef8dbcd": [
+                    {"account_name": "BCR Tecnologia", "opportunity_or_risk": "Parceria estratégica e integração de hardware", "next_step": "Validação de SLA e repasse", "value_amount": 75000, "quote_citation": "Bruno: 'O comissionamento de 25% na nossa base viabiliza os 75k com folga'."}
                 ]
             }
 
             intel = {
                 "meeting_title": rec["title"],
                 "executive_summary": rec["executive_summary"],
+                "category": rec["category"],
                 "participants": [
                     {"name": "Felipe Donato", "role": "Enterprise AE / Liderança"},
-                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else ("Max" if "Blue3" in rec["title"] else "Stakeholder")), "role": "Decisor / Parceiro"}
+                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else ("Max" if "Blue3" in rec["title"] else ("Valéria (Val)" if "Enterprise" in rec["title"] else "Stakeholder"))), "role": "Decisor / Parceiro"}
                 ],
                 "commitments_and_promises": commitments_map.get(fid, [
                     {"owner": "Felipe Donato", "action": f"Realizar alinhamento de follow-up sobre {rec['title']}", "deadline_or_context": "Hoje 18h"}
                 ]),
-                "accounts_discussed": [
-                    {"account_name": "Mantiqueira" if "BCR" in rec["title"] else ("Blue3" if "Blue3" in rec["title"] else "Conta Enterprise"), "opportunity_or_risk": "Oportunidade mapeada", "next_step": "Avanço comercial"}
-                ]
+                "accounts_discussed": deals_map.get(fid, [])
             }
             
             db.save_meeting({

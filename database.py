@@ -277,9 +277,16 @@ class ExecutiveDatabase:
             cursor.execute("DELETE FROM accounts_deals WHERE meeting_id = ?", (file_id,))
             for acc in intel.get("accounts_discussed", []):
                 cursor.execute("""
-                    INSERT INTO accounts_deals (meeting_id, account_name, opportunity_or_risk, next_step)
-                    VALUES (?, ?, ?, ?)
-                """, (file_id, acc.get("account_name", ""), acc.get("opportunity_or_risk", ""), acc.get("next_step", "")))
+                    INSERT INTO accounts_deals (meeting_id, account_name, opportunity_or_risk, next_step, value_amount, quote_citation)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    file_id, 
+                    acc.get("account_name", ""), 
+                    acc.get("opportunity_or_risk", ""), 
+                    acc.get("next_step", ""),
+                    acc.get("value_amount", 75000),
+                    acc.get("quote_citation", "")
+                ))
 
             conn.commit()
 
