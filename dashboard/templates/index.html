@@ -17,10 +17,9 @@
             height: 100%;
             height: 100dvh;
             overflow: hidden;
-            position: fixed;
             width: 100%;
-            top: 0;
-            left: 0;
+            margin: 0;
+            padding: 0;
         }
         
         :root {
@@ -4975,19 +4974,27 @@ ${transcriptText}
 
         function renderSingleTaskCard(t) {
             const isDone = t.status === 'DONE';
+            const isDelegated = t.status === 'DELEGATED';
+            const isCancelled = t.status === 'CANCELLED';
             const isToday = isTaskDueToday(t.deadline_or_context);
-            const cardBgClass = isToday 
+            
+            let cardBgClass = isToday 
                 ? 'bg-zinc-100/95 hover:bg-zinc-200/80 border border-zinc-300/80 shadow-xs' 
                 : 'bg-white hover:bg-gray-50/80 border-0 shadow-2xs hover:shadow-xs';
+
+            if (isDone) {
+                cardBgClass = 'bg-gray-50/70 opacity-80 border-0 shadow-none';
+            } else if (isDelegated) {
+                cardBgClass = 'bg-blue-50/40 border border-blue-200/60 shadow-2xs';
+            } else if (isCancelled) {
+                cardBgClass = 'bg-gray-50/50 opacity-60 border-0 shadow-none';
+            }
 
             const rationaleText = t.rationale_why || (t.owner && t.owner.includes('Felipe') 
                 ? 'Ação estratégica de liderança para destravar o avanço com stakeholders, eliminar gargalos e acelerar o fechamento no pipeline.' 
                 : `Ação para cumprir compromisso operacional alinhado na reunião e atender a solicitação de ${t.owner || 'stakeholders'}.`);
             
             const approachText = t.rationale_how || 'Conecte-se com foco nas prioridades do cliente/interlocutor, valide o valor acordado e proponha o próximo marco direto.';
-            const isDone = t.status === 'DONE';
-            const isDelegated = t.status === 'DELEGATED';
-            const isCancelled = t.status === 'CANCELLED';
 
             let statusIcon = '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 text-xl transition"></i>';
             let cardBg = 'bg-white';
@@ -5007,7 +5014,7 @@ ${transcriptText}
             }
 
             return `
-                <div class="${cardBg} rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-md border-0 transition-all space-y-3 group" id="task-card-${t.id}">
+                <div class="${cardBgClass} rounded-3xl p-4 sm:p-5 hover:shadow-md border-0 transition-all space-y-3 group" id="task-card-${t.id}">
                     
                     <!-- Row 1: Status Checkbox + Full Width Task Description -->
                     <div class="flex items-start gap-3 w-full">
