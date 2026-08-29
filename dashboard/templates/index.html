@@ -2453,39 +2453,32 @@
             localStorage.setItem('evonotes_layout_width', mode);
             localStorage.setItem('evonotes_layout_width_mode', mode);
 
-            // Dynamic Width Style Injection covering the entire page layout
-            let widthStyle = document.getElementById('dynamic-width-override');
-            if (!widthStyle) {
-                widthStyle = document.createElement('style');
-                widthStyle.id = 'dynamic-width-override';
-                document.head.appendChild(widthStyle);
-            }
+            const allWidthClasses = ['max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-7xl', 'max-w-full', 'w-full'];
+            
+            const targetClass = mode === 'narrow' ? 'max-w-3xl' : mode === 'wide' ? 'max-w-full' : 'max-w-5xl';
 
-            let maxW = '1024px'; // default
-            let paddingX = '1rem';
-            if (mode === 'narrow') {
-                maxW = '768px'; // narrow
-            } else if (mode === 'wide') {
-                maxW = '100%'; // wide (100% full width)
-                paddingX = '1.5rem';
-            }
+            const elementsToResize = [
+                document.getElementById('workspace-inner-container'),
+                document.getElementById('bottom-input-inner'),
+                document.getElementById('chat-stream-container'),
+                document.getElementById('home-dashboard-view'),
+                document.getElementById('tasks-central-view'),
+                document.getElementById('meeting-detail-view')
+            ];
 
-            widthStyle.innerHTML = `
-                #workspace-inner-container,
-                .layout-width-container,
-                #bottom-input-inner,
-                #chat-stream-container,
-                #home-dashboard-view,
-                #tasks-central-view,
-                #meeting-detail-view {
-                    max-width: ${maxW} !important;
-                    width: 100% !important;
+            elementsToResize.forEach(el => {
+                if (el) {
+                    el.classList.remove(...allWidthClasses);
+                    el.classList.add(targetClass);
+                    if (mode === 'wide') el.classList.add('w-full');
                 }
-                #main-content {
-                    overflow-y: auto !important;
-                    scroll-behavior: smooth !important;
-                }
-            `;
+            });
+
+            document.querySelectorAll('.layout-width-container').forEach(el => {
+                el.classList.remove(...allWidthClasses);
+                el.classList.add(targetClass);
+                if (mode === 'wide') el.classList.add('w-full');
+            });
 
             // Update button visual active state in Settings Modal
             ['narrow', 'default', 'wide'].forEach(w => {
