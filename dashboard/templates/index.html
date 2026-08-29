@@ -4300,6 +4300,51 @@ ${transcriptText}
             }
         }
 
+        
+        // ==============================================================
+        // 🔔 NOTIFICATION PREFERENCES ENGINE
+        // ==============================================================
+        let currentNotificationPrefs = {
+            wa_ingest: true,
+            wa_morning: true,
+            wa_call_ready: true,
+            email_closing: true,
+            email_weekly: true
+        };
+
+        async function loadPersistedNotificationPrefs() {
+            try {
+                const res = await fetch('/api/user/preferences');
+                const data = await res.json();
+                if (data.status === 'SUCCESS' && data.preferences) {
+                    currentNotificationPrefs = Object.assign(currentNotificationPrefs, data.preferences);
+                    for (const [key, val] of Object.entries(currentNotificationPrefs)) {
+                        const el = document.querySelector(`input[onchange*="'${key}'"]`);
+                        if (el) el.checked = !!val;
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading notification preferences:', e);
+            }
+        }
+
+        async function toggleNotificationPref(key, isChecked) {
+            currentNotificationPrefs[key] = isChecked;
+            try {
+                const res = await fetch('/api/user/preferences', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentNotificationPrefs)
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('Preferência salva com sucesso!', 'success');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao salvar preferência: ' + e.message, 'error');
+            }
+        }
+
         async function openDesktopMarkdown() {
             if (!currentMeetingId) return;
             try {

@@ -7,6 +7,7 @@ import json
 import logging
 import subprocess
 import urllib.parse
+import urllib.request
 from pathlib import Path
 from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException, Body, Query
@@ -1383,6 +1384,7 @@ async def api_open_in_obsidian(file_id: str):
     doc_path = meeting.get("doc_path") or ""
     file_name = os.path.basename(doc_path) if doc_path else f"{file_id}.md"
     import urllib.parse
+import urllib.request
     encoded_file = urllib.parse.quote(f"07 - CONHECIMENTO/03 - Notas e Arquivos/Plaud/{file_name}")
     obsidian_uri = f"obsidian://open?vault=Jarvis&file={encoded_file}"
     try:
