@@ -1739,14 +1739,25 @@
         function showHomeDashboard() {
             closeMobileSidebarOnAction();
             currentMeetingId = null;
+            
+            // Strictly show Home and hide all other views
             document.getElementById('home-dashboard-view').classList.remove('hidden');
             document.getElementById('conversation-thread').classList.add('hidden');
+            const tasksView = document.getElementById('tasks-central-view');
+            if (tasksView) tasksView.classList.add('hidden');
+
             document.getElementById('topbar-title').innerText = 'Tela Inicial • Inteligência Executiva';
             document.getElementById('sort-controls').classList.add('hidden');
             document.getElementById('markdown-split-btn').classList.add('hidden');
 
             document.querySelectorAll('.meeting-nav-item').forEach(el => el.classList.remove('bg-[#ececec]', 'font-semibold'));
-            document.getElementById('nav-home').classList.add('bg-[#ececec]', 'font-semibold');
+            const navTasks = document.getElementById('nav-tasks');
+            if (navTasks) navTasks.classList.remove('bg-[#ececec]', 'font-semibold');
+            const navHome = document.getElementById('nav-home');
+            if (navHome) navHome.classList.add('bg-[#ececec]', 'font-semibold');
+
+            const contextLabel = document.getElementById('chat-context-label');
+            if (contextLabel) contextLabel.innerText = 'Analisando Inteligência Geral da Base';
         }
 
 
