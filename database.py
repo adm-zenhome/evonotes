@@ -581,31 +581,40 @@ init_analytics_tables()
 
 
 def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
-    """Aggregates spoken terms, pipeline and metrics STRICTLY from SQLite database."""
+    """Aggregates spoken terms, pipeline and metrics STRICTLY from SQLite database dynamically."""
     meetings = db.get_all_meetings()
     
-    # 1. Candidate pool extracted from meetings
-    candidates_pool = [
-        ("Mantiqueira", "Conta Enterprise (Aktie Now)", 5),
-        ("ZCC", "Zendesk Contact Center", 4),
-        ("Blue3", "Conta Enterprise & Pricing", 5),
-        ("Aktie Now", "Concorrente Mapeado", 3),
-        ("Vonage", "Integração Telefônica", 2),
-        ("FNR", "Modelo de Precificação & Margem", 3),
-        ("Daniela Reis", "Interlocutor & Decisor", 4),
-        ("Bruno Rodrigues", "CEO BCR & Sponsor", 3),
-        ("Cacau Show", "Conta Enterprise", 2),
-        ("ZAMP", "Pipeline Burger King / Popeyes", 2),
-        ("Telefonia SIP", "Infraestrutura de Voz", 2),
-        ("MEDDPICC", "Metodologia Comercial", 2),
-        ("Showcase de IA", "Estratégia de Demonstração", 2),
-        ("Zendesk AI", "Solução de Inteligência", 3),
-        ("Pipeline", "Gestão de Oportunidades", 2),
-        ("Contratos", "Minuta & Aprovação", 2),
-        ("Enterprise", "Segmento Estratégico", 2)
-    ]
+    # 1. Dynamically extract candidate terms from existing meetings in SQLite
+    term_counts = {}
+    term_categories = {}
 
-    # 2. Fetch user votes
+    for m in meetings:
+        intel = m.get("intelligence", {})
+        
+        # Extract tags
+        for tag in intel.get("tags", []):
+            if tag and len(tag) > 2:
+                t_clean = tag.strip()
+                term_counts[t_clean] = term_counts.get(t_clean, 0) + 1
+                term_categories[t_clean] = "Tag da Reunião"
+        
+        # Extract accounts
+        for acc in intel.get("accounts_discussed", []):
+            name = acc.get("account_name")
+            if name:
+                n_clean = name.strip()
+                term_counts[n_clean] = term_counts.get(n_clean, 0) + 2
+                term_categories[n_clean] = "Conta / Empresa"
+                
+        # Extract participants
+        for part in intel.get("participants", []):
+            p_name = part.get("name")
+            if p_name and p_name.lower() not in ["felipe", "felipe donato", "você"]:
+                p_clean = p_name.strip()
+                term_counts[p_clean] = term_counts.get(p_clean, 0) + 1
+                term_categories[p_clean] = part.get("role") or "Interlocutor"
+
+    # Fetch user votes
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT term, vote FROM keyword_feedback WHERE user_id = ?", (user_id,))
@@ -620,12 +629,15 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
     voted_up = []
     voted_down = []
 
-    for term, category, base_count in candidates_pool:
+    # Sort terms by frequency
+    sorted_terms = sorted(term_counts.items(), key=lambda x: x[1], reverse=True)
+
+    for term, count in sorted_terms:
         v = votes.get(term, "NEUTRAL")
         item = {
             "term": term,
-            "category": category,
-            "count": base_count,
+            "category": term_categories.get(term, "Vocabulário"),
+            "count": count,
             "vote": v
         }
         if v == "NEUTRAL":
@@ -635,7 +647,7 @@ def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
         elif v == "DOWN":
             voted_down.append(item)
 
-    active_terms = pending_unvoted[:6] if len(meetings) > 0 else []
+    active_terms = pending_unvoted[:6]
 
     # Dynamic metrics based on actual meetings
     total_meetings = len(meetings)
@@ -966,39 +978,11 @@ def get_persisted_stakeholder_profile(name: str) -> dict:
 
 
 def get_unified_stakeholders_list() -> list:
-    """Scans all meetings and SQLite profiles to produce a single SSOT stakeholder directory."""
+    """Scans all meetings and SQLite profiles to produce a single SSOT stakeholder directory dynamically."""
     meetings = db.get_all_meetings()
     all_tasks = db.get_all_tasks()
     
     stk_map = {}
-    
-    # 1. Base core profiles
-    base_defaults = [
-        {"name": "Bruno Rodrigues", "role": "CEO & Founder", "company": "BCR (Business & Customer Relations)", "guide": "Tratar com tom executivo, focar em receita conjunta (ZCC + BCR) e prazos concretos."},
-        {"name": "Daniela Reis", "role": "Head de Parcerias & Alianças", "company": "Zendesk", "guide": "Tratar com tom diplomático e profissional. Enfatizar alinhamento com metas globais da Zendesk."},
-        {"name": "Valéria (Val)", "role": "Enterprise Account Executive", "company": "Zendesk", "guide": "Tom próximo de parceria de vendas. Alinhar estratégias conjuntas de contas compartilhadas."},
-        {"name": "Mineiro", "role": "Voice Specialist", "company": "Zendesk", "guide": "Tom técnico consultivo. Focar em telefonia ZCC, SIP e cálculo de TCO."},
-        {"name": "Jean", "role": "Liderança de Negócios", "company": "Britânia / AirDev", "guide": "Tom ágil e direto ao ponto. Priorizar velocidade de entrega de propostas comerciais."},
-        {"name": "Camila", "role": "Executiva de Parcerias", "company": "Anbima", "guide": "Tom institucional e consultivo. Discutir renovação de contrato e integração de IA."},
-        {"name": "Max", "role": "Sponsor Comercial", "company": "Blue3 Investimentos", "guide": "Tom do mercado financeiro. Focar em precificação por assento e modelo FNR."},
-        {"name": "Rafa", "role": "Comitê Jurídico & Compliance", "company": "Zendesk", "guide": "Tom formal e detalhista. Validar cláusulas de SLA e segurança de dados."},
-        {"name": "Caio", "role": "Especialista ZX", "company": "Zendesk", "guide": "Tom técnico focado em sandboxes e APIs de inteligência artificial."},
-        {"name": "Pablo Marçal", "role": "Palestrante / Mentor", "company": "Desenvolvimento Pessoal", "guide": "Tom motivacional e disruptivo. Focar em desbloqueio de mentalidade e escala."},
-        {"name": "Jaime", "role": "Arquiteto de Soluções", "company": "Zendesk", "guide": "Tom técnico de engenharia de software e desenho de integrações."},
-        {"name": "Nonato", "role": "Analista de Operações", "company": "Zendesk", "guide": "Tom operacional prático. Focar em extração e contextualização de bases."}
-    ]
-
-    for b in base_defaults:
-        k = b["name"].lower().strip()
-        stk_map[k] = {
-            "name": b["name"],
-            "role": b["role"],
-            "company": b["company"],
-            "participated": 0,
-            "mentioned": 0,
-            "treatment_guidelines": b["guide"],
-            "meetings": []
-        }
 
     # 2. Scan all meetings
     for m in meetings:
