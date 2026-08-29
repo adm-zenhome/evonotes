@@ -6701,11 +6701,21 @@ _Enviado via EvoNotes OS_`);
 
         
         // ========== SETTINGS CATEGORIES & CONVERSATIONS MANAGER JS ==========
-        let selectedCategoryForManager = 'Pipeline & Deals';
+        let selectedCategoryForManager = null;
 
         function renderSettingsCategoriesManager() {
             const grid = document.getElementById('settings-categories-list-grid');
             if (!grid) return;
+
+            if (!categoriesState || categoriesState.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full p-4 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200">
+                        Nenhuma categoria customizada cadastrada ainda.
+                    </div>
+                `;
+                renderCategoryMeetingsManager(null);
+                return;
+            }
 
             grid.innerHTML = categoriesState.map(cat => {
                 const count = (meetingsData || []).filter(m => {
@@ -6752,6 +6762,18 @@ _Enviado via EvoNotes OS_`);
             const countEl = document.getElementById('cat-meetings-manager-count');
             const listEl = document.getElementById('cat-meetings-manager-list');
             if (!listEl) return;
+
+            if (!catName) {
+                if (titleEl) titleEl.innerText = 'Conversas por Categoria';
+                if (countEl) countEl.innerText = '0 conversas';
+                listEl.innerHTML = `
+                    <div class="p-6 text-center space-y-1 bg-gray-50 rounded-2xl">
+                        <div class="text-xs font-bold text-gray-700">Nenhuma categoria selecionada</div>
+                        <div class="text-[11px] text-gray-400">Crie uma nova categoria acima para organizar suas gravações.</div>
+                    </div>
+                `;
+                return;
+            }
 
             if (titleEl) titleEl.innerText = `Conversas em '${catName}'`;
 
