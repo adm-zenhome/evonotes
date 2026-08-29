@@ -162,6 +162,115 @@
             }
         }
 
+
+        // ==============================================================
+        // 🔌 DYNAMIC INTEGRATIONS & SOURCES RENDERING (ZERO RESÍDUOS)
+        // ==============================================================
+
+        async function renderActiveIntegrationsPills() {
+            const menuContainer = document.getElementById('sync-sources-dynamic-content');
+            const bottomPill = document.getElementById('bottom-user-integrations-pill');
+            
+            try {
+                const res = await fetch('/api/integrations/status');
+                const data = await res.json();
+                const s = data.services || {};
+                
+                const plaudConnected = s.plaud && s.plaud.is_connected;
+                const waConnected = s.whatsapp && s.whatsapp.is_connected;
+                const granolaConnected = s.granola && s.granola.is_connected;
+                const podcastsConnected = s.podcasts && s.podcasts.is_connected;
+                
+                const connectedList = [];
+                const availableList = [];
+                
+                if (plaudConnected) connectedList.push({ id: 'plaud', name: 'Plaud Note Pro', action: 'syncPlaudRecordings()', icon: 'ph-waveform' });
+                else availableList.push({ id: 'plaud', name: 'Plaud Note Pro', action: "openSettingsModalTab('plaud')", icon: 'ph-waveform' });
+                
+                if (waConnected) connectedList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: 'openWhatsAppAudioInboxModal()', icon: 'ph-whatsapp-logo' });
+                else availableList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: "openSettingsModalTab('whatsapp')", icon: 'ph-whatsapp-logo' });
+                
+                if (granolaConnected) connectedList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                else availableList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                
+                if (podcastsConnected) connectedList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+                else availableList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+
+                // 1. Update Dropdown Menu
+                if (menuContainer) {
+                    let menuHtml = '';
+                    
+                    if (connectedList.length > 0) {
+                        menuHtml += `
+                            <button onclick="syncAllConnectedSources()" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition text-left group cursor-pointer">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+                                    <span>Sincronizar Conectadas</span>
+                                </div>
+                                <span class="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">${connectedList.length}</span>
+                            </button>
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fontes Conectadas:</div>
+                        `;
+                        
+                        for (let c of connectedList) {
+                            menuHtml += `
+                                <button onclick="${c.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <i class="ph-bold ${c.icon} text-emerald-600"></i>
+                                        <span class="truncate">${c.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Ativo
+                                    </span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        menuHtml += `
+                            <div class="p-3 text-center text-xs text-gray-500 bg-gray-50 rounded-xl space-y-1">
+                                <i class="ph-bold ph-plugs-connected text-gray-400 text-lg"></i>
+                                <div class="font-bold text-gray-700">Nenhuma Fonte Conectada</div>
+                                <div class="text-[10px] text-gray-400">Conecte Plaud ou WhatsApp para sincronizar áudios.</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (availableList.length > 0) {
+                        menuHtml += `
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adicionar / Conectar:</div>
+                        `;
+                        for (let a of availableList) {
+                            menuHtml += `
+                                <button onclick="${a.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph-bold ${a.icon} text-gray-400"></i>
+                                        <span>${a.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition">+ Conectar</span>
+                                </button>
+                            `;
+                        }
+                    }
+                    menuContainer.innerHTML = menuHtml;
+                }
+
+                // 2. Update Bottom Profile Pill
+                if (bottomPill) {
+                    if (connectedList.length > 0) {
+                        const names = connectedList.map(c => c.name.split(' ')[0]).join(' & ');
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ${names} Ativo${connectedList.length > 1 ? 's' : ''}`;
+                    } else {
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 0 Conexões Ativas`;
+                    }
+                }
+
+            } catch (e) {
+                console.error('Error rendering dynamic integrations:', e);
+            }
+        }
+
 </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web">
@@ -318,6 +427,115 @@
             const gate = document.getElementById('executive-login-gate');
             if (gate) {
                 gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
+            }
+        }
+
+
+        // ==============================================================
+        // 🔌 DYNAMIC INTEGRATIONS & SOURCES RENDERING (ZERO RESÍDUOS)
+        // ==============================================================
+
+        async function renderActiveIntegrationsPills() {
+            const menuContainer = document.getElementById('sync-sources-dynamic-content');
+            const bottomPill = document.getElementById('bottom-user-integrations-pill');
+            
+            try {
+                const res = await fetch('/api/integrations/status');
+                const data = await res.json();
+                const s = data.services || {};
+                
+                const plaudConnected = s.plaud && s.plaud.is_connected;
+                const waConnected = s.whatsapp && s.whatsapp.is_connected;
+                const granolaConnected = s.granola && s.granola.is_connected;
+                const podcastsConnected = s.podcasts && s.podcasts.is_connected;
+                
+                const connectedList = [];
+                const availableList = [];
+                
+                if (plaudConnected) connectedList.push({ id: 'plaud', name: 'Plaud Note Pro', action: 'syncPlaudRecordings()', icon: 'ph-waveform' });
+                else availableList.push({ id: 'plaud', name: 'Plaud Note Pro', action: "openSettingsModalTab('plaud')", icon: 'ph-waveform' });
+                
+                if (waConnected) connectedList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: 'openWhatsAppAudioInboxModal()', icon: 'ph-whatsapp-logo' });
+                else availableList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: "openSettingsModalTab('whatsapp')", icon: 'ph-whatsapp-logo' });
+                
+                if (granolaConnected) connectedList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                else availableList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                
+                if (podcastsConnected) connectedList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+                else availableList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+
+                // 1. Update Dropdown Menu
+                if (menuContainer) {
+                    let menuHtml = '';
+                    
+                    if (connectedList.length > 0) {
+                        menuHtml += `
+                            <button onclick="syncAllConnectedSources()" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition text-left group cursor-pointer">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+                                    <span>Sincronizar Conectadas</span>
+                                </div>
+                                <span class="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">${connectedList.length}</span>
+                            </button>
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fontes Conectadas:</div>
+                        `;
+                        
+                        for (let c of connectedList) {
+                            menuHtml += `
+                                <button onclick="${c.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <i class="ph-bold ${c.icon} text-emerald-600"></i>
+                                        <span class="truncate">${c.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Ativo
+                                    </span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        menuHtml += `
+                            <div class="p-3 text-center text-xs text-gray-500 bg-gray-50 rounded-xl space-y-1">
+                                <i class="ph-bold ph-plugs-connected text-gray-400 text-lg"></i>
+                                <div class="font-bold text-gray-700">Nenhuma Fonte Conectada</div>
+                                <div class="text-[10px] text-gray-400">Conecte Plaud ou WhatsApp para sincronizar áudios.</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (availableList.length > 0) {
+                        menuHtml += `
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adicionar / Conectar:</div>
+                        `;
+                        for (let a of availableList) {
+                            menuHtml += `
+                                <button onclick="${a.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph-bold ${a.icon} text-gray-400"></i>
+                                        <span>${a.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition">+ Conectar</span>
+                                </button>
+                            `;
+                        }
+                    }
+                    menuContainer.innerHTML = menuHtml;
+                }
+
+                // 2. Update Bottom Profile Pill
+                if (bottomPill) {
+                    if (connectedList.length > 0) {
+                        const names = connectedList.map(c => c.name.split(' ')[0]).join(' & ');
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ${names} Ativo${connectedList.length > 1 ? 's' : ''}`;
+                    } else {
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 0 Conexões Ativas`;
+                    }
+                }
+
+            } catch (e) {
+                console.error('Error rendering dynamic integrations:', e);
             }
         }
 
@@ -480,6 +698,115 @@
             }
         }
 
+
+        // ==============================================================
+        // 🔌 DYNAMIC INTEGRATIONS & SOURCES RENDERING (ZERO RESÍDUOS)
+        // ==============================================================
+
+        async function renderActiveIntegrationsPills() {
+            const menuContainer = document.getElementById('sync-sources-dynamic-content');
+            const bottomPill = document.getElementById('bottom-user-integrations-pill');
+            
+            try {
+                const res = await fetch('/api/integrations/status');
+                const data = await res.json();
+                const s = data.services || {};
+                
+                const plaudConnected = s.plaud && s.plaud.is_connected;
+                const waConnected = s.whatsapp && s.whatsapp.is_connected;
+                const granolaConnected = s.granola && s.granola.is_connected;
+                const podcastsConnected = s.podcasts && s.podcasts.is_connected;
+                
+                const connectedList = [];
+                const availableList = [];
+                
+                if (plaudConnected) connectedList.push({ id: 'plaud', name: 'Plaud Note Pro', action: 'syncPlaudRecordings()', icon: 'ph-waveform' });
+                else availableList.push({ id: 'plaud', name: 'Plaud Note Pro', action: "openSettingsModalTab('plaud')", icon: 'ph-waveform' });
+                
+                if (waConnected) connectedList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: 'openWhatsAppAudioInboxModal()', icon: 'ph-whatsapp-logo' });
+                else availableList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: "openSettingsModalTab('whatsapp')", icon: 'ph-whatsapp-logo' });
+                
+                if (granolaConnected) connectedList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                else availableList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                
+                if (podcastsConnected) connectedList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+                else availableList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+
+                // 1. Update Dropdown Menu
+                if (menuContainer) {
+                    let menuHtml = '';
+                    
+                    if (connectedList.length > 0) {
+                        menuHtml += `
+                            <button onclick="syncAllConnectedSources()" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition text-left group cursor-pointer">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+                                    <span>Sincronizar Conectadas</span>
+                                </div>
+                                <span class="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">${connectedList.length}</span>
+                            </button>
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fontes Conectadas:</div>
+                        `;
+                        
+                        for (let c of connectedList) {
+                            menuHtml += `
+                                <button onclick="${c.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <i class="ph-bold ${c.icon} text-emerald-600"></i>
+                                        <span class="truncate">${c.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Ativo
+                                    </span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        menuHtml += `
+                            <div class="p-3 text-center text-xs text-gray-500 bg-gray-50 rounded-xl space-y-1">
+                                <i class="ph-bold ph-plugs-connected text-gray-400 text-lg"></i>
+                                <div class="font-bold text-gray-700">Nenhuma Fonte Conectada</div>
+                                <div class="text-[10px] text-gray-400">Conecte Plaud ou WhatsApp para sincronizar áudios.</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (availableList.length > 0) {
+                        menuHtml += `
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adicionar / Conectar:</div>
+                        `;
+                        for (let a of availableList) {
+                            menuHtml += `
+                                <button onclick="${a.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph-bold ${a.icon} text-gray-400"></i>
+                                        <span>${a.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition">+ Conectar</span>
+                                </button>
+                            `;
+                        }
+                    }
+                    menuContainer.innerHTML = menuHtml;
+                }
+
+                // 2. Update Bottom Profile Pill
+                if (bottomPill) {
+                    if (connectedList.length > 0) {
+                        const names = connectedList.map(c => c.name.split(' ')[0]).join(' & ');
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ${names} Ativo${connectedList.length > 1 ? 's' : ''}`;
+                    } else {
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 0 Conexões Ativas`;
+                    }
+                }
+
+            } catch (e) {
+                console.error('Error rendering dynamic integrations:', e);
+            }
+        }
+
 </script>
     <style>
         :root {
@@ -560,64 +887,11 @@
                             <i class="ph ph-caret-down text-[10px] text-gray-400"></i>
                         </button>
 
-                        <!-- Menu Dropdown -->
+                        <!-- Menu Dropdown (100% Dinâmico do SQLite) -->
                         <div id="sync-sources-menu" class="absolute top-10 right-0 w-64 bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none">
-                            
-                            <!-- Opção 1: Sincronizar Tudo -->
-                            <button onclick="syncAllConnectedSources()" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition text-left group cursor-pointer">
-                                <div class="flex items-center gap-2">
-                                    <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
-                                    <span>Sincronizar Tudo</span>
-                                </div>
-                                <span class="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Todas</span>
-                            </button>
-
-                            <div class="my-1 border-t border-gray-100"></div>
-                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fontes Conectadas:</div>
-
-                            <!-- Fonte 1: Plaud Note Pro -->
-                            <button onclick="syncPlaudRecordings()" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
-                                <div class="flex items-center gap-2 truncate">
-                                    <i class="ph-bold ph-waveform text-emerald-600"></i>
-                                    <span class="truncate">Plaud Note Pro</span>
-                                </div>
-                                <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Conectado
-                                </span>
-                            </button>
-
-                            <!-- Fonte 2: WhatsApp Voice Ingest -->
-                            <button onclick="openWhatsAppContactsModal()" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
-                                <div class="flex items-center gap-2 truncate">
-                                    <i class="ph-bold ph-whatsapp-logo text-emerald-600"></i>
-                                    <span class="truncate">WhatsApp Voice</span>
-                                </div>
-                                <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ativo
-                                </span>
-                            </button>
-
-                            <div class="my-1 border-t border-gray-100"></div>
-                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adicionar Fonte:</div>
-
-                            <!-- Fonte 3: Granola AI -->
-                            <button onclick="openNewIntegrationModal()" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
-                                <div class="flex items-center gap-2">
-                                    <i class="ph-bold ph-microphone-stage text-gray-400"></i>
-                                    <span>Granola AI</span>
-                                </div>
-                                <span class="text-[10px] text-gray-400 font-medium">+ Conectar</span>
-                            </button>
-
-                            <!-- Fonte 4: Podcasts & RSS -->
-                            <button onclick="openNewIntegrationModal()" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
-                                <div class="flex items-center gap-2">
-                                    <i class="ph-bold ph-broadcast text-gray-400"></i>
-                                    <span>Podcasts & RSS</span>
-                                </div>
-                                <span class="text-[10px] text-gray-400 font-medium">+ Conectar</span>
-                            </button>
-
+                            <div id="sync-sources-dynamic-content" class="space-y-1">
+                                <!-- Populated dynamically by renderActiveIntegrationsPills() -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -706,7 +980,7 @@
                     <div class="truncate leading-tight">
                         <div class="text-xs font-bold text-gray-900 truncate">{{ profile.user_name }}</div>
                         <div class="text-[10px] text-gray-400 truncate flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Plaud & WhatsApp Ativos
+                            <span id="bottom-user-integrations-pill" class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa</span>
                         </div>
                     </div>
                 </div>
@@ -7795,6 +8069,115 @@ Felipe Donato`);
             const gate = document.getElementById('executive-login-gate');
             if (gate) {
                 gate.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
+            }
+        }
+
+
+        // ==============================================================
+        // 🔌 DYNAMIC INTEGRATIONS & SOURCES RENDERING (ZERO RESÍDUOS)
+        // ==============================================================
+
+        async function renderActiveIntegrationsPills() {
+            const menuContainer = document.getElementById('sync-sources-dynamic-content');
+            const bottomPill = document.getElementById('bottom-user-integrations-pill');
+            
+            try {
+                const res = await fetch('/api/integrations/status');
+                const data = await res.json();
+                const s = data.services || {};
+                
+                const plaudConnected = s.plaud && s.plaud.is_connected;
+                const waConnected = s.whatsapp && s.whatsapp.is_connected;
+                const granolaConnected = s.granola && s.granola.is_connected;
+                const podcastsConnected = s.podcasts && s.podcasts.is_connected;
+                
+                const connectedList = [];
+                const availableList = [];
+                
+                if (plaudConnected) connectedList.push({ id: 'plaud', name: 'Plaud Note Pro', action: 'syncPlaudRecordings()', icon: 'ph-waveform' });
+                else availableList.push({ id: 'plaud', name: 'Plaud Note Pro', action: "openSettingsModalTab('plaud')", icon: 'ph-waveform' });
+                
+                if (waConnected) connectedList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: 'openWhatsAppAudioInboxModal()', icon: 'ph-whatsapp-logo' });
+                else availableList.push({ id: 'whatsapp', name: 'WhatsApp Voice', action: "openSettingsModalTab('whatsapp')", icon: 'ph-whatsapp-logo' });
+                
+                if (granolaConnected) connectedList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                else availableList.push({ id: 'granola', name: 'Granola AI', action: 'openNewIntegrationModal()', icon: 'ph-microphone-stage' });
+                
+                if (podcastsConnected) connectedList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+                else availableList.push({ id: 'podcasts', name: 'Podcasts & RSS', action: 'openNewIntegrationModal()', icon: 'ph-broadcast' });
+
+                // 1. Update Dropdown Menu
+                if (menuContainer) {
+                    let menuHtml = '';
+                    
+                    if (connectedList.length > 0) {
+                        menuHtml += `
+                            <button onclick="syncAllConnectedSources()" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition text-left group cursor-pointer">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
+                                    <span>Sincronizar Conectadas</span>
+                                </div>
+                                <span class="text-[10px] bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full font-bold">${connectedList.length}</span>
+                            </button>
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fontes Conectadas:</div>
+                        `;
+                        
+                        for (let c of connectedList) {
+                            menuHtml += `
+                                <button onclick="${c.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-800 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <i class="ph-bold ${c.icon} text-emerald-600"></i>
+                                        <span class="truncate">${c.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 flex-shrink-0">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Ativo
+                                    </span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        menuHtml += `
+                            <div class="p-3 text-center text-xs text-gray-500 bg-gray-50 rounded-xl space-y-1">
+                                <i class="ph-bold ph-plugs-connected text-gray-400 text-lg"></i>
+                                <div class="font-bold text-gray-700">Nenhuma Fonte Conectada</div>
+                                <div class="text-[10px] text-gray-400">Conecte Plaud ou WhatsApp para sincronizar áudios.</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (availableList.length > 0) {
+                        menuHtml += `
+                            <div class="my-1 border-t border-gray-100"></div>
+                            <div class="px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Adicionar / Conectar:</div>
+                        `;
+                        for (let a of availableList) {
+                            menuHtml += `
+                                <button onclick="${a.action}" class="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-900 transition text-left cursor-pointer">
+                                    <div class="flex items-center gap-2">
+                                        <i class="ph-bold ${a.icon} text-gray-400"></i>
+                                        <span>${a.name}</span>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md hover:bg-emerald-100 transition">+ Conectar</span>
+                                </button>
+                            `;
+                        }
+                    }
+                    menuContainer.innerHTML = menuHtml;
+                }
+
+                // 2. Update Bottom Profile Pill
+                if (bottomPill) {
+                    if (connectedList.length > 0) {
+                        const names = connectedList.map(c => c.name.split(' ')[0]).join(' & ');
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ${names} Ativo${connectedList.length > 1 ? 's' : ''}`;
+                    } else {
+                        bottomPill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 0 Conexões Ativas`;
+                    }
+                }
+
+            } catch (e) {
+                console.error('Error rendering dynamic integrations:', e);
             }
         }
 

@@ -1599,3 +1599,33 @@ async def api_sitemap_json():
             data = json.load(f)
         return JSONResponse(data)
     raise HTTPException(status_code=404, detail="Sitemap JSON not found")
+
+
+# ========== 🔌 DYNAMIC USER INTEGRATIONS API ==========
+
+@app.get("/api/integrations/status")
+async def api_integrations_status():
+    """Returns 100% dynamic connection status of all external services strictly from SQLite."""
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, service_name, is_active, updated_at FROM user_integrations")
+        rows = cursor.fetchall()
+        active_map = {r["id"]: bool(r["is_active"]) for r in rows}
+
+    plaud_active = active_map.get("plaud_cloud_felipe", False)
+    whatsapp_active = active_map.get("whatsapp_zapi_felipe", False)
+    granola_active = active_map.get("granola_felipe", False)
+    podcasts_active = active_map.get("podcasts_felipe", False)
+
+    connected_count = sum([plaud_active, whatsapp_active, granola_active, podcasts_active])
+
+    return JSONResponse({
+        "status": "SUCCESS",
+        "total_connected": connected_count,
+        "services": {
+            "plaud": {"name": "Plaud Note Pro", "is_connected": plaud_active, "icon": "ph-waveform"},
+            "whatsapp": {"name": "WhatsApp Voice", "is_connected": whatsapp_active, "icon": "ph-whatsapp-logo"},
+            "granola": {"name": "Granola AI", "is_connected": granola_active, "icon": "ph-microphone-stage"},
+            "podcasts": {"name": "Podcasts & RSS", "is_connected": podcasts_active, "icon": "ph-broadcast"}
+        }
+    })
