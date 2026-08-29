@@ -46,6 +46,12 @@ class ExecutiveDatabase:
                 )
             """)
 
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN notification_prefs_json TEXT DEFAULT '{}'")
+            except Exception:
+                pass
+
+
             # Action Items & Commitments Table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS commitments (
@@ -112,6 +118,12 @@ class ExecutiveDatabase:
                 )
             """)
 
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN notification_prefs_json TEXT DEFAULT '{}'")
+            except Exception:
+                pass
+
+
             # Integrations Log & Config
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS user_integrations (
@@ -123,6 +135,12 @@ class ExecutiveDatabase:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN notification_prefs_json TEXT DEFAULT '{}'")
+            except Exception:
+                pass
+
 
             conn.commit()
             logging.info(f"SQLite database initialized at {self.db_path}")
@@ -731,4 +749,39 @@ def delete_category(cat_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (cat_name,))
+        conn.commit()
+
+
+def get_user_notification_preferences(user_id: str = "felipe_donato") -> dict:
+    default_prefs = {
+        "wa_ingest": True,
+        "wa_morning": True,
+        "wa_call_ready": True,
+        "email_closing": True,
+        "email_weekly": True
+    }
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT notification_prefs_json FROM user_profiles WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row and row["notification_prefs_json"]:
+            try:
+                loaded = json.loads(row["notification_prefs_json"])
+                default_prefs.update(loaded)
+            except Exception:
+                pass
+    return default_prefs
+
+def save_user_notification_preferences(user_id: str = "felipe_donato", prefs: dict = None):
+    if not prefs:
+        return
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO user_profiles (user_id, user_name, notification_prefs_json)
+            VALUES (?, 'Felipe Donato', ?)
+            ON CONFLICT(user_id) DO UPDATE SET 
+                notification_prefs_json = excluded.notification_prefs_json,
+                updated_at = CURRENT_TIMESTAMP
+        """, (user_id, json.dumps(prefs)))
         conn.commit()

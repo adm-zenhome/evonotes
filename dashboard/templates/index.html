@@ -1027,22 +1027,35 @@
                 </button>
             </div>
 
-            <!-- Settings Navigation Tabs (Apple Segmented - 5 Tabs) -->
-            <div class="inline-flex w-full rounded-2xl bg-gray-200/70 p-1 border-0 text-xs font-semibold shadow-inner overflow-x-auto whitespace-nowrap scrollbar-none" id="settings-tabs">
-                <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" class="flex-1 py-2 px-3 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <i class="ph-bold ph-bell-simple text-emerald-600"></i> <span>Notificações & Canais</span>
+            <!-- Settings Navigation Tabs with Left/Right Arrow Smooth Scrolling -->
+            <div class="relative flex items-center w-full group/tabnav">
+                <!-- Left Arrow -->
+                <button type="button" onclick="scrollSettingsTabs(-150)" class="w-7 h-7 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-100 flex items-center justify-center transition absolute left-0 z-10 -translate-x-2 cursor-pointer border border-gray-200" title="Rolar para esquerda">
+                    <i class="ph-bold ph-caret-left text-xs"></i>
                 </button>
-                <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <i class="ph-bold ph-folders text-blue-600"></i> <span>Listas & Categorias</span>
-                </button>
-                <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <i class="ph-bold ph-waveform text-purple-600"></i> <span>Hardware Plaud</span>
-                </button>
-                <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <i class="ph-bold ph-book-bookmark text-indigo-600"></i> <span>Dicionário & Jargões</span>
-                </button>
-                <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" class="flex-1 py-2 px-3 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <i class="ph-bold ph-brain text-amber-600"></i> <span>Motores de IA</span>
+
+                <!-- Scrollable Container -->
+                <div class="inline-flex w-full rounded-2xl bg-gray-200/70 p-1 border-0 text-xs font-semibold shadow-inner overflow-x-auto whitespace-nowrap scrollbar-none scroll-smooth px-6 gap-1" id="settings-tabs">
+                    <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" class="py-2 px-3.5 rounded-xl bg-white text-gray-900 shadow-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-bell-simple text-emerald-600"></i> <span>Notificações & Canais</span>
+                    </button>
+                    <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-folders text-blue-600"></i> <span>Listas & Categorias</span>
+                    </button>
+                    <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-waveform text-purple-600"></i> <span>Hardware Plaud</span>
+                    </button>
+                    <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-book-bookmark text-indigo-600"></i> <span>Dicionário & Jargões</span>
+                    </button>
+                    <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" class="py-2 px-3.5 rounded-xl text-gray-600 hover:text-black transition flex items-center justify-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-brain text-amber-600"></i> <span>Motores de IA</span>
+                    </button>
+                </div>
+
+                <!-- Right Arrow -->
+                <button type="button" onclick="scrollSettingsTabs(150)" class="w-7 h-7 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-100 flex items-center justify-center transition absolute right-0 z-10 translate-x-2 cursor-pointer border border-gray-200" title="Rolar para direita">
+                    <i class="ph-bold ph-caret-right text-xs"></i>
                 </button>
             </div>
 
@@ -1328,6 +1341,7 @@
         marked.setOptions({ breaks: true, gfm: true });
         document.addEventListener('DOMContentLoaded', () => {
             initSidebarCategories();
+            loadPersistedNotificationPrefs();
             renderActiveIntegrationsPills();
         });
 

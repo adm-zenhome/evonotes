@@ -1254,3 +1254,18 @@ async def api_move_meeting_category(file_id: str, payload: dict = Body(...)):
             conn.commit()
 
     return JSONResponse({"status": "SUCCESS", "message": f"Reunião movida para '{new_cat}' com sucesso!", "category": new_cat})
+
+
+@app.get("/api/user/preferences")
+async def api_get_user_preferences():
+    """Fetches persisted notification preferences."""
+    from modules.executive_voice_os.database import get_user_notification_preferences
+    prefs = get_user_notification_preferences("felipe_donato")
+    return JSONResponse({"status": "SUCCESS", "preferences": prefs})
+
+@app.post("/api/user/preferences")
+async def api_save_user_preferences(payload: dict = Body(...)):
+    """Persists updated notification preferences."""
+    from modules.executive_voice_os.database import save_user_notification_preferences
+    save_user_notification_preferences("felipe_donato", payload)
+    return JSONResponse({"status": "SUCCESS", "message": "Preferências salvas com sucesso!", "preferences": payload})
