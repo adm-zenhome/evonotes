@@ -56,8 +56,8 @@ import re
 
 VOCABULARY_CORRECTIONS = [
     (r"\bActian\b", "Aktie Now"),
-    (r"\bAction\b", "Aktie Now"),
-    (r"\bAktie\b", "Aktie Now"),
+    (r"\bAktienow\b", "Aktie Now"),
+    (r"\bActie\s+Now\b", "Aktie Now"),
     (r"\bNaga\b", "Vonage"),
     (r"\bNaj[aá]\b", "Vonage"),
     (r"\bMandique\b", "Mantiqueira"),
