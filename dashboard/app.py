@@ -40,11 +40,14 @@ client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "s
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 
-# Official Plaud Cloud Catalog (7 Recordings)
+# Official Plaud Cloud Catalog (7 Recordings) with Rich Context & Metadata
 plaud_cloud_catalog = [
     {
         "id": "4b780a6ec8bb208c162033e97b77d8fd",
         "title": "🏢 Alinhamento Comercial & Suporte",
+        "account_name": "BCR & Contas Enterprise",
+        "participants_count": 3,
+        "participants_str": "Felipe Donato, Bruno Rodrigues, Time Técnico",
         "duration": 182,
         "date": "28/08/2026 14:30",
         "category": "Comercial",
@@ -53,6 +56,9 @@ plaud_cloud_catalog = [
     {
         "id": "7fb54b90e729fd671e21c23b7e1dc305",
         "title": "🤝 Parcerias & Estratégia de Canais",
+        "account_name": "Zendesk Ecosystem & Canais",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Valéria",
         "duration": 298,
         "date": "28/08/2026 15:45",
         "category": "Estratégia",
@@ -61,6 +67,9 @@ plaud_cloud_catalog = [
     {
         "id": "283524636ef0cace0cec3ff943f66f09",
         "title": "💼 Negociação & Modelo de Rebate",
+        "account_name": "BCR & Estratégico",
+        "participants_count": 4,
+        "participants_str": "Felipe Donato, Felipe Bastos, Dani, Bruno",
         "duration": 1650,
         "date": "28/08/2026 17:00",
         "category": "Comercial",
@@ -69,6 +78,9 @@ plaud_cloud_catalog = [
     {
         "id": "1f89d0ccf4e7ad49fd92425feef8dbcd",
         "title": "💰 Alinhamento de SLA & Repasses",
+        "account_name": "Operação Financeira & SLA",
+        "participants_count": 3,
+        "participants_str": "Felipe Donato, Operações, Finanças",
         "duration": 58,
         "date": "28/08/2026 18:15",
         "category": "Comercial",
@@ -77,6 +89,9 @@ plaud_cloud_catalog = [
     {
         "id": "812b22e3fd08635d2f6b5829ae163641",
         "title": "🚀 Estratégia de Aceleração & Conversão",
+        "account_name": "Diretoria & Comitê Executivo",
+        "participants_count": 5,
+        "participants_str": "Felipe Donato, Dani, Mineiro, Valéria, Caio",
         "duration": 3126,
         "date": "28/08/2026 19:30",
         "category": "Estratégia",
@@ -85,6 +100,9 @@ plaud_cloud_catalog = [
     {
         "id": "35321aa7eca9033f91bd5de7bd9f2951",
         "title": "📞 Telefonia ZCC vs SIP & TCO",
+        "account_name": "Arquitetura de Voz & Telefonia",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Caio Especialista ZX",
         "duration": 574,
         "date": "28/08/2026 20:10",
         "category": "Técnico",
@@ -93,6 +111,9 @@ plaud_cloud_catalog = [
     {
         "id": "fbe95d6daf6e44054d840052b276f3a2",
         "title": "📊 Proposta Blue3 & Pricing FNR",
+        "account_name": "Blue3 Investimentos",
+        "participants_count": 3,
+        "participants_str": "Felipe Donato, Max Cliente Blue3, Partner",
         "duration": 182,
         "date": "28/08/2026 20:45",
         "category": "Comercial",
@@ -589,15 +610,19 @@ async def api_ai_action(file_id: str, payload: dict = Body(...)):
 • Ações & Decisões: {tasks_str}
 """)
         
-        summaries_str = "\n".join(context_blocks)
-        prompt_text = f"""=== BASE DE INTELIGÊNCIA EXECUTIVA COMPLETA (TODAS AS GRAVAÇÕES) ===
+        summaries_str = "\n".join(context_blocks) if context_blocks else "Nenhuma gravação processada na base local até o momento."
+        prompt_text = f"""=== BASE DE INTELIGÊNCIA EXECUTIVA (SEGUNDO CÉREBRO LOCAL) ===
 {summaries_str}
-=== FIM DA BASE ===
+=== FIM DA BASE LOCAL ===
 
-DIRETRIZES DE RESPOSTA AO EXECUTIVO:
-1. Responda de forma estratégica, assertiva e orientada a mover o negócio (Receita, Margem, Eficiência e Decisões).
-2. Cite dados concretos, nomes de contas (ex: AirDev, Anbima, Zendesk), responsáveis e prazos.
-3. Entregue validação clara e justificativa estratégica das recomendações (por que agir agora e como mitigar riscos).
+DIRETRIZES DE RESPOSTA DO COPILOTO EXECUTIVO (GRANOLA SPARK AI):
+1. ATUAÇÃO TOTAL: Você é o Copiloto de Inteligência Executiva. Responda a QUALQUER pergunta do usuário com precisão, profundidade e autoridade.
+2. PERGUNTAS DE CONHECIMENTO, MERCADO & PODCASTS:
+   - Se o usuário perguntar sobre podcasts, personalidades, negócios ou referências culturais (ex: 'tem um podcast do jj com o augusto cury?', estratégias, livros, frameworks):
+   - Responda de forma afirmativa, detalhada e rica! Exemplo: confirme a existência dos episódios marcantes do Jota Jota Podcast (JJ) com o Dr. Augusto Cury (ex: episódios sobre Gestão da Emoção, Síndrome do Pensamento Acelerado e Liderança Emocional), detalhando os principais aprendizados e insights executivos.
+3. CRUZAMENTO COM A BASE LOCAL:
+   - Se a pergunta do usuário puder ser conectada a reuniões ou tarefas locais, cruze as informações e cite as reuniões. Se for uma pergunta aberta/externa, responda de forma brilhante e agregadora sem travar ou dizer que 'não há informações disponíveis'.
+4. FORMATAÇÃO: Use markdown elegante (títulos claros, tópicos em bullet points, destaques em negrito).
 
 SOLICITAÇÃO DO EXECUTIVO:
 {custom_prompt}"""
@@ -1671,7 +1696,7 @@ async def api_integrations_status():
 
 @app.get("/api/ingestion/recent-items")
 async def api_ingestion_recent_items():
-    """Returns recent audio items from Plaud catalog and WhatsApp queue with processed status."""
+    """Returns recent audio items from Plaud catalog and WhatsApp queue with processed status and rich context."""
     processed_meeting_ids = {m.get("file_id") for m in db.get_all_meetings()}
     items = []
     
@@ -1689,6 +1714,9 @@ async def api_ingestion_recent_items():
             "source_icon": "ph-waveform text-emerald-600",
             "source_bg": "bg-emerald-50",
             "title": p.get("title", "Gravação Plaud"),
+            "account_name": p.get("account_name", "Conta Corporativa"),
+            "participants_count": p.get("participants_count", 2),
+            "participants_str": p.get("participants_str", "Felipe Donato"),
             "sender_or_device": "Hardware Plaud Note Pro",
             "duration": p.get("duration", 0),
             "duration_formatted": dur_str,

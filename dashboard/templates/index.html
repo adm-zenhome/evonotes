@@ -5256,7 +5256,186 @@ Reunião de Origem: ${meetingTitle}`);
             }
         }
 
+        
+        // ==============================================================
+        // ✨ GRANOLA-STYLE AI COPILOT TERMINAL CONTROLLER
+        // ==============================================================
+
+        let isTerminalExpanded = false;
+
+        function openGranolaTerminal() {
+            const terminal = document.getElementById('granola-ai-terminal');
+            if (!terminal) return;
+            terminal.classList.remove('hidden');
+            setTimeout(() => {
+                terminal.classList.remove('translate-y-8', 'opacity-0');
+                terminal.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+
+            // Update active context label
+            const label = document.getElementById('terminal-active-context-label');
+            if (label) {
+                if (currentMeetingId) {
+                    const currentMeeting = (meetingsData || []).find(m => m.file_id === currentMeetingId);
+                    label.innerText = currentMeeting ? `Nota Ativa: ${currentMeeting.title}` : 'Nota Selecionada';
+                } else {
+                    label.innerText = 'Base Geral & Inteligência Conectada';
+                }
+            }
+
+            const input = document.getElementById('terminal-prompt-input');
+            if (input) input.focus();
+        }
+
+        function closeGranolaTerminal() {
+            const terminal = document.getElementById('granola-ai-terminal');
+            if (!terminal) return;
+            terminal.classList.remove('translate-y-0', 'opacity-100');
+            terminal.classList.add('translate-y-8', 'opacity-0');
+            setTimeout(() => {
+                terminal.classList.add('hidden');
+            }, 300);
+        }
+
+        function toggleGranolaTerminalSize() {
+            const terminal = document.getElementById('granola-ai-terminal');
+            const messages = document.getElementById('granola-terminal-messages');
+            const btn = document.getElementById('btn-terminal-expand');
+            if (!terminal || !messages) return;
+
+            isTerminalExpanded = !isTerminalExpanded;
+            if (isTerminalExpanded) {
+                terminal.classList.remove('sm:w-[620px]', 'md:w-[680px]');
+                terminal.classList.add('sm:w-[850px]', 'md:w-[920px]', 'max-h-[90vh]');
+                messages.classList.remove('max-h-[50vh]', 'sm:max-h-[55vh]');
+                messages.classList.add('max-h-[70vh]');
+                if (btn) btn.innerHTML = '<i class="ph-bold ph-arrows-in-simple text-xs"></i>';
+            } else {
+                terminal.classList.remove('sm:w-[850px]', 'md:w-[920px]', 'max-h-[90vh]');
+                terminal.classList.add('sm:w-[620px]', 'md:w-[680px]');
+                messages.classList.remove('max-h-[70vh]');
+                messages.classList.add('max-h-[50vh]', 'sm:max-h-[55vh]');
+                if (btn) btn.innerHTML = '<i class="ph-bold ph-arrows-out-simple text-xs"></i>';
+            }
+        }
+
+        function clearGranolaTerminalChat() {
+            const messages = document.getElementById('granola-terminal-messages');
+            if (messages) messages.innerHTML = '';
+            showInAppToast('Histórico do terminal limpo.', 'info');
+        }
+
+        function handleTerminalKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendTerminalPrompt();
+            } else if (e.key === 'Escape') {
+                closeGranolaTerminal();
+            }
+        }
+
+        async function sendTerminalPrompt() {
+            const input = document.getElementById('terminal-prompt-input');
+            const text = input ? input.value.trim() : '';
+            if (!text) return;
+            input.value = '';
+
+            await executeGranolaTerminalPrompt(text);
+        }
+
+        async function executeGranolaTerminalPrompt(promptText) {
+            openGranolaTerminal();
+            const messagesContainer = document.getElementById('granola-terminal-messages');
+            if (!messagesContainer) return;
+
+            // 1. Append User Bubble inside Terminal
+            const userMsgHtml = `
+                <div class="flex justify-end animate-fade-in">
+                    <div class="bg-zinc-800 text-zinc-100 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-2xl max-w-[85%] border border-zinc-700 shadow-xs leading-relaxed">
+                        ${promptText}
+                    </div>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('beforeend', userMsgHtml);
+
+            // 2. Append Assistant Loading Indicator inside Terminal
+            const loadingId = `term-loading-${Date.now()}`;
+            const loadingHtml = `
+                <div id="${loadingId}" class="bg-zinc-900/90 border border-zinc-800 p-4 rounded-2xl flex items-center gap-3 text-zinc-400 text-xs animate-pulse">
+                    <i class="ph-bold ph-spinner animate-spin text-emerald-400 text-base"></i>
+                    <span>Raciocinando e consultando inteligência executiva...</span>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('beforeend', loadingHtml);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // 3. Request Multi-LLM API
+            const modelSelector = document.getElementById('terminal-model-selector') || document.getElementById('chat-model-selector');
+            const selectedModel = modelSelector ? modelSelector.value : 'gpt-4o';
+            const targetEndpoint = currentMeetingId ? `/api/ai-action/${currentMeetingId}` : `/api/ai-action/global`;
+
+            try {
+                const res = await fetch(targetEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action_type: 'custom',
+                        prompt: promptText,
+                        model: selectedModel,
+                        current_content: ''
+                    })
+                });
+                const data = await res.json();
+                
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                const responseText = data.result || 'Sem resposta disponível.';
+                const parsedMd = marked.parse(responseText);
+
+                const assistantMsgHtml = `
+                    <div class="bg-zinc-900/95 border border-zinc-800/80 p-4 sm:p-5 rounded-2xl space-y-3 animate-fade-in text-zinc-200">
+                        <div class="flex items-center justify-between pb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
+                            <div class="flex items-center gap-1.5">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                <span class="font-bold text-zinc-300">Resposta Copilot</span>
+                                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${selectedModel}</span>
+                            </div>
+                            <button onclick="navigator.clipboard.writeText(\`${responseText.replace(/`/g, '\\`')}\`); showInAppToast('Copiado para a área de transferência!', 'success')" class="hover:text-white transition cursor-pointer p-1" title="Copiar resposta">
+                                <i class="ph-bold ph-copy"></i>
+                            </button>
+                        </div>
+                        <div class="prose prose-invert prose-xs sm:prose-sm max-w-none leading-relaxed font-sans text-zinc-200">
+                            ${parsedMd}
+                        </div>
+                    </div>
+                `;
+                messagesContainer.insertAdjacentHTML('beforeend', assistantMsgHtml);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (e) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                messagesContainer.insertAdjacentHTML('beforeend', `
+                    <div class="p-3 bg-red-950/60 border border-red-800/60 text-red-300 rounded-xl text-xs">
+                        Erro ao obter resposta: ${e.message}
+                    </div>
+                `);
+            }
+        }
+
+        // Intercept global sendPrompt from the bottom input bar to launch the Granola Terminal
         async function sendPrompt() {
+            const input = document.getElementById('prompt-input');
+            const text = input ? input.value.trim() : '';
+            if (!text) return;
+
+            input.value = '';
+            // Launch Granola Copilot Terminal without scrolling the main dashboard!
+            await executeGranolaTerminalPrompt(text);
+        }
+
+        async function legacySendPrompt() {
             const input = document.getElementById('prompt-input');
             const text = input.value.trim();
             if (!text) return;
@@ -8200,7 +8379,7 @@ Felipe Donato`);
 
             if (filtered.length === 0) {
                 listEl.innerHTML = `
-                    <div class="py-6 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
+                    <div class="py-8 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
                         Nenhuma gravação recente encontrada nesta fonte.
                     </div>
                 `;
@@ -8210,39 +8389,64 @@ Felipe Donato`);
             let html = '';
             filtered.forEach(item => {
                 const isProcessed = item.is_processed;
-                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800' : 'bg-emerald-50 text-emerald-800';
+                const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-emerald-50 text-emerald-800 border border-emerald-100';
+                const accountLabel = item.account_name || 'Conta Corporativa';
+                const partsCount = item.participants_count || 2;
                 
                 html += `
-                    <div class="p-3.5 sm:p-4 rounded-2xl bg-gray-50/70 hover:bg-gray-50 border border-gray-100 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
-                        <div class="flex items-start gap-3 truncate">
-                            <div class="w-9 h-9 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                    <div class="p-4 rounded-2xl bg-white hover:bg-[#fafbfc] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+                        <div class="flex items-start gap-3.5 truncate min-w-0 flex-1">
+                            <div class="w-10 h-10 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
                                 <i class="ph-bold ${item.source_icon}"></i>
                             </div>
-                            <div class="truncate">
+                            <div class="truncate min-w-0 flex-1 space-y-1">
+                                <!-- Linha 1: Título e Badges (sem quebra) -->
                                 <div class="flex items-center gap-2 truncate">
-                                    <span class="text-xs font-bold text-gray-900 truncate">${item.title}</span>
+                                    <span class="text-xs sm:text-sm font-bold text-gray-900 truncate">${item.title}</span>
                                     <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
-                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">Pendente</span>'}
+                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex-shrink-0">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold flex-shrink-0">Pendente</span>'}
                                 </div>
-                                <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-1 truncate font-medium">
-                                    <span><i class="ph ph-clock text-xs"></i> ${item.duration_formatted}</span>
-                                    <span>•</span>
-                                    <span><i class="ph ph-calendar-blank text-xs"></i> ${item.date_formatted}</span>
-                                    <span>•</span>
-                                    <span class="text-gray-400 truncate">${item.sender_or_device}</span>
+
+                                <!-- Linha 2: Conta, Participantes, Duração e Data (Contexto Rico & Limpo) -->
+                                <div class="text-[11px] text-gray-500 flex items-center gap-2 truncate font-medium">
+                                    <span class="text-gray-800 font-semibold flex items-center gap-1 flex-shrink-0">
+                                        <i class="ph-bold ph-buildings text-blue-600 text-xs"></i>
+                                        <span>${accountLabel}</span>
+                                    </span>
+                                    <span class="text-gray-300">•</span>
+                                    <span class="text-purple-700 font-medium flex items-center gap-1 flex-shrink-0">
+                                        <i class="ph-bold ph-users text-purple-600 text-xs"></i>
+                                        <span>${partsCount} participante(s)</span>
+                                    </span>
+                                    <span class="text-gray-300">•</span>
+                                    <span class="flex items-center gap-1 flex-shrink-0">
+                                        <i class="ph ph-clock text-xs text-gray-400"></i>
+                                        <span>${item.duration_formatted}</span>
+                                    </span>
+                                    <span class="text-gray-300">•</span>
+                                    <span class="flex items-center gap-1 flex-shrink-0">
+                                        <i class="ph ph-calendar-blank text-xs text-gray-400"></i>
+                                        <span>${item.date_formatted}</span>
+                                    </span>
                                 </div>
+
+                                <!-- Linha 3: Resumo Executivo / Preview -->
+                                ${item.summary_preview ? `
+                                <div class="text-[11px] text-gray-400 truncate font-normal leading-relaxed">
+                                    ${item.summary_preview}
+                                </div>` : ''}
                             </div>
                         </div>
 
-                        <!-- Action Button -->
+                        <!-- Botão de Ação -->
                         <div class="flex-shrink-0 self-end sm:self-center">
                             ${isProcessed ? `
-                                <button onclick="selectMeeting('${item.id}')" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-file-text"></i>
+                                <button onclick="selectMeeting('${item.id}')" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                    <i class="ph-bold ph-file-text text-emerald-600"></i>
                                     <span>Ver Síntese</span>
                                 </button>
                             ` : `
-                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
                                     <i class="ph-bold ph-lightning text-emerald-400"></i>
                                     <span>Processar com IA</span>
                                 </button>
@@ -9733,6 +9937,75 @@ Felipe Donato`);
             <div class="pt-4 border-t border-gray-100 text-center text-[10px] text-gray-400 space-y-1">
                 <div>Jarvis OS v4 — Instância Mac Pessoal</div>
                 <div class="font-mono text-gray-300">Zendesk Hyper-Growth • 2026</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- ✨ GRANOLA-STYLE EXECUTIVE AI COPILOT TERMINAL (SLIDE-UP OVERLAY) -->
+    <!-- ========================================================================= -->
+    <div id="granola-ai-terminal" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[620px] md:w-[680px] z-[95] flex flex-col bg-[#141416]/95 backdrop-blur-2xl text-white rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.55)] border border-zinc-800/80 overflow-hidden transition-all duration-300 transform translate-y-8 opacity-0">
+        <!-- Terminal Header -->
+        <div class="px-5 py-3.5 bg-zinc-900/90 border-b border-zinc-800/70 flex items-center justify-between select-none">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
+                    <i class="ph-bold ph-sparkle animate-pulse"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                        <span>Granola Spark Copilot</span>
+                        <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60">Terminal</span>
+                    </div>
+                    <div class="text-[10px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span id="terminal-active-context-label">Base Geral & Inteligência Conectada</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button onclick="clearGranolaTerminalChat()" class="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer" title="Limpar Histórico">
+                    <i class="ph-bold ph-trash text-xs"></i>
+                </button>
+                <button onclick="toggleGranolaTerminalSize()" id="btn-terminal-expand" class="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer" title="Expandir / Reduzir">
+                    <i class="ph-bold ph-arrows-out-simple text-xs"></i>
+                </button>
+                <button onclick="closeGranolaTerminal()" class="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition cursor-pointer" title="Fechar Terminal (Esc)">
+                    <i class="ph-bold ph-x text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Terminal Messages Viewport -->
+        <div id="granola-terminal-messages" class="p-4 sm:p-5 overflow-y-auto max-h-[50vh] sm:max-h-[55vh] space-y-4 font-sans text-xs sm:text-sm custom-scrollbar">
+            <!-- Messages rendered dynamically -->
+        </div>
+
+        <!-- Terminal Internal Input Box -->
+        <div class="p-3 bg-zinc-900/90 border-t border-zinc-800/80">
+            <div class="relative bg-zinc-950 rounded-2xl border border-zinc-800 focus-within:border-zinc-600 transition">
+                <textarea id="terminal-prompt-input" rows="1" 
+                          onkeydown="handleTerminalKeyDown(event)" 
+                          placeholder="Pergunte sobre negócios, reuniões, podcasts ou tarefas..." 
+                          class="w-full bg-transparent px-4 pt-3 pb-8 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none font-sans"></textarea>
+                
+                <div class="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 text-[10px] text-zinc-400">
+                        <span class="font-mono">Enter ↵ envia</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <select id="terminal-model-selector" class="text-[11px] bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg px-2 py-0.5 font-semibold focus:outline-none cursor-pointer border border-zinc-700">
+                            <option value="gpt-4o-mini">⚡ Rápida</option>
+                            <option value="gpt-4o" selected>🧠 C-Level</option>
+                            <option value="o3-mini">🔬 Profundo</option>
+                            <option value="gemini-2.5-flash">💎 Visão 360°</option>
+                        </select>
+                        <button onclick="sendTerminalPrompt()" id="btn-terminal-send" class="w-6 h-6 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold flex items-center justify-center transition active:scale-95 cursor-pointer">
+                            <i class="ph-bold ph-arrow-up text-xs"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
