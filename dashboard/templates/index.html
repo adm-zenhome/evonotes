@@ -5,11 +5,377 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Executive Voice OS — Second Brain</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // ==============================================================
+        // 📱 WHATSAPP AUDIO INBOX & FEED LOGIC
+        // ==============================================================
+
+        async function openWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            await loadWhatsAppAudioFeed();
+        }
+
+        function closeWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function loadWhatsAppAudioFeed() {
+            const container = document.getElementById('whatsapp-audio-feed-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/audio-feed');
+                const data = await res.json();
+                const audios = data.audios || [];
+
+                if (audios.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-8 text-center text-xs text-gray-400 space-y-2">
+                            <i class="ph-bold ph-waveform-slash text-3xl text-gray-300"></i>
+                            <div>Nenhum áudio recente encontrado nos chats.</div>
+                            <div class="text-[10px]">Envie ou encaminhe um áudio no WhatsApp para que ele apareça aqui.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = audios.map((a, idx) => `
+                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100/90 shadow-2xs hover:shadow-xs transition space-y-2.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl ${a.is_group ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
+                                </div>
+                            </div>
+                            
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
+                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                            </span>
+                        </div>
+
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                            </div>
+
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
+                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                <span>Ingerir com IA</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="p-6 text-center text-xs text-red-500">
+                        Erro ao carregar feed do WhatsApp: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function ingestWhatsAppAudioFromFeed(phone, encodedChatName, btnEl) {
+            const chatName = decodeURIComponent(encodedChatName);
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-xs"></i> <span>Processando...</span>`;
+            }
+
+            showInAppToast(`🎙️ Ingerindo áudio de '${chatName}' com Whisper e IA...`, 'info');
+
+            try {
+                const res = await fetch('/api/whatsapp/ingest-audio-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, chat_name: chatName })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🌟 Áudio do WhatsApp processado com sucesso!', 'success');
+                    closeWhatsAppAudioInboxModal();
+                    
+                    // Reload meetings and select new note
+                    await loadMeetings();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id, false);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + (data.detail || 'Falha'), 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na ingestão do WhatsApp: ' + e.message, 'error');
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                }
+            }
+        }
+
+</script>
     <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web">
+        // ==============================================================
+        // 📱 WHATSAPP AUDIO INBOX & FEED LOGIC
+        // ==============================================================
+
+        async function openWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            await loadWhatsAppAudioFeed();
+        }
+
+        function closeWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function loadWhatsAppAudioFeed() {
+            const container = document.getElementById('whatsapp-audio-feed-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/audio-feed');
+                const data = await res.json();
+                const audios = data.audios || [];
+
+                if (audios.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-8 text-center text-xs text-gray-400 space-y-2">
+                            <i class="ph-bold ph-waveform-slash text-3xl text-gray-300"></i>
+                            <div>Nenhum áudio recente encontrado nos chats.</div>
+                            <div class="text-[10px]">Envie ou encaminhe um áudio no WhatsApp para que ele apareça aqui.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = audios.map((a, idx) => `
+                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100/90 shadow-2xs hover:shadow-xs transition space-y-2.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl ${a.is_group ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
+                                </div>
+                            </div>
+                            
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
+                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                            </span>
+                        </div>
+
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                            </div>
+
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
+                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                <span>Ingerir com IA</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="p-6 text-center text-xs text-red-500">
+                        Erro ao carregar feed do WhatsApp: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function ingestWhatsAppAudioFromFeed(phone, encodedChatName, btnEl) {
+            const chatName = decodeURIComponent(encodedChatName);
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-xs"></i> <span>Processando...</span>`;
+            }
+
+            showInAppToast(`🎙️ Ingerindo áudio de '${chatName}' com Whisper e IA...`, 'info');
+
+            try {
+                const res = await fetch('/api/whatsapp/ingest-audio-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, chat_name: chatName })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🌟 Áudio do WhatsApp processado com sucesso!', 'success');
+                    closeWhatsAppAudioInboxModal();
+                    
+                    // Reload meetings and select new note
+                    await loadMeetings();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id, false);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + (data.detail || 'Falha'), 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na ingestão do WhatsApp: ' + e.message, 'error');
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                }
+            }
+        }
+
+</script>
     <!-- Marked.js (Markdown Renderer) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+        // ==============================================================
+        // 📱 WHATSAPP AUDIO INBOX & FEED LOGIC
+        // ==============================================================
+
+        async function openWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            await loadWhatsAppAudioFeed();
+        }
+
+        function closeWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function loadWhatsAppAudioFeed() {
+            const container = document.getElementById('whatsapp-audio-feed-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/audio-feed');
+                const data = await res.json();
+                const audios = data.audios || [];
+
+                if (audios.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-8 text-center text-xs text-gray-400 space-y-2">
+                            <i class="ph-bold ph-waveform-slash text-3xl text-gray-300"></i>
+                            <div>Nenhum áudio recente encontrado nos chats.</div>
+                            <div class="text-[10px]">Envie ou encaminhe um áudio no WhatsApp para que ele apareça aqui.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = audios.map((a, idx) => `
+                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100/90 shadow-2xs hover:shadow-xs transition space-y-2.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl ${a.is_group ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
+                                </div>
+                            </div>
+                            
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
+                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                            </span>
+                        </div>
+
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                            </div>
+
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
+                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                <span>Ingerir com IA</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="p-6 text-center text-xs text-red-500">
+                        Erro ao carregar feed do WhatsApp: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function ingestWhatsAppAudioFromFeed(phone, encodedChatName, btnEl) {
+            const chatName = decodeURIComponent(encodedChatName);
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-xs"></i> <span>Processando...</span>`;
+            }
+
+            showInAppToast(`🎙️ Ingerindo áudio de '${chatName}' com Whisper e IA...`, 'info');
+
+            try {
+                const res = await fetch('/api/whatsapp/ingest-audio-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, chat_name: chatName })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🌟 Áudio do WhatsApp processado com sucesso!', 'success');
+                    closeWhatsAppAudioInboxModal();
+                    
+                    // Reload meetings and select new note
+                    await loadMeetings();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id, false);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + (data.detail || 'Falha'), 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na ingestão do WhatsApp: ' + e.message, 'error');
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                }
+            }
+        }
+
+</script>
     <style>
         :root {
             --sat: env(safe-area-inset-top, 0px);
@@ -7169,7 +7535,129 @@ Felipe Donato`);
             }
         }
 
-    </script>
+    
+        // ==============================================================
+        // 📱 WHATSAPP AUDIO INBOX & FEED LOGIC
+        // ==============================================================
+
+        async function openWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            await loadWhatsAppAudioFeed();
+        }
+
+        function closeWhatsAppAudioInboxModal() {
+            const modal = document.getElementById('whatsapp-audio-inbox-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function loadWhatsAppAudioFeed() {
+            const container = document.getElementById('whatsapp-audio-feed-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/whatsapp/audio-feed');
+                const data = await res.json();
+                const audios = data.audios || [];
+
+                if (audios.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-8 text-center text-xs text-gray-400 space-y-2">
+                            <i class="ph-bold ph-waveform-slash text-3xl text-gray-300"></i>
+                            <div>Nenhum áudio recente encontrado nos chats.</div>
+                            <div class="text-[10px]">Envie ou encaminhe um áudio no WhatsApp para que ele apareça aqui.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = audios.map((a, idx) => `
+                    <div class="bg-[#f8f9fa] hover:bg-white p-4 rounded-2xl border border-gray-100/90 shadow-2xs hover:shadow-xs transition space-y-2.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 truncate">
+                                <div class="w-8 h-8 rounded-xl ${a.is_group ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                    <i class="ph-bold ${a.is_group ? 'ph-users-three' : 'ph-microphone'}"></i>
+                                </div>
+                                <div class="truncate">
+                                    <div class="text-xs font-bold text-gray-900 truncate">${a.chat_name}</div>
+                                    <div class="text-[10px] text-gray-500 font-medium">${a.sender_name} • ${a.time_str}</div>
+                                </div>
+                            </div>
+                            
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${a.is_group ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-800'} flex-shrink-0">
+                                ${a.is_group ? '👥 Grupo' : '👤 Privado'}
+                            </span>
+                        </div>
+
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 truncate">
+                                <i class="ph-bold ph-play-circle text-emerald-600 text-base flex-shrink-0"></i>
+                                <span class="font-mono font-bold text-gray-800 text-[10px]">${a.duration_str}</span>
+                                <span class="truncate text-gray-500 text-[10px]">${a.preview}</span>
+                            </div>
+
+                            <button onclick="ingestWhatsAppAudioFromFeed('${a.phone}', '${encodeURIComponent(a.chat_name)}', this)" 
+                                    class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-[11px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                <span>Ingerir com IA</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="p-6 text-center text-xs text-red-500">
+                        Erro ao carregar feed do WhatsApp: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function ingestWhatsAppAudioFromFeed(phone, encodedChatName, btnEl) {
+            const chatName = decodeURIComponent(encodedChatName);
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-xs"></i> <span>Processando...</span>`;
+            }
+
+            showInAppToast(`🎙️ Ingerindo áudio de '${chatName}' com Whisper e IA...`, 'info');
+
+            try {
+                const res = await fetch('/api/whatsapp/ingest-audio-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, chat_name: chatName })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🌟 Áudio do WhatsApp processado com sucesso!', 'success');
+                    closeWhatsAppAudioInboxModal();
+                    
+                    // Reload meetings and select new note
+                    await loadMeetings();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id, false);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + (data.detail || 'Falha'), 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                    }
+                }
+            } catch (e) {
+                showInAppToast('Erro na ingestão do WhatsApp: ' + e.message, 'error');
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = `<i class="ph-bold ph-sparkle text-emerald-400"></i> <span>Ingerir com IA</span>`;
+                }
+            }
+        }
+
+</script>
 
 
 
@@ -8362,6 +8850,48 @@ Felipe Donato`);
                 </button>
             </div>
 
+        </div>
+    </div>
+
+
+    <!-- 📱 MODAL: INBOX DE ÁUDIOS DO WHATSAPP (GRUPOS & CONTATOS) -->
+    <div id="whatsapp-audio-inbox-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[88vh] flex flex-col border border-gray-100/90">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-3.5 border-b border-gray-100 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold shadow-2xs">
+                        <i class="ph-bold ph-whatsapp-logo"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight">Inbox de Áudios do WhatsApp</h3>
+                        <p class="text-[11px] text-gray-500 font-medium">Áudios e mensagens de voz recebidos em grupos e conversas privadas</p>
+                    </div>
+                </div>
+                <button onclick="closeWhatsAppAudioInboxModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition cursor-pointer">
+                    <i class="ph-bold ph-x text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Feed List) -->
+            <div class="flex-1 overflow-y-auto pr-1 space-y-3 min-h-[250px]" id="whatsapp-audio-feed-container">
+                <div class="p-8 text-center text-xs text-gray-400 animate-pulse">
+                    <i class="ph-bold ph-spinner animate-spin text-2xl text-emerald-600 mb-2 block mx-auto"></i>
+                    Buscando mensagens de áudio na instância Z-API...
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0 text-xs">
+                <span class="text-[11px] text-gray-500 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Instância Z-API Conectada (+55 11 97430-7292)</span>
+                </span>
+                <button onclick="closeWhatsAppAudioInboxModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition cursor-pointer">
+                    Fechar
+                </button>
+            </div>
         </div>
     </div>
 
