@@ -159,55 +159,33 @@ async def api_sync_plaud(payload: dict = Body(default={})):
             if not raw_text:
                 raw_text = f"Gravação executiva Plaud Note Pro ({rec['title']}). Sessão estratégica capturada via Sensor Dual MEMS + VCS com diálogos sobre precificação, canais e expansão B2B."
 
-            # Check if we already have deep intelligence saved in DB for this meeting
+                        # Check if we already have deep intelligence saved in DB for this meeting
             existing_m = db.get_meeting(fid)
             if existing_m and existing_m.get("intelligence") and len(existing_m.get("intelligence", {}).get("executive_summary", "")) > 150:
                 intel = existing_m["intelligence"]
             else:
-                # Build rich executive intelligence
-                intel = {
-                    "meeting_title": rec["title"],
-                    "executive_summary": rec.get("executive_summary", "Alinhamento executivo sobre estratégia comercial e parcerias."),
-                    "category": rec.get("category", "Comercial"),
-                    "participants": [
-                        {"name": "Felipe Donato", "role": "Enterprise AE / Liderança", "key_stance": "Defesa de margem e aceleração de receita"},
-                        {"name": "Dani", "role": "Head de Parcerias", "key_stance": "Governança de canais e alinhamento de metas"},
-                        {"name": "Jean", "role": "Liderança de Negócios", "key_stance": "Validação de modelos comerciais e propostas"}
-                    ],
-                    "commitments_and_promises": [
-                        {"owner": "Felipe Donato", "action": "Ajustar modelo de proposta e validar viabilidade financeira", "deadline_or_context": "Quinta-feira 16h"},
-                        {"owner": "Dani", "action": "Validar cronograma com o time de canais", "deadline_or_context": "Sexta-feira 14h"}
-                    ],
-                    "accounts_discussed": [
-                        {"account_name": "Conta Enterprise Mapeada", "opportunity_or_risk": "Expansão B2B mapeada", "next_step": "Apresentação executiva"}
-                    ],
-                    "strategic_theses": [
-                        "Adoção de modelos escalonados com foco em margem recorrente.",
-                        "Proteção de posicionamento de valor e minimização de descontos transacionais."
-                    ],
-                    "key_highlights": [
-                        "Discussão sobre impacto de volume no retorno sobre investimento.",
-                        "Definição clara de divisão de frentes entre time direto e parceiros."
-                    ],
-                    "follow_up_emails": [
-                        {
-                            "to": "participantes@empresa.com",
-                            "subject": f"Follow-up Executivo • {rec['title']}",
-                            "body": f"""Olá a todos,
-
-Obrigado pelo tempo e alinhamento hoje sobre {rec['title']}.
-
-Conforme conversamos, estamos avançando com os próximos passos:
-1. Ajuste da proposta e cronograma executivo.
-2. Alinhamento de viabilidade e validação com comitê.
-
-Qualquer dúvida estou à disposição.
-
-Abraços,
-Felipe Donato"""
-                        }
-                    ]
-                }
+                # Real dynamic intelligence extraction from actual audio transcript
+                try:
+                    from ..intelligence_engine import IntelligenceEngine
+                    engine = IntelligenceEngine()
+                    intel = engine.analyze(
+                        transcript_text=raw_text,
+                        metadata={"file_id": fid, "title": rec.get("title")},
+                        user_id="felipe_donato",
+                        target_template=None # auto-detect
+                    )
+                except Exception as e:
+                    logging.error(f"Intelligence engine error during sync for {fid}: {e}")
+                    intel = {
+                        "meeting_title": rec["title"],
+                        "executive_summary": rec.get("executive_summary", "Alinhamento gravado via Plaud Note Pro."),
+                        "category": rec.get("category", "Geral"),
+                        "participants": [{"name": "Felipe Donato", "role": "Interlocutor", "participation_type": "active_speaker", "key_stance": "Participante"}],
+                        "commitments_and_promises": [],
+                        "accounts_discussed": [],
+                        "strategic_theses": [],
+                        "key_highlights": []
+                    }
 
             doc_path = DESKTOP_ZENDESK_DIR / f"PLAUD_{fid[:8]}_{rec['category']}.md"
             db.save_meeting({

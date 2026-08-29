@@ -64,7 +64,7 @@ Você DEVE identificar o template correto ou usar o template solicitado e NUNCA 
        "category": "Comercial",
        "executive_summary": "Resumo C-Level de 3 a 5 parágrafos focado em decisões, ROI e rumos estratégicos.",
        "participants": [
-         {"name": "Nome", "role": "Papel / Empresa", "key_stance": "Posicionamento na reunião"}
+         {"name": "Nome", "role": "Papel / Empresa", "participation_type": "active_speaker / mentioned_observer", "key_stance": "Posicionamento se falou, ou contexto se foi apenas citado"}
        ],
        "commitments_and_promises": [
          {"owner": "Nome", "action": "Ação específica combinada", "deadline_or_context": "Prazo", "urgency": "ALTA/MEDIA/BAIXA"}

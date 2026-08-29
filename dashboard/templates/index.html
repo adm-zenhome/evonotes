@@ -3674,12 +3674,22 @@
             const durationLabel = document.getElementById('meta-meeting-duration');
             if (durationLabel) durationLabel.innerText = `${durationMin} min`;
 
-            // 5. Participantes
+            // 5. Participantes (Distinção Ativos vs Citados)
             const partsList = (intel.participants || []);
-            const partCount = partsList.length > 0 ? partsList.length : 1;
+            const activeSpeakers = partsList.filter(p => p.participation_type === 'active_speaker' || p.spoke_actively || (!p.participation_type && partsList.length <= 2));
+            const mentionedPeople = partsList.filter(p => p.participation_type === 'mentioned_observer' || (!p.spoke_actively && p.participation_type !== 'active_speaker' && partsList.length > 2));
+            
             const participantsLabel = document.getElementById('meta-meeting-participants');
             if (participantsLabel) {
-                participantsLabel.innerText = `${partCount} participante${partCount > 1 ? 's' : ''}`;
+                if (activeSpeakers.length > 0 && mentionedPeople.length > 0) {
+                    participantsLabel.innerText = `${activeSpeakers.length} falaram • ${mentionedPeople.length} citados`;
+                } else if (activeSpeakers.length > 0) {
+                    participantsLabel.innerText = `${activeSpeakers.length} interlocutor${activeSpeakers.length > 1 ? 'es' : ''}`;
+                } else if (partsList.length > 0) {
+                    participantsLabel.innerText = `${partsList.length} participante${partsList.length > 1 ? 's' : ''}`;
+                } else {
+                    participantsLabel.innerText = `1 interlocutor`;
+                }
             }
 
             // 6. Canal
@@ -4409,46 +4419,88 @@ Reunião de Origem: ${meetingTitle}`);
                 </div>
             ` : '';
 
-            const participantsBlock = intel.participants && intel.participants.length > 0 ? `
-                <div class="space-y-3 pt-1">
+            const allParts = (intel.participants || []);
+            const activeSpeakersList = allParts.filter(p => p.participation_type === 'active_speaker' || p.spoke_actively || (!p.participation_type && allParts.length <= 2));
+            const mentionedList = allParts.filter(p => p.participation_type === 'mentioned_observer' || (!p.spoke_actively && p.participation_type !== 'active_speaker' && allParts.length > 2));
+
+            const participantsBlock = allParts.length > 0 ? `
+                <div class="space-y-4 pt-1">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                             <i class="ph-bold ph-users text-emerald-600 text-sm"></i>
-                            <span>Participantes & Posicionamentos:</span>
+                            <span>Pessoas & Interlocutores Mapeados:</span>
                         </h3>
                         <button onclick="addNewParticipantPrompt()" class="text-[11px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 cursor-pointer">
                             <i class="ph-bold ph-plus"></i> Adicionar
                         </button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="participants-list-container">
-                        ${intel.participants.map((p, idx) => {
-                            const actBadge = getStakeholderActivityBadge(p.name);
-                            return `
-                                <div class="bg-[#f8f9fa] hover:bg-white rounded-2xl p-3.5 shadow-2xs hover:shadow-xs border-0 transition space-y-1.5 group relative">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <div class="flex items-center gap-2.5 truncate">
-                                            <div onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition" title="Abrir Dossiê 360°">
-                                                ${(p.name || 'P').slice(0, 2).toUpperCase()}
-                                            </div>
-                                            <div class="font-bold text-xs text-gray-900 outline-none p-0.5 rounded focus:bg-emerald-50 truncate" contenteditable="true" onblur="saveParticipantField(${idx}, 'name', this.innerText)" title="Clique para editar o nome">
-                                                ${p.name}
-                                            </div>
-                                        </div>
 
-                                        <button onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-800 text-[10px] font-bold transition flex items-center gap-1 cursor-pointer flex-shrink-0">
-                                            <span>${actBadge}</span>
-                                        </button>
-                                    </div>
-
-                                    ${p.key_stance && p.key_stance !== '(Sem posicionamento)' ? `
-                                        <div class="text-[11px] text-gray-600 leading-snug outline-none p-0.5 rounded focus:bg-emerald-50" contenteditable="true" onblur="saveParticipantField(${idx}, 'key_stance', this.innerText)">
-                                            ${p.key_stance}
+                    ${activeSpeakersList.length > 0 ? `
+                        <div class="space-y-2">
+                            <div class="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5 px-0.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>🗣️ Interlocutores Ativos (Falaram na Gravação):</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                ${activeSpeakersList.map((p, idx) => {
+                                    const actBadge = getStakeholderActivityBadge(p.name);
+                                    return `
+                                        <div class="bg-emerald-50/40 hover:bg-emerald-50/70 rounded-2xl p-3.5 shadow-2xs border border-emerald-100/80 transition space-y-1.5 group relative">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="flex items-center gap-2.5 truncate">
+                                                    <div onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="w-7 h-7 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition" title="Abrir Dossiê 360°">
+                                                        ${(p.name || 'P').slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div class="font-bold text-xs text-gray-900 outline-none p-0.5 rounded focus:bg-white truncate" contenteditable="true" onblur="saveParticipantField(${idx}, 'name', this.innerText)">
+                                                        ${p.name}
+                                                    </div>
+                                                </div>
+                                                <span class="px-2 py-0.5 rounded-md bg-emerald-100/80 text-emerald-800 text-[10px] font-bold flex-shrink-0">🎙️ Falou na call</span>
+                                            </div>
+                                            ${p.key_stance ? `
+                                                <div class="text-[11px] text-gray-700 leading-snug outline-none p-0.5 rounded focus:bg-white" contenteditable="true" onblur="saveParticipantField(${idx}, 'key_stance', this.innerText)">
+                                                    ${p.key_stance}
+                                                </div>
+                                            ` : ''}
                                         </div>
-                                    ` : ''}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${mentionedList.length > 0 ? `
+                        <div class="space-y-2 pt-1">
+                            <div class="text-[11px] font-bold text-gray-600 flex items-center gap-1.5 px-0.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                <span>👥 Citados & Mencionados na Conversa:</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                ${mentionedList.map((p, idx) => {
+                                    return `
+                                        <div class="bg-gray-50 hover:bg-white rounded-2xl p-3.5 shadow-2xs border border-gray-200/60 transition space-y-1.5 group relative">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="flex items-center gap-2.5 truncate">
+                                                    <div onclick="openStakeholder360Modal('${encodeURIComponent(p.name)}')" class="w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0 shadow-2xs cursor-pointer hover:scale-110 transition" title="Abrir Dossiê 360°">
+                                                        ${(p.name || 'P').slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div class="font-bold text-xs text-gray-900 outline-none p-0.5 rounded focus:bg-white truncate" contenteditable="true" onblur="saveParticipantField(${idx}, 'name', this.innerText)">
+                                                        ${p.name}
+                                                    </div>
+                                                </div>
+                                                <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold flex-shrink-0">💬 Citado</span>
+                                            </div>
+                                            ${p.key_stance ? `
+                                                <div class="text-[11px] text-gray-600 leading-snug outline-none p-0.5 rounded focus:bg-white" contenteditable="true" onblur="saveParticipantField(${idx}, 'key_stance', this.innerText)">
+                                                    ${p.key_stance}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             ` : '';
 
