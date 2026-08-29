@@ -114,17 +114,20 @@ async def home(request: Request):
         my_tasks = [t for t in tasks if "felipe" in (t.get("owner") or "").lower() and t.get("status") == "PENDING"]
         hours_saved = round((len(meetings) * 45) / 60, 1)
         
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "meetings": meetings,
-            "profile": profile,
-            "analytics": analytics,
-            "tasks": tasks,
-            "my_tasks": my_tasks,
-            "my_tasks_count": len(my_tasks),
-            "total_meetings_count": len(meetings),
-            "hours_saved": hours_saved
-        })
+        return templates.TemplateResponse(
+            request=request,
+            name="index.html",
+            context={
+                "meetings": meetings,
+                "profile": profile,
+                "analytics": analytics,
+                "tasks": tasks,
+                "my_tasks": my_tasks,
+                "my_tasks_count": len(my_tasks),
+                "total_meetings_count": len(meetings),
+                "hours_saved": hours_saved
+            }
+        )
     except Exception as e:
         logging.error(f"Error rendering home template: {e}", exc_info=True)
         import traceback
