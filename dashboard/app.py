@@ -737,19 +737,37 @@ async def api_webhook_whatsapp(request: Request):
 
 @app.get("/api/plaud/status")
 async def api_plaud_status():
-    """Returns status of Plaud device connection and cloud account."""
-    meetings = db.get_all_meetings()
-    plaud_meetings = [m for m in meetings if m.get("file_id") and not m.get("file_id").startswith("wa_")]
+    """Returns dynamic status of Plaud device connection and cloud account from SQLite."""
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT is_active, config_json, updated_at FROM user_integrations WHERE id = 'plaud_cloud_felipe'")
+        row = cursor.fetchone()
+        if row and row["is_active"]:
+            cfg = json.loads(row["config_json"] or "{}")
+            meetings = db.get_all_meetings()
+            plaud_meetings = [m for m in meetings if m.get("file_id") and not m.get("file_id").startswith("wa_")]
+            return JSONResponse({
+                "status": "CONNECTED",
+                "is_connected": True,
+                "is_active": True,
+                "email": cfg.get("email", "Conectado"),
+                "cloud_account": cfg.get("email", "Conectado"),
+                "device_name": "Plaud Note Pro",
+                "serial_number": cfg.get("serial_number", "8810B30300504129"),
+                "total_recordings_synced": len(plaud_meetings),
+                "last_sync": row["updated_at"] or datetime.now().strftime("%d/%m/%Y %H:%M")
+            })
     
     return JSONResponse({
-        "status": "CONNECTED",
+        "status": "DISCONNECTED",
+        "is_connected": False,
+        "is_active": False,
+        "email": "",
+        "cloud_account": "Não conectado",
         "device_name": "Plaud Note Pro",
-        "serial_number": "8810B30300504129",
-        "cloud_account": "feee.deluca (Apple ID)",
-        "sync_mode": "Auto-Cloud Sync",
-        "total_recordings_synced": len(plaud_meetings),
-        "last_sync": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "is_active": True
+        "serial_number": "---",
+        "total_recordings_synced": 0,
+        "last_sync": "---"
     })
 
 @app.post("/api/plaud/connect")
