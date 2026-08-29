@@ -5,11 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Executive Voice OS — Second Brain</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+        // Global Modal Closer (Backdrop click + ESC Key)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id$="-modal"]').forEach(m => m.classList.add('hidden'));
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id && e.target.id.endsWith('-modal') && e.target.classList.contains('fixed')) {
+                e.target.classList.add('hidden');
+            }
+        });
+
+    </script>
     <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web">
+        // Global Modal Closer (Backdrop click + ESC Key)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id$="-modal"]').forEach(m => m.classList.add('hidden'));
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id && e.target.id.endsWith('-modal') && e.target.classList.contains('fixed')) {
+                e.target.classList.add('hidden');
+            }
+        });
+
+    </script>
     <!-- Marked.js (Markdown Renderer) -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+        // Global Modal Closer (Backdrop click + ESC Key)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id$="-modal"]').forEach(m => m.classList.add('hidden'));
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id && e.target.id.endsWith('-modal') && e.target.classList.contains('fixed')) {
+                e.target.classList.add('hidden');
+            }
+        });
+
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -384,7 +429,7 @@
                         <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                             Ações Rápidas & Destinos
                         </div>
-                        <button onclick="openObsidianNote()" class="w-full flex items-center gap-2.5 px-3 py-2 text-purple-700 hover:bg-purple-50 rounded-xl transition text-left font-medium">
+                        <button onclick="openObsidianNoteDirect()" class="w-full flex items-center gap-2.5 px-3 py-2 text-purple-700 hover:bg-purple-50 rounded-xl transition text-left font-medium">
                             <i class="ph-bold ph-notebook text-base text-purple-600"></i>
                             <span>Abrir no Obsidian (07 - CONHECIMENTO)</span>
                         </button>
@@ -3904,15 +3949,14 @@ Reunião de Origem: ${meetingTitle}`);
         function switchMeetingTab(tab) {
             currentMeetingTab = tab;
             
-            // Update active pill styling
             const tabs = ['summary', 'transcript', 'email', 'risks'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`btn-tab-${t}`);
                 if (btn) {
                     if (t === tab) {
-                        btn.className = 'px-3 py-1 text-xs font-bold text-white bg-black rounded-full transition shadow-xs cursor-pointer';
+                        btn.className = 'px-3 py-1.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0';
                     } else {
-                        btn.className = 'px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100/80 hover:bg-black hover:text-white rounded-full transition cursor-pointer';
+                        btn.className = 'px-3 py-1.5 rounded-xl text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0';
                     }
                 }
             });
@@ -4026,7 +4070,7 @@ ${transcriptText}
                 <div class="space-y-2">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">🎯 Síntese Executiva:</h3>
                     <div class="leading-relaxed editable-block p-1" contenteditable="true" onblur="saveNoteEdits()">
-                        ${marked.parse(intel.executive_summary || 'Resumo não disponível.')}
+                        <div id="meeting-executive-summary-text" class="outline-none">${marked.parse(intel.executive_summary || 'Resumo não disponível.')}</div>
                     </div>
                 </div>
             `;
@@ -4283,7 +4327,7 @@ ${transcriptText}
                 if (data.status === 'SUCCESS') {
                     const m = meetingsData.find(item => item.file_id === currentMeetingId);
                     if (m) m.title = cleanTitle;
-                    renderSidebarList();
+                    renderSidebarMeetings();
                     showInAppToast('✅ Título da reunião atualizado!', 'success');
                 }
             } catch (e) {
@@ -4340,7 +4384,7 @@ ${transcriptText}
 
         async function saveNoteEdits() {
             if (!currentMeetingId) return;
-            const summaryEl = document.querySelector('#assistant-summary-box .editable-block');
+            const summaryEl = document.getElementById('meeting-executive-summary-text') || document.querySelector('#assistant-summary-box .editable-block');
             const summaryText = summaryEl ? summaryEl.innerText : '';
             
             try {
@@ -6151,7 +6195,7 @@ _Enviado via EvoNotes OS_`);
                 document.getElementById('stk-role').innerText = `${data.role} • ${data.company}`;
                 document.getElementById('stk-meetings-count').innerText = `${data.total_meetings} reuniões`;
                 document.getElementById('stk-tasks-count').innerText = `${data.total_tasks} compromissos`;
-                document.getElementById('stk-referral-input').value = data.referral_link;
+                const refInput = document.getElementById('stk-referral-input'); if (refInput) refInput.value = data.referral_link || '';
                 
                 const commEl = document.getElementById('stk-comm-style');
                 if (commEl) commEl.innerText = data.communication_style || 'C-Level Executivo';
@@ -6462,6 +6506,21 @@ Felipe Donato`);
 
     
 
+
+    
+        // Global Modal Closer (Backdrop click + ESC Key)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id$="-modal"]').forEach(m => m.classList.add('hidden'));
+                const backdrop = document.getElementById('sidebar-backdrop');
+                if (backdrop) backdrop.classList.add('hidden');
+            }
+        });
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id && e.target.id.endsWith('-modal') && e.target.classList.contains('fixed')) {
+                e.target.classList.add('hidden');
+            }
+        });
 
     </script>
 

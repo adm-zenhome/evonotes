@@ -1317,13 +1317,12 @@ async def api_create_task_from_next_step(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Next step description required")
         
     action_text = f"[{account_name}] {next_step}"
-    created_id = db.create_task({
-        "meeting_id": meeting_id,
-        "owner": owner,
-        "action": action_text,
-        "deadline_or_context": deadline,
-        "status": "PENDING"
-    })
+    created_id = db.create_task(
+        meeting_id=meeting_id or "general",
+        action=action_text,
+        owner=owner or "Felipe Donato",
+        deadline=deadline or "Hoje"
+    )
     
     return JSONResponse({
         "status": "SUCCESS",
@@ -1362,3 +1361,32 @@ async def api_update_meeting_channel(file_id: str, payload: dict = Body(...)):
     from modules.executive_voice_os.database import update_meeting_channel
     update_meeting_channel(file_id, channel)
     return JSONResponse({"status": "SUCCESS", "file_id": file_id, "channel": channel})
+
+
+@app.post("/api/email/daily-closing")
+async def api_email_daily_closing_alias(request: Request):
+    return await api_resend_daily_closing(request)
+
+@app.post("/api/email/save-config")
+async def api_email_save_config_alias(request: Request):
+    return await api_resend_save_config(request)
+
+@app.post("/api/email/send-prospect-followup")
+async def api_email_send_prospect_alias(request: Request):
+    return await api_resend_send_prospect_followup(request)
+
+@app.post("/api/open-in-obsidian/{file_id}")
+async def api_open_in_obsidian(file_id: str):
+    meeting = db.get_meeting(file_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    doc_path = meeting.get("doc_path") or ""
+    file_name = os.path.basename(doc_path) if doc_path else f"{file_id}.md"
+    import urllib.parse
+    encoded_file = urllib.parse.quote(f"07 - CONHECIMENTO/03 - Notas e Arquivos/Plaud/{file_name}")
+    obsidian_uri = f"obsidian://open?vault=Jarvis&file={encoded_file}"
+    try:
+        subprocess.run(["open", obsidian_uri], check=False)
+        return JSONResponse({"status": "SUCCESS", "uri": obsidian_uri})
+    except Exception as e:
+        return JSONResponse({"status": "ERROR", "detail": str(e)})

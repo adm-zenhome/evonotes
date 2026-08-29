@@ -115,7 +115,7 @@ Contas e Deals: {json.dumps(accounts, ensure_ascii=False)}
         # Synthesize audio with ElevenLabs (or fallback to OpenAI TTS HD)
         voice_id = (user_profile or {}).get("elevenlabs_voice_id", "JBFqnCBsd6RMkjVDRZzb")
         try:
-            audio_bytes = self.eleven_client.generate_audio(text=script, voice_id=voice_id)
+            audio_bytes = self.eleven_client.text_to_speech(text=script, voice_id=voice_id)
         except Exception as e:
             logging.warning(f"ElevenLabs synthesis error, falling back to OpenAI TTS HD: {e}")
             tts_res = self.openai_client.audio.speech.create(
