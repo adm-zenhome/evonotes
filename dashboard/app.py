@@ -1761,17 +1761,17 @@ async def api_ingestion_process_item(payload: dict = Body(...)):
             "key_highlights": [f"Abertura e alinhamento de {title}", "Definição de prazos e donos de ação"]
         }
         
-        db.save_meeting_intelligence(
-            file_id=item_id,
-            title=title,
-            category=category,
-            duration_seconds=duration,
-            start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            intelligence_json=json.dumps(intelligence_payload),
-            raw_transcript_text=summary,
-            custom_notes="",
-            channel="Plaud Note Pro"
-        )
+        db.save_meeting({
+            "file_id": item_id,
+            "title": title,
+            "category": category,
+            "duration_seconds": duration,
+            "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "intelligence": intelligence_payload,
+            "transcript_full": summary,
+            "custom_notes": "Processado sob demanda.",
+            "channel": "Plaud Note Pro"
+        })
         
         return JSONResponse({"status": "SUCCESS", "message": f"'{title}' processada com sucesso!", "file_id": item_id})
     
@@ -1794,17 +1794,17 @@ async def api_ingestion_process_item(payload: dict = Body(...)):
             "key_highlights": ["Áudio convertido em texto e ata executiva"]
         }
         
-        db.save_meeting_intelligence(
-            file_id=f"wa_{item_id}",
-            title=title,
-            category="Operacional",
-            duration_seconds=45,
-            start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            intelligence_json=json.dumps(intelligence_payload),
-            raw_transcript_text="Transcrição de áudio WhatsApp.",
-            custom_notes="",
-            channel="WhatsApp Voice"
-        )
+        db.save_meeting({
+            "file_id": f"wa_{item_id}",
+            "title": title,
+            "category": "Operacional",
+            "duration_seconds": 45,
+            "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "intelligence": intelligence_payload,
+            "transcript_full": "Transcrição de áudio WhatsApp.",
+            "custom_notes": "Áudio WhatsApp processado sob demanda.",
+            "channel": "WhatsApp Voice"
+        })
         db.mark_whatsapp_inbox_status(item_id, "PROCESSED")
         
         return JSONResponse({"status": "SUCCESS", "message": "Áudio de WhatsApp processado com sucesso!", "file_id": f"wa_{item_id}"})
