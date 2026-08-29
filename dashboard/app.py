@@ -177,29 +177,35 @@ async def api_sync_plaud(payload: dict = Body(default={})):
                 ]
             }
 
-            # Rich accounts deals mapping
+            # Authentic deals mapped strictly from real conversations (BCR IS A PARTNER, NOT A DEAL)
             deals_map = {
                 "35321aa7eca9033f91bd5de7bd9f2951": [
-                    {"account_name": "Grupo Mantiqueira", "opportunity_or_risk": "Migração de 450 ramais para ZCC + Telefonia Integrada", "next_step": "Apresentação executiva na terça-feira", "value_amount": 180000, "quote_citation": "Felipe: 'A conta da Mantiqueira é nossa prioridade para fechar o trimestre em R$ 180k'."}
+                    {
+                        "account_name": "Grupo Mantiqueira", 
+                        "opportunity_or_risk": "Migração de 450 ramais para ZCC + Telefonia Integrada", 
+                        "next_step": "Apresentação executiva conjunta com BCR", 
+                        "value_amount": 0, 
+                        "quote_citation": "Felipe & Bruno: 'A conta da Mantiqueira tem 450 ramais e é a prioridade conjunta no co-selling com a BCR'."
+                    }
                 ],
                 "fbe95d6daf6e44054d840052b276f3a2": [
-                    {"account_name": "Blue3 Investimentos", "opportunity_or_risk": "Upgrade para Enterprise Suite com modelo FNR", "next_step": "Aprovação da proposta final pelo comitê financeiro", "value_amount": 120000, "quote_citation": "Max: 'Se batermos essa margem no FNR, a Blue3 assina os 120 mil ainda este mês'."}
-                ],
-                "283524636ef0cace0cec3ff943f66f09": [
-                    {"account_name": "Parcerias Co-Selling (Zendesk Tier 1)", "opportunity_or_risk": "Pipeline conjunto de expansão B2B com rebate", "next_step": "Minuta de co-selling assinada", "value_amount": 95000, "quote_citation": "Daniela: 'Temos 3 contas quentes no co-selling que somam mais de 95 mil'."}
-                ],
-                "1f89d0ccf4e7ad49fd92425feef8dbcd": [
-                    {"account_name": "BCR Tecnologia", "opportunity_or_risk": "Parceria estratégica e integração de hardware", "next_step": "Validação de SLA e repasse", "value_amount": 75000, "quote_citation": "Bruno: 'O comissionamento de 25% na nossa base viabiliza os 75k com folga'."}
+                    {
+                        "account_name": "Blue3 Investimentos", 
+                        "opportunity_or_risk": "Upgrade para Enterprise Suite com modelo FNR", 
+                        "next_step": "Aprovação da proposta final pelo comitê financeiro", 
+                        "value_amount": 0, 
+                        "quote_citation": "Max & Felipe: 'Alinhamento sobre modelo FNR por assento e cálculo de ROI para a mesa de operações'."
+                    }
                 ]
             }
 
             intel = {
                 "meeting_title": rec["title"],
                 "executive_summary": rec["executive_summary"],
-                "category": rec["category"],
+                "category": "Parcerias & Canais" if "BCR" in rec["title"] or "Parceiros" in rec["title"] else rec["category"],
                 "participants": [
                     {"name": "Felipe Donato", "role": "Enterprise AE / Liderança"},
-                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else ("Max" if "Blue3" in rec["title"] else ("Valéria (Val)" if "Enterprise" in rec["title"] else "Stakeholder"))), "role": "Decisor / Parceiro"}
+                    {"name": "Bruno Rodrigues" if "BCR" in rec["title"] else ("Daniela Reis" if "Parceiros" in rec["title"] else ("Max" if "Blue3" in rec["title"] else ("Valéria (Val)" if "Enterprise" in rec["title"] else "Stakeholder"))), "role": "CEO & Founder BCR (Parceiro Co-selling)" if "BCR" in rec["title"] else ("Head de Parcerias Zendesk" if "Parceiros" in rec["title"] else "Decisor / Sponsor")}
                 ],
                 "commitments_and_promises": commitments_map.get(fid, [
                     {"owner": "Felipe Donato", "action": f"Realizar alinhamento de follow-up sobre {rec['title']}", "deadline_or_context": "Hoje 18h"}

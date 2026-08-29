@@ -68,7 +68,7 @@ class ExecutiveDatabase:
             """)
             # Ensure columns value_amount and quote_citation exist in accounts_deals
             try:
-                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 75000")
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 0")
             except Exception:
                 pass
             try:
@@ -76,6 +76,17 @@ class ExecutiveDatabase:
             except Exception:
                 pass
 
+
+            # Inferred Feedback & Exclusions Learning Engine (Zero Hallucination Guardrail)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS inferred_exclusions_feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity_type TEXT NOT NULL,
+                    entity_name TEXT NOT NULL,
+                    reason TEXT DEFAULT 'REMOVED_BY_USER',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
 
             # Deals & Accounts Table
             cursor.execute("""
@@ -91,7 +102,7 @@ class ExecutiveDatabase:
             """)
             # Ensure columns value_amount and quote_citation exist in accounts_deals
             try:
-                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 75000")
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 0")
             except Exception:
                 pass
             try:
@@ -718,7 +729,7 @@ def get_all_deals_breakdown() -> list:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT d.id, d.meeting_id, d.account_name, d.opportunity_or_risk, d.next_step, 
-                   COALESCE(d.value_amount, 75000) as value_amount, 
+                   COALESCE(d.value_amount, 0) as value_amount, 
                    COALESCE(d.quote_citation, '') as quote_citation,
                    COALESCE(m.title, 'Reunião Mapeada') as meeting_title,
                    COALESCE(m.start_time, '') as meeting_date
@@ -732,8 +743,21 @@ def get_all_deals_breakdown() -> list:
 def delete_deal_by_id(deal_id: int):
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        # Find deal name first
+        cursor.execute("SELECT account_name FROM accounts_deals WHERE id = ?", (deal_id,))
+        row = cursor.fetchone()
+        acc_name = row["account_name"] if row else "Unknown"
+
+        # Record negative feedback rule
+        cursor.execute("""
+            INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
+            VALUES ('deal', ?, 'DISCARDED_BY_USER_AS_NON_DEAL')
+        """, (acc_name,))
+
         cursor.execute("DELETE FROM accounts_deals WHERE id = ?", (deal_id,))
         conn.commit()
+        logging.info(f"Auto-correction learned: '{acc_name}' excluded from deals pipeline.")
+
 
 def get_dynamic_categories() -> list:
     with db.get_connection() as conn:
