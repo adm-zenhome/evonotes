@@ -1,0 +1,10 @@
+{
+  "name": "evonotes",
+  "version": "4.2.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "python3 -m pip install -r requirements.txt || true"
+  }
+}
