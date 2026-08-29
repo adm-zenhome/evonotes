@@ -217,6 +217,122 @@
             }
         }
 
+
+        // ==============================================================
+        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
+        // ==============================================================
+
+        function toggleTaskDateDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-date-dropdown');
+            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
+            if (ownerDropdown) ownerDropdown.classList.add('hidden');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function toggleTaskOwnerDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-owner-dropdown');
+            const dateDropdown = document.getElementById('quick-task-date-dropdown');
+            if (dateDropdown) dateDropdown.classList.add('hidden');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                loadDynamicStakeholdersOwnerList();
+            }
+        }
+
+        function setTaskDeadline(val, label) {
+            document.getElementById('quick-task-deadline').value = val;
+            document.getElementById('quick-task-deadline-label').innerText = label;
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+        }
+
+        function openNativeCalendarPicker() {
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+            const picker = document.getElementById('native-task-date-picker');
+            if (picker) {
+                if (picker.showPicker) {
+                    picker.showPicker();
+                } else {
+                    picker.focus();
+                    picker.click();
+                }
+            }
+        }
+
+        function selectNativeCalendarDate(dateVal) {
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            setTaskDeadline(formatted, `🗓️ ${formatted}`);
+        }
+
+        function setTaskOwner(ownerVal, label) {
+            document.getElementById('quick-task-owner').value = ownerVal;
+            document.getElementById('quick-task-owner-label').innerText = label;
+            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
+        }
+
+        function loadDynamicStakeholdersOwnerList() {
+            const list = document.getElementById('dynamic-stakeholders-owner-list');
+            if (!list) return;
+
+            const stakeholders = [
+                { name: "Dani", role: "Diretoria" },
+                { name: "Valéria", role: "Enterprise AE" },
+                { name: "Mineiro", role: "Enterprise AE" },
+                { name: "Bruno Rodrigues", role: "CEO / BCR" },
+                { name: "Felipe Bastos", role: "Executivo / BCR" },
+                { name: "Caio", role: "Especialista ZX" },
+                { name: "Max", role: "Cliente / Blue3" }
+            ];
+
+            list.innerHTML = stakeholders.map(s => `
+                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
+                        <span class="truncate">${s.name}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
+                </div>
+            `).join('');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            const d1 = document.getElementById('quick-task-date-dropdown');
+            const d2 = document.getElementById('quick-task-owner-dropdown');
+            if (d1) d1.classList.add('hidden');
+            if (d2) d2.classList.add('hidden');
+        });
+
+        // ==============================================================
+        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
+        // ==============================================================
+
+        async function executeBatchTasksAction(actionType) {
+            try {
+                showInAppToast('Executando ação em lote...', 'info');
+                const res = await fetch('/api/tasks/batch-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_type: actionType })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message, 'success');
+                    await loadTasksCentral();
+                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
+                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
+                    }
+                } else {
+                    showInAppToast('Erro: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
+            }
+        }
+
 </script>
     <script src="https://unpkg.com/@phosphor-icons/web">
         // ==============================================================
@@ -430,6 +546,122 @@
             }
         }
 
+
+        // ==============================================================
+        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
+        // ==============================================================
+
+        function toggleTaskDateDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-date-dropdown');
+            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
+            if (ownerDropdown) ownerDropdown.classList.add('hidden');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function toggleTaskOwnerDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-owner-dropdown');
+            const dateDropdown = document.getElementById('quick-task-date-dropdown');
+            if (dateDropdown) dateDropdown.classList.add('hidden');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                loadDynamicStakeholdersOwnerList();
+            }
+        }
+
+        function setTaskDeadline(val, label) {
+            document.getElementById('quick-task-deadline').value = val;
+            document.getElementById('quick-task-deadline-label').innerText = label;
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+        }
+
+        function openNativeCalendarPicker() {
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+            const picker = document.getElementById('native-task-date-picker');
+            if (picker) {
+                if (picker.showPicker) {
+                    picker.showPicker();
+                } else {
+                    picker.focus();
+                    picker.click();
+                }
+            }
+        }
+
+        function selectNativeCalendarDate(dateVal) {
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            setTaskDeadline(formatted, `🗓️ ${formatted}`);
+        }
+
+        function setTaskOwner(ownerVal, label) {
+            document.getElementById('quick-task-owner').value = ownerVal;
+            document.getElementById('quick-task-owner-label').innerText = label;
+            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
+        }
+
+        function loadDynamicStakeholdersOwnerList() {
+            const list = document.getElementById('dynamic-stakeholders-owner-list');
+            if (!list) return;
+
+            const stakeholders = [
+                { name: "Dani", role: "Diretoria" },
+                { name: "Valéria", role: "Enterprise AE" },
+                { name: "Mineiro", role: "Enterprise AE" },
+                { name: "Bruno Rodrigues", role: "CEO / BCR" },
+                { name: "Felipe Bastos", role: "Executivo / BCR" },
+                { name: "Caio", role: "Especialista ZX" },
+                { name: "Max", role: "Cliente / Blue3" }
+            ];
+
+            list.innerHTML = stakeholders.map(s => `
+                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
+                        <span class="truncate">${s.name}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
+                </div>
+            `).join('');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            const d1 = document.getElementById('quick-task-date-dropdown');
+            const d2 = document.getElementById('quick-task-owner-dropdown');
+            if (d1) d1.classList.add('hidden');
+            if (d2) d2.classList.add('hidden');
+        });
+
+        // ==============================================================
+        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
+        // ==============================================================
+
+        async function executeBatchTasksAction(actionType) {
+            try {
+                showInAppToast('Executando ação em lote...', 'info');
+                const res = await fetch('/api/tasks/batch-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_type: actionType })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message, 'success');
+                    await loadTasksCentral();
+                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
+                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
+                    }
+                } else {
+                    showInAppToast('Erro: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
+            }
+        }
+
 </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
         // ==============================================================
@@ -640,6 +872,122 @@
                 }
             } catch (e) {
                 showInAppToast('Erro na conexão: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
+        // ==============================================================
+
+        function toggleTaskDateDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-date-dropdown');
+            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
+            if (ownerDropdown) ownerDropdown.classList.add('hidden');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function toggleTaskOwnerDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-owner-dropdown');
+            const dateDropdown = document.getElementById('quick-task-date-dropdown');
+            if (dateDropdown) dateDropdown.classList.add('hidden');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                loadDynamicStakeholdersOwnerList();
+            }
+        }
+
+        function setTaskDeadline(val, label) {
+            document.getElementById('quick-task-deadline').value = val;
+            document.getElementById('quick-task-deadline-label').innerText = label;
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+        }
+
+        function openNativeCalendarPicker() {
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+            const picker = document.getElementById('native-task-date-picker');
+            if (picker) {
+                if (picker.showPicker) {
+                    picker.showPicker();
+                } else {
+                    picker.focus();
+                    picker.click();
+                }
+            }
+        }
+
+        function selectNativeCalendarDate(dateVal) {
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            setTaskDeadline(formatted, `🗓️ ${formatted}`);
+        }
+
+        function setTaskOwner(ownerVal, label) {
+            document.getElementById('quick-task-owner').value = ownerVal;
+            document.getElementById('quick-task-owner-label').innerText = label;
+            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
+        }
+
+        function loadDynamicStakeholdersOwnerList() {
+            const list = document.getElementById('dynamic-stakeholders-owner-list');
+            if (!list) return;
+
+            const stakeholders = [
+                { name: "Dani", role: "Diretoria" },
+                { name: "Valéria", role: "Enterprise AE" },
+                { name: "Mineiro", role: "Enterprise AE" },
+                { name: "Bruno Rodrigues", role: "CEO / BCR" },
+                { name: "Felipe Bastos", role: "Executivo / BCR" },
+                { name: "Caio", role: "Especialista ZX" },
+                { name: "Max", role: "Cliente / Blue3" }
+            ];
+
+            list.innerHTML = stakeholders.map(s => `
+                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
+                        <span class="truncate">${s.name}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
+                </div>
+            `).join('');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            const d1 = document.getElementById('quick-task-date-dropdown');
+            const d2 = document.getElementById('quick-task-owner-dropdown');
+            if (d1) d1.classList.add('hidden');
+            if (d2) d2.classList.add('hidden');
+        });
+
+        // ==============================================================
+        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
+        // ==============================================================
+
+        async function executeBatchTasksAction(actionType) {
+            try {
+                showInAppToast('Executando ação em lote...', 'info');
+                const res = await fetch('/api/tasks/batch-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_type: actionType })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message, 'success');
+                    await loadTasksCentral();
+                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
+                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
+                    }
+                } else {
+                    showInAppToast('Erro: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
             }
         }
 
@@ -1200,15 +1548,81 @@
                                class="w-full bg-gray-50/80 px-3.5 py-2 rounded-2xl text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
                     </div>
                     
-                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pl-0 sm:pl-10.5">
-                        <input type="text" id="quick-task-owner" value="Felipe Donato" placeholder="Responsável..." 
-                               class="flex-1 min-w-[120px] px-3 py-1.5 rounded-xl bg-gray-50 text-xs text-gray-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 pl-0 sm:pl-10.5 relative">
+                        
+                        <!-- 1. Responsável / Dono Popover Dropdown -->
+                        <div class="relative flex-1 min-w-[140px]">
+                            <div onclick="toggleTaskOwnerDropdown(event)" id="quick-task-owner-btn" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs text-gray-800 font-medium cursor-pointer border border-gray-200/60 focus-within:border-black transition">
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <i class="ph-bold ph-user-circle text-blue-600 text-xs"></i>
+                                    <span id="quick-task-owner-label" class="truncate font-semibold">Felipe Donato (Você)</span>
+                                </div>
+                                <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i>
+                            </div>
+                            <input type="hidden" id="quick-task-owner" value="Felipe Donato">
 
-                        <input type="text" id="quick-task-deadline" value="Hoje" placeholder="Data/Hora..." 
-                               class="flex-1 min-w-[100px] px-3 py-1.5 rounded-xl bg-gray-50 text-xs text-gray-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-black transition">
+                            <!-- Popover Menu -->
+                            <div id="quick-task-owner-dropdown" class="hidden absolute left-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-[0_12px_35px_rgba(0,0,0,0.15)] border border-gray-100 p-1.5 z-50 text-xs animate-fade-in space-y-0.5 select-none max-h-64 overflow-y-auto">
+                                <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Selecionar Responsável</div>
+                                <div onclick="setTaskOwner('Felipe Donato', 'Felipe Donato (Você)')" class="px-3 py-2 hover:bg-blue-50 text-blue-950 rounded-xl cursor-pointer flex items-center justify-between font-bold bg-blue-50/50">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <span class="w-6 h-6 rounded-full bg-zinc-900 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">FD</span>
+                                        <span class="truncate">Felipe Donato (Você)</span>
+                                    </div>
+                                    <i class="ph-bold ph-check text-emerald-600"></i>
+                                </div>
+                                <div id="dynamic-stakeholders-owner-list" class="space-y-0.5 pt-0.5 border-t border-gray-100">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
 
-                        <button onclick="createQuickTask()" class="w-full sm:w-auto px-5 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition active:scale-95 cursor-pointer flex-shrink-0 flex items-center justify-center gap-1">
-                            <i class="ph-bold ph-plus-circle text-emerald-400"></i>
+                        <!-- 2. Prazo / Calendário Popover Dropdown -->
+                        <div class="relative flex-1 min-w-[140px]">
+                            <div onclick="toggleTaskDateDropdown(event)" id="quick-task-date-btn" class="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs text-gray-800 font-medium cursor-pointer border border-gray-200/60 focus-within:border-black transition">
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <i class="ph-bold ph-calendar text-emerald-600 text-xs"></i>
+                                    <span id="quick-task-deadline-label" class="truncate font-semibold">⚡ Hoje</span>
+                                </div>
+                                <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i>
+                            </div>
+                            <input type="hidden" id="quick-task-deadline" value="Hoje">
+                            <input type="date" id="native-task-date-picker" class="sr-only" onchange="selectNativeCalendarDate(this.value)">
+
+                            <!-- Popover Menu -->
+                            <div id="quick-task-date-dropdown" class="hidden absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 w-60 bg-white rounded-2xl shadow-[0_12px_35px_rgba(0,0,0,0.15)] border border-gray-100 p-1.5 z-50 text-xs animate-fade-in space-y-0.5 select-none">
+                                <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Opções Rápidas de Prazo</div>
+                                <div onclick="setTaskDeadline('Hoje', '⚡ Hoje')" class="px-3 py-2 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between font-medium text-gray-900">
+                                    <span>⚡ Hoje</span>
+                                    <span class="text-[10px] text-emerald-600 font-bold">Imediato</span>
+                                </div>
+                                <div onclick="setTaskDeadline('Amanhã', '📅 Amanhã')" class="px-3 py-2 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between font-medium text-gray-900">
+                                    <span>📅 Amanhã</span>
+                                    <span class="text-[10px] text-gray-400">24h</span>
+                                </div>
+                                <div onclick="setTaskDeadline('Em 48 horas', '🗓️ Em 48 horas')" class="px-3 py-2 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between font-medium text-gray-900">
+                                    <span>🗓️ Em 48 horas</span>
+                                    <span class="text-[10px] text-gray-400">2 dias</span>
+                                </div>
+                                <div onclick="setTaskDeadline('Próxima Semana', '📌 Próxima Semana')" class="px-3 py-2 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between font-medium text-gray-900">
+                                    <span>📌 Próxima Semana</span>
+                                    <span class="text-[10px] text-gray-400">7 dias</span>
+                                </div>
+                                <div onclick="setTaskDeadline('No Fim do Mês', '📆 No Fim do Mês')" class="px-3 py-2 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between font-medium text-gray-900">
+                                    <span>📆 No Fim do Mês</span>
+                                    <span class="text-[10px] text-gray-400">Mês</span>
+                                </div>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <div onclick="openNativeCalendarPicker()" class="px-3 py-2 hover:bg-emerald-50 text-emerald-950 rounded-xl cursor-pointer flex items-center justify-between font-bold">
+                                    <span class="flex items-center gap-1.5"><i class="ph-bold ph-calendar-plus text-emerald-600"></i> Selecionar no Calendário...</span>
+                                    <i class="ph-bold ph-arrow-right text-[10px] text-emerald-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Botão de Criação -->
+                        <button onclick="createQuickTask()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition active:scale-95 cursor-pointer flex-shrink-0 flex items-center justify-center gap-1.5 shadow-xs">
+                            <i class="ph-bold ph-plus-circle text-emerald-400 text-sm"></i>
                             <span>Criar Tarefa</span>
                         </button>
                     </div>
@@ -5393,6 +5807,25 @@ Reunião de Origem: ${meetingTitle}`);
                 const responseText = data.result || 'Sem resposta disponível.';
                 const parsedMd = marked.parse(responseText);
 
+                const isTasksContext = document.getElementById('tasks-central-view') && !document.getElementById('tasks-central-view').classList.contains('hidden');
+
+                const actionChipsHtml = isTasksContext ? `
+                    <div class="pt-3 border-t border-zinc-800/80 space-y-1.5">
+                        <div class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Ações Rápidas em Lote:</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button onclick="executeBatchTasksAction('complete_all_today')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer active:scale-95">
+                                <i class="ph-bold ph-check-circle"></i> Concluir Todas de Hoje
+                            </button>
+                            <button onclick="executeBatchTasksAction('postpone_all_pending')" class="px-2.5 py-1 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-800 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer active:scale-95">
+                                <i class="ph-bold ph-calendar-blank"></i> Adiar Pendentes para Amanhã
+                            </button>
+                            <button onclick="executeBatchTasksAction('delete_completed')" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer active:scale-95">
+                                <i class="ph-bold ph-trash"></i> Limpar Concluídas
+                            </button>
+                        </div>
+                    </div>
+                ` : '';
+
                 const assistantMsgHtml = `
                     <div class="bg-zinc-900/95 border border-zinc-800/80 p-4 sm:p-5 rounded-2xl space-y-3 animate-fade-in text-zinc-200">
                         <div class="flex items-center justify-between pb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
@@ -5408,6 +5841,7 @@ Reunião de Origem: ${meetingTitle}`);
                         <div class="prose prose-invert prose-xs sm:prose-sm max-w-none leading-relaxed font-sans text-zinc-200">
                             ${parsedMd}
                         </div>
+                        ${actionChipsHtml}
                     </div>
                 `;
                 messagesContainer.insertAdjacentHTML('beforeend', assistantMsgHtml);
@@ -7136,7 +7570,7 @@ _Enviado via EvoNotes OS_`);
                             <button onclick="activateAndSyncSingleContact('${c.phone}', '${encodeURIComponent(c.name)}')" 
                                     class="px-3 py-1.5 rounded-xl ${isActive ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-emerald-600 text-white hover:bg-emerald-700'} text-[11px] font-bold transition active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-2xs">
                                 <i class="ph-bold ${isActive ? 'ph-check-circle text-emerald-600' : 'ph-lightning'}"></i>
-                                <span>${isActive ? 'Sincronizar Último' : 'Ativar Ingestão'}</span>
+                                <span>${isActive ? '✓ Monitorando (>45s)' : '⚡ Monitorar Áudios (>45s)'}</span>
                             </button>
                             <a href="https://web.whatsapp.com/send?phone=${c.phone}" target="_blank" 
                                class="p-1.5 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition" title="Abrir Conversa no WhatsApp">
@@ -8379,8 +8813,10 @@ Felipe Donato`);
 
             if (filtered.length === 0) {
                 listEl.innerHTML = `
-                    <div class="py-8 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-gray-100">
-                        Nenhuma gravação recente encontrada nesta fonte.
+                    <div class="py-10 text-center text-xs text-gray-400 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200 space-y-1.5">
+                        <i class="ph-bold ph-tray text-2xl text-gray-300"></i>
+                        <div class="font-bold text-gray-700">Nenhuma gravação pendente no Inbox</div>
+                        <div class="text-[11px] text-gray-400">Quando seu Plaud gravar áudios ou contatos enviarem voz (>45s) no WhatsApp, eles aparecerão aqui para pré-escuta e síntese.</div>
                     </div>
                 `;
                 return;
@@ -8392,71 +8828,109 @@ Felipe Donato`);
                 const sourceBadgeClass = item.source === 'plaud' ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-emerald-50 text-emerald-800 border border-emerald-100';
                 const accountLabel = item.account_name || 'Conta Corporativa';
                 const partsCount = item.participants_count || 2;
+                const daysAgoLabel = item.days_ago_str || 'Chegou hoje';
+                const hasAudio = !!item.audio_url;
                 
                 html += `
-                    <div class="p-4 rounded-2xl bg-white hover:bg-[#fafbfc] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
-                        <div class="flex items-start gap-3.5 truncate min-w-0 flex-1">
-                            <div class="w-10 h-10 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
-                                <i class="ph-bold ${item.source_icon}"></i>
+                    <div class="p-4 rounded-2xl bg-white hover:bg-[#fafbfc] border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all space-y-3 group" id="ingest-card-${item.id}">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start gap-3.5 truncate min-w-0 flex-1">
+                                <div class="w-10 h-10 rounded-xl ${item.source_bg} flex items-center justify-center text-base flex-shrink-0 shadow-2xs mt-0.5">
+                                    <i class="ph-bold ${item.source_icon}"></i>
+                                </div>
+                                <div class="truncate min-w-0 flex-1 space-y-1">
+                                    <!-- Linha 1: Título e Badges (sem quebra) -->
+                                    <div class="flex items-center gap-2 truncate">
+                                        <span class="text-xs sm:text-sm font-bold text-gray-900 truncate">${item.title}</span>
+                                        <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
+                                        <span class="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[10px] font-semibold flex-shrink-0 flex items-center gap-1">
+                                            <i class="ph-bold ph-hourglass-simple text-amber-600"></i> ${daysAgoLabel}
+                                        </span>
+                                        ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex-shrink-0">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold flex-shrink-0">Pendente</span>'}
+                                    </div>
+
+                                    <!-- Linha 2: Conta, Participantes, Duração e Data (Contexto Rico & Limpo) -->
+                                    <div class="text-[11px] text-gray-500 flex items-center gap-2 truncate font-medium">
+                                        <span class="text-gray-800 font-semibold flex items-center gap-1 flex-shrink-0">
+                                            <i class="ph-bold ph-buildings text-blue-600 text-xs"></i>
+                                            <span>${accountLabel}</span>
+                                        </span>
+                                        <span class="text-gray-300">•</span>
+                                        <span class="text-purple-700 font-medium flex items-center gap-1 flex-shrink-0">
+                                            <i class="ph-bold ph-users text-purple-600 text-xs"></i>
+                                            <span>${partsCount} participante(s)</span>
+                                        </span>
+                                        <span class="text-gray-300">•</span>
+                                        <span class="flex items-center gap-1 flex-shrink-0">
+                                            <i class="ph ph-clock text-xs text-gray-400"></i>
+                                            <span>${item.duration_formatted}</span>
+                                        </span>
+                                        <span class="text-gray-300">•</span>
+                                        <span class="flex items-center gap-1 flex-shrink-0">
+                                            <i class="ph ph-calendar-blank text-xs text-gray-400"></i>
+                                            <span>${item.date_formatted}</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Linha 3: Resumo Executivo / Preview -->
+                                    ${item.summary_preview ? `
+                                    <div class="text-[11px] text-gray-400 truncate font-normal leading-relaxed">
+                                        ${item.summary_preview}
+                                    </div>` : ''}
+                                </div>
                             </div>
-                            <div class="truncate min-w-0 flex-1 space-y-1">
-                                <!-- Linha 1: Título e Badges (sem quebra) -->
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="text-xs sm:text-sm font-bold text-gray-900 truncate">${item.title}</span>
-                                    <span class="px-2 py-0.5 rounded-md ${sourceBadgeClass} text-[10px] font-bold flex-shrink-0">${item.source_name}</span>
-                                    ${isProcessed ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex-shrink-0">Processado</span>' : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold flex-shrink-0">Pendente</span>'}
-                                </div>
 
-                                <!-- Linha 2: Conta, Participantes, Duração e Data (Contexto Rico & Limpo) -->
-                                <div class="text-[11px] text-gray-500 flex items-center gap-2 truncate font-medium">
-                                    <span class="text-gray-800 font-semibold flex items-center gap-1 flex-shrink-0">
-                                        <i class="ph-bold ph-buildings text-blue-600 text-xs"></i>
-                                        <span>${accountLabel}</span>
-                                    </span>
-                                    <span class="text-gray-300">•</span>
-                                    <span class="text-purple-700 font-medium flex items-center gap-1 flex-shrink-0">
-                                        <i class="ph-bold ph-users text-purple-600 text-xs"></i>
-                                        <span>${partsCount} participante(s)</span>
-                                    </span>
-                                    <span class="text-gray-300">•</span>
-                                    <span class="flex items-center gap-1 flex-shrink-0">
-                                        <i class="ph ph-clock text-xs text-gray-400"></i>
-                                        <span>${item.duration_formatted}</span>
-                                    </span>
-                                    <span class="text-gray-300">•</span>
-                                    <span class="flex items-center gap-1 flex-shrink-0">
-                                        <i class="ph ph-calendar-blank text-xs text-gray-400"></i>
-                                        <span>${item.date_formatted}</span>
-                                    </span>
-                                </div>
+                            <!-- Botões de Ação (Player de Áudio + Processar) -->
+                            <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                                ${hasAudio ? `
+                                    <button onclick="toggleInlineAudioPlayer('${item.id}', '${item.audio_url}')" id="btn-audio-${item.id}" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Ouvir gravação original antes de processar">
+                                        <i class="ph-bold ph-play text-emerald-600 text-xs"></i>
+                                        <span>Ouvir</span>
+                                    </button>
+                                ` : ''}
 
-                                <!-- Linha 3: Resumo Executivo / Preview -->
-                                ${item.summary_preview ? `
-                                <div class="text-[11px] text-gray-400 truncate font-normal leading-relaxed">
-                                    ${item.summary_preview}
-                                </div>` : ''}
+                                ${isProcessed ? `
+                                    <button onclick="selectMeeting('${item.id}')" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-file-text text-emerald-600"></i>
+                                        <span>Ver Síntese</span>
+                                    </button>
+                                ` : `
+                                    <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
+                                        <i class="ph-bold ph-lightning text-emerald-400"></i>
+                                        <span>Processar com IA</span>
+                                    </button>
+                                `}
                             </div>
                         </div>
 
-                        <!-- Botão de Ação -->
-                        <div class="flex-shrink-0 self-end sm:self-center">
-                            ${isProcessed ? `
-                                <button onclick="selectMeeting('${item.id}')" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-file-text text-emerald-600"></i>
-                                    <span>Ver Síntese</span>
-                                </button>
-                            ` : `
-                                <button onclick="processIngestionItem('${item.source}', '${item.id}')" id="btn-proc-${item.id}" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:shadow-md transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-lightning text-emerald-400"></i>
-                                    <span>Processar com IA</span>
-                                </button>
-                            `}
+                        <!-- Inline Audio Player Container (Expands when clicked) -->
+                        <div id="inline-player-box-${item.id}" class="hidden pt-2 border-t border-gray-100 animate-fade-in">
+                            <div class="bg-gray-50/80 p-2.5 rounded-xl flex items-center gap-3">
+                                <audio id="audio-el-${item.id}" controls class="w-full h-8 text-xs focus:outline-none" src="${item.audio_url}"></audio>
+                            </div>
                         </div>
                     </div>
                 `;
             });
 
             listEl.innerHTML = html;
+        }
+
+        function toggleInlineAudioPlayer(itemId, audioUrl) {
+            const box = document.getElementById(`inline-player-box-${itemId}`);
+            const btn = document.getElementById(`btn-audio-${itemId}`);
+            const audioEl = document.getElementById(`audio-el-${itemId}`);
+            if (!box) return;
+
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
+                if (btn) btn.innerHTML = '<i class="ph-bold ph-pause text-amber-600 text-xs"></i> <span>Fechar</span>';
+                if (audioEl) audioEl.play();
+            } else {
+                box.classList.add('hidden');
+                if (btn) btn.innerHTML = '<i class="ph-bold ph-play text-emerald-600 text-xs"></i> <span>Ouvir</span>';
+                if (audioEl) audioEl.pause();
+            }
         }
 
         async function processIngestionItem(source, itemId) {
@@ -8707,6 +9181,122 @@ Felipe Donato`);
                 }
             } catch (e) {
                 showInAppToast('Erro na conexão: ' + e.message, 'error');
+            }
+        }
+
+
+        // ==============================================================
+        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
+        // ==============================================================
+
+        function toggleTaskDateDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-date-dropdown');
+            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
+            if (ownerDropdown) ownerDropdown.classList.add('hidden');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function toggleTaskOwnerDropdown(e) {
+            if (e) e.stopPropagation();
+            const dropdown = document.getElementById('quick-task-owner-dropdown');
+            const dateDropdown = document.getElementById('quick-task-date-dropdown');
+            if (dateDropdown) dateDropdown.classList.add('hidden');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                loadDynamicStakeholdersOwnerList();
+            }
+        }
+
+        function setTaskDeadline(val, label) {
+            document.getElementById('quick-task-deadline').value = val;
+            document.getElementById('quick-task-deadline-label').innerText = label;
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+        }
+
+        function openNativeCalendarPicker() {
+            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
+            const picker = document.getElementById('native-task-date-picker');
+            if (picker) {
+                if (picker.showPicker) {
+                    picker.showPicker();
+                } else {
+                    picker.focus();
+                    picker.click();
+                }
+            }
+        }
+
+        function selectNativeCalendarDate(dateVal) {
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            setTaskDeadline(formatted, `🗓️ ${formatted}`);
+        }
+
+        function setTaskOwner(ownerVal, label) {
+            document.getElementById('quick-task-owner').value = ownerVal;
+            document.getElementById('quick-task-owner-label').innerText = label;
+            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
+        }
+
+        function loadDynamicStakeholdersOwnerList() {
+            const list = document.getElementById('dynamic-stakeholders-owner-list');
+            if (!list) return;
+
+            const stakeholders = [
+                { name: "Dani", role: "Diretoria" },
+                { name: "Valéria", role: "Enterprise AE" },
+                { name: "Mineiro", role: "Enterprise AE" },
+                { name: "Bruno Rodrigues", role: "CEO / BCR" },
+                { name: "Felipe Bastos", role: "Executivo / BCR" },
+                { name: "Caio", role: "Especialista ZX" },
+                { name: "Max", role: "Cliente / Blue3" }
+            ];
+
+            list.innerHTML = stakeholders.map(s => `
+                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
+                    <div class="flex items-center gap-2 truncate">
+                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
+                        <span class="truncate">${s.name}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
+                </div>
+            `).join('');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            const d1 = document.getElementById('quick-task-date-dropdown');
+            const d2 = document.getElementById('quick-task-owner-dropdown');
+            if (d1) d1.classList.add('hidden');
+            if (d2) d2.classList.add('hidden');
+        });
+
+        // ==============================================================
+        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
+        // ==============================================================
+
+        async function executeBatchTasksAction(actionType) {
+            try {
+                showInAppToast('Executando ação em lote...', 'info');
+                const res = await fetch('/api/tasks/batch-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action_type: actionType })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message, 'success');
+                    await loadTasksCentral();
+                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
+                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
+                    }
+                } else {
+                    showInAppToast('Erro: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
             }
         }
 

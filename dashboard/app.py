@@ -1001,18 +1001,28 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
 
 @app.get("/api/whatsapp/contacts")
 async def api_whatsapp_contacts(query: Optional[str] = None):
-    """Fetches real contacts and recent chats from Z-API instance."""
-    import requests
-    INSTANCE_ID = '3F07699C1A6F71D36752A6B015A329C7'
-    TOKEN = 'FB677694F01990951F2DE560'
-    CLIENT_TOKEN = 'Fe3901d4f2b4e4862bfb1ab045b769b88S'
-    BASE_URL = f'https://api.z-api.io/instances/{INSTANCE_ID}/token/{TOKEN}'
-    headers = {'Client-Token': CLIENT_TOKEN}
+    """Fetches real contacts and recent chats from Z-API only when WhatsApp is connected."""
+    wa_int = db.get_user_integration("whatsapp")
+    if not wa_int or not wa_int.get("is_connected"):
+        return JSONResponse({
+            "status": "DISCONNECTED",
+            "is_connected": False,
+            "total": 0,
+            "contacts": [],
+            "message": "WhatsApp desconectado. Conecte sua instância nas configurações para carregar contatos."
+        })
     
+    cfg = wa_int.get("config") or {}
+    instance_id = cfg.get("instance_id") or '3F07699C1A6F71D36752A6B015A329C7'
+    token = cfg.get("token") or 'FB677694F01990951F2DE560'
+    client_token = cfg.get("client_token") or 'Fe3901d4f2b4e4862bfb1ab045b769b88S'
+    
+    import requests
+    base_url = f'https://api.z-api.io/instances/{instance_id}/token/{token}'
+    headers = {'Client-Token': client_token}
     contacts_list = []
     try:
-        # 1. Get Chats
-        r_chats = requests.get(f'{BASE_URL}/chats?page=1&pageSize=30', headers=headers, timeout=8)
+        r_chats = requests.get(f'{base_url}/chats?page=1&pageSize=40', headers=headers, timeout=8)
         if r_chats.status_code == 200:
             for c in r_chats.json():
                 name = c.get('name') or c.get('formattedName') or c.get('phone') or 'Contato'
@@ -1024,29 +1034,14 @@ async def api_whatsapp_contacts(query: Optional[str] = None):
                         'is_group': c.get('isGroup', False),
                         'type': 'CHAT_RECENT'
                     })
-        
-        # 2. Get Contacts
-        r_cont = requests.get(f'{BASE_URL}/contacts?page=1&pageSize=30', headers=headers, timeout=8)
-        if r_cont.status_code == 200:
-            for c in r_cont.json():
-                name = c.get('name') or c.get('shortName') or c.get('phone') or 'Contato'
-                phone = c.get('phone') or ''
-                if phone and not any(x['phone'] == phone for x in contacts_list):
-                    contacts_list.append({
-                        'name': name,
-                        'phone': phone,
-                        'is_group': False,
-                        'type': 'CONTACT'
-                    })
     except Exception as e:
         logging.error(f'Error querying Z-API contacts: {e}')
     
-    # Filter by query if provided
     if query:
         q = query.lower().strip()
         contacts_list = [c for c in contacts_list if q in c['name'].lower() or q in c['phone']]
         
-    return JSONResponse({'status': 'SUCCESS', 'total': len(contacts_list), 'contacts': contacts_list})
+    return JSONResponse({'status': 'SUCCESS', 'is_connected': True, 'total': len(contacts_list), 'contacts': contacts_list})
 
 
 @app.post("/api/meetings/{file_id}/update-participants")
@@ -1696,33 +1691,76 @@ async def api_integrations_status():
 
 @app.get("/api/ingestion/recent-items")
 async def api_ingestion_recent_items():
-    """Returns recent audio items from Plaud catalog and WhatsApp queue with processed status and rich context."""
+    """Returns recent audio items with audio player URLs and 'Há X dias sem ação'."""
+    plaud_status = db.get_user_integration("plaud")
+    is_plaud_connected = bool(plaud_status and plaud_status.get("is_connected"))
     processed_meeting_ids = {m.get("file_id") for m in db.get_all_meetings()}
     items = []
     
-    # 1. Plaud Catalog Items
-    for p in plaud_cloud_catalog:
-        is_proc = p["id"] in processed_meeting_ids
-        mins = p.get("duration", 0) // 60
-        secs = p.get("duration", 0) % 60
+    # 1. Plaud Recordings (Only when Plaud is connected or has items)
+    if is_plaud_connected:
+        for idx, p in enumerate(plaud_cloud_catalog):
+            is_proc = p["id"] in processed_meeting_ids
+            mins = p.get("duration", 0) // 60
+            secs = p.get("duration", 0) % 60
+            dur_str = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
+            
+            days_ago = idx // 2
+            days_ago_str = "Chegou hoje" if days_ago == 0 else f"Há {days_ago} dia(s) sem ação"
+            
+            items.append({
+                "id": p["id"],
+                "source": "plaud",
+                "source_name": "Plaud Note Pro",
+                "source_icon": "ph-waveform text-purple-600",
+                "source_bg": "bg-purple-50",
+                "title": p.get("title", "Gravação Plaud"),
+                "account_name": p.get("account_name", "Conta Corporativa"),
+                "participants_count": p.get("participants_count", 2),
+                "participants_str": p.get("participants_str", "Felipe Donato"),
+                "sender_or_device": "Hardware Plaud Note Pro",
+                "duration": p.get("duration", 0),
+                "duration_formatted": dur_str,
+                "date_formatted": p.get("date", "28/08 14:30"),
+                "days_ago_str": days_ago_str,
+                "is_new": days_ago == 0,
+                "audio_url": f"/api/audio/{p['id']}",
+                "is_processed": is_proc,
+                "summary_preview": p.get("executive_summary", "")
+            })
+    
+    # 2. WhatsApp Ingest Queue Items (Filtered by > 45 seconds)
+    pending_wa = db.get_pending_whatsapp_inbox()
+    for wa in pending_wa:
+        dur = wa.get("duration_seconds", 0)
+        # Strict Governance: Audio must be > 45 seconds
+        if dur > 0 and dur < 45:
+            continue
+            
+        is_proc = wa["message_id"] in processed_meeting_ids or wa.get("status") == "PROCESSED"
+        mins = dur // 60
+        secs = dur % 60
         dur_str = f"{mins}m {secs:02d}s" if mins > 0 else f"{secs}s"
         
         items.append({
-            "id": p["id"],
-            "source": "plaud",
-            "source_name": "Plaud Note Pro",
-            "source_icon": "ph-waveform text-emerald-600",
+            "id": wa["message_id"],
+            "source": "whatsapp",
+            "source_name": "WhatsApp Voice",
+            "source_icon": "ph-whatsapp-logo text-emerald-600",
             "source_bg": "bg-emerald-50",
-            "title": p.get("title", "Gravação Plaud"),
-            "account_name": p.get("account_name", "Conta Corporativa"),
-            "participants_count": p.get("participants_count", 2),
-            "participants_str": p.get("participants_str", "Felipe Donato"),
-            "sender_or_device": "Hardware Plaud Note Pro",
-            "duration": p.get("duration", 0),
+            "title": f"Nota de Voz • {wa.get('sender_name', 'Contato VIP')}",
+            "account_name": wa.get("sender_name", "WhatsApp VIP"),
+            "participants_count": 2,
+            "participants_str": f"Felipe Donato, {wa.get('sender_name', 'VIP')}",
+            "sender_or_device": f"{wa.get('sender_name', 'VIP')} ({wa.get('phone', '')})",
+            "duration": dur,
             "duration_formatted": dur_str,
-            "date_formatted": p.get("date", "28/08 14:30"),
+            "date_formatted": wa.get("received_at", ""),
+            "days_ago_str": "Chegou hoje",
+            "is_new": True,
+            "audio_url": wa.get("audio_path", ""),
             "is_processed": is_proc,
-            "summary_preview": p.get("executive_summary", "")
+            "summary_preview": "Áudio de voz recebido via WhatsApp aguardando síntese de inteligência."
         })
     
     # 2. WhatsApp Ingest Queue Items
@@ -1865,3 +1903,39 @@ async def api_save_whatsapp_vip_contacts(payload: dict = Body(...)):
     cfg["vip_contacts"] = contacts
     db.save_user_integration("whatsapp", is_connected=bool(contacts or current.get("is_connected")), config=cfg)
     return JSONResponse({"status": "SUCCESS", "contacts": contacts, "total_contacts": len(contacts)})
+
+
+# ========== ⚡ BATCH TASKS AI ACTIONS API ==========
+
+@app.post("/api/tasks/batch-action")
+async def api_tasks_batch_action(payload: dict = Body(...)):
+    """Performs batch actions on tasks (complete, postpone, prioritize, create)."""
+    action_type = payload.get("action_type", "")
+    target_ids = payload.get("task_ids", [])
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        
+        if action_type == "complete_all_today":
+            cursor.execute("UPDATE commitments SET status = 'DONE' WHERE status = 'PENDING' AND (deadline_or_context LIKE '%hoje%' OR deadline_or_context LIKE '%Hoje%')")
+            conn.commit()
+            return JSONResponse({"status": "SUCCESS", "message": "Todas as tarefas de hoje foram concluídas com sucesso!"})
+            
+        elif action_type == "postpone_all_pending":
+            cursor.execute("UPDATE commitments SET deadline_or_context = 'Amanhã' WHERE status = 'PENDING'")
+            conn.commit()
+            return JSONResponse({"status": "SUCCESS", "message": "Todas as tarefas pendentes foram adiadas para amanhã."})
+            
+        elif action_type == "complete_specific":
+            if target_ids:
+                placeholders = ','.join('?' for _ in target_ids)
+                cursor.execute(f"UPDATE commitments SET status = 'DONE' WHERE id IN ({placeholders})", target_ids)
+                conn.commit()
+            return JSONResponse({"status": "SUCCESS", "message": f"{len(target_ids)} tarefa(s) concluída(s)!"})
+            
+        elif action_type == "delete_completed":
+            cursor.execute("DELETE FROM commitments WHERE status = 'DONE'")
+            conn.commit()
+            return JSONResponse({"status": "SUCCESS", "message": "Tarefas concluídas removidas do histórico."})
+            
+    return JSONResponse({"status": "ERROR", "message": "Ação desconhecida"}, status_code=400)
