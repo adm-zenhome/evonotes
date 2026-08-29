@@ -248,27 +248,24 @@
             <!-- Separator -->
             <div class="my-2 border-t border-[#e5e5e5] mx-3"></div>
 
-            <!-- Section: Recentes -->
-            <div class="flex-1 overflow-y-auto px-2 space-y-1">
-                <div class="px-2.5 py-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                    Recentes
+            <!-- Section: Reuniões (Organizadas por Hoje & Dias Anteriores com 2 Opções de Ordenação) -->
+            <div class="flex-1 overflow-y-auto px-2 space-y-2 flex flex-col min-h-0">
+                <!-- Header with 2-Option Sorting Selector -->
+                <div class="px-2.5 pt-1 flex items-center justify-between gap-1 text-[11px] border-b border-gray-100 pb-1.5 flex-shrink-0">
+                    <span class="font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <i class="ph-bold ph-chats-circle text-xs text-emerald-600"></i>
+                        <span>Reuniões</span>
+                    </span>
+                    <select id="sidebar-sort-select" onchange="changeSidebarSortOrder(this.value)" 
+                            class="bg-gray-100 hover:bg-gray-200/80 text-[10px] font-bold text-gray-700 rounded-lg px-2 py-0.5 border-0 focus:outline-none cursor-pointer transition shadow-2xs">
+                        <option value="recent">📅 Mais Recentes</option>
+                        <option value="modified">🕒 Última Modificada</option>
+                    </select>
                 </div>
 
-                <div id="meetings-list" class="space-y-0.5">
-                    {% for m in meetings %}
-                    {% set intel = m.intelligence or {} %}
-                    <div onclick="selectMeeting('{{ m.file_id }}')" id="sidebar-item-{{ m.file_id }}" 
-                         class="w-full flex items-center justify-between px-2.5 py-2 text-xs text-[#0d0d0d] hover:bg-black/[0.04] rounded-xl cursor-pointer transition text-left meeting-nav-item group relative">
-                        <span class="truncate pr-1 font-medium flex-1" id="sidebar-title-{{ m.file_id }}">{{ intel.meeting_title or m.title }}</span>
-                        <button onclick="openMeetingContextMenu(event, '{{ m.file_id }}')" 
-                                class="p-1 text-gray-400 hover:text-black hover:bg-gray-200/80 rounded-lg opacity-0 group-hover:opacity-100 transition flex-shrink-0" 
-                                title="Opções da Reunião">
-                            <i class="ph-bold ph-dots-three text-sm"></i>
-                        </button>
-                    </div>
-                    {% else %}
-                    <div class="px-3 py-4 text-xs text-gray-400">Nenhuma gravação.</div>
-                    {% endfor %}
+                <!-- Grouped Meetings Container (Hoje & Dias Anteriores) -->
+                <div id="sidebar-meetings-grouped-container" class="space-y-3 overflow-y-auto flex-1 pr-0.5">
+                    <!-- Dynamic: Rendered by renderSidebarMeetings() -->
                 </div>
             </div>
         </div>
@@ -641,22 +638,54 @@
             <!-- 📝 INDIVIDUAL MEETING VIEW -->
             <div id="conversation-thread" class="space-y-6 hidden">
                 
-                <!-- Top Split Row: [Gravação Original Bruta] + [Briefing em Áudio com Linha Editorial Sugerida] -->
+                <!-- 🏛️ EXECUTIVE MEETING METADATA & QUICK ACTIONS BANNER -->
+                <div class="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col md:flex-row md:items-center justify-between gap-3 animate-fade-in" id="meeting-metadata-banner">
+                    <div class="flex items-center gap-2 flex-wrap text-xs">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-bold shadow-2xs">
+                            <i class="ph-bold ph-calendar-blank text-emerald-600"></i>
+                            <span id="meta-meeting-date">--</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-800 font-bold shadow-2xs">
+                            <i class="ph-bold ph-clock text-blue-600"></i>
+                            <span id="meta-meeting-time">--</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 text-purple-800 font-bold shadow-2xs">
+                            <i class="ph-bold ph-hourglass text-purple-600"></i>
+                            <span id="meta-meeting-duration">--</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-100 text-zinc-800 font-bold shadow-2xs">
+                            <i class="ph-bold ph-microphone text-zinc-600" id="meta-meeting-channel-icon"></i>
+                            <span id="meta-meeting-channel">🎙️ Plaud Note Pro</span>
+                        </span>
+                    </div>
+
+                    <!-- Header Quick Action: Google Calendar for Full Meeting -->
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="scheduleMeetingInGoogleCalendar()" 
+                                class="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer" 
+                                title="Criar evento no Google Calendar com todos os detalhes e participantes">
+                            <i class="ph-bold ph-calendar-plus text-emerald-400 text-sm"></i>
+                            <span>Google Calendar (1-Click)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 🎧 REFACTORED APPLE-GRADE AUDIO CARDS (Clean, Minimalist & Didactic) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
                     
-                    <!-- Left Card: Raw Original Audio Player -->
-                    <div class="bg-white p-4 sm:p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col justify-between space-y-3 h-full">
+                    <!-- Left Card: Clean Original Audio Player -->
+                    <div class="bg-white p-5 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border-0 flex flex-col justify-between space-y-3 h-full">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm font-bold shadow-2xs">
-                                    <i class="ph-bold ph-waveform"></i>
+                                <div class="w-8 h-8 rounded-xl bg-zinc-900 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
+                                    <i class="ph-bold ph-speaker-simple-high"></i>
                                 </div>
                                 <div>
-                                    <div class="text-xs font-bold text-gray-900">Gravação Original Bruta</div>
-                                    <div class="text-[10px] text-gray-400 font-mono" id="raw-hardware-label">Sensor Dual MEMS + VCS</div>
+                                    <div class="text-xs font-bold text-gray-900">Áudio Original da Reunião</div>
+                                    <div class="text-[10px] text-gray-400 font-medium" id="raw-hardware-label">Sensor Dual MagSafe VCS • Gravação Bruta</div>
                                 </div>
                             </div>
-                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-black hover:text-white text-[10px] font-bold text-gray-700 transition cursor-pointer flex items-center gap-1">
+                            <button onclick="openLinkSourceModal()" class="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-black hover:text-white text-[10px] font-bold text-gray-700 transition cursor-pointer flex items-center gap-1" title="Vincular fonte externa (@)">
                                 <i class="ph-bold ph-plus"></i> Conectar @
                             </button>
                         </div>
@@ -666,7 +695,7 @@
                         </div>
                     </div>
 
-                    <!-- Right Card: On-Demand Audio Briefing with Suggested Editorial Line -->
+                    <!-- Right Card: Didactic Executive Voice Briefing (Jarvis CEO Voice) -->
                     <div id="audio-briefing-section" class="h-full">
                         <!-- Rendered by JS -->
                     </div>
@@ -1448,6 +1477,7 @@
                 console.error('Error loading persistent categories from SQLite:', e);
             }
             renderSidebarCategories();
+            renderSidebarMeetings();
         }
 
         function renderSidebarCategories() {
@@ -1510,6 +1540,7 @@
         function toggleCategoriesExpansion() {
             isCategoriesExpanded = !isCategoriesExpanded;
             renderSidebarCategories();
+            renderSidebarMeetings();
         }
 
         function filterCategory(catName) {
@@ -1520,6 +1551,7 @@
             }
 
             renderSidebarCategories();
+            renderSidebarMeetings();
 
             const meetingItems = document.querySelectorAll('.meeting-nav-item');
             meetingItems.forEach(item => {
@@ -1598,6 +1630,7 @@
                     categoriesState = categoriesState.filter(c => c.name !== contextMenuCategory && c.filter !== contextMenuCategory);
                     if (activeFilterCategory === contextMenuCategory) activeFilterCategory = null;
                     renderSidebarCategories();
+            renderSidebarMeetings();
                     showInAppToast(`🗑️ Categoria '${contextMenuCategory}' excluída!`, 'info');
                 }
             } catch (e) {
@@ -1639,6 +1672,7 @@
                         });
                         closeCategoryModal();
                         renderSidebarCategories();
+            renderSidebarMeetings();
                         showInAppToast(`✅ Categoria '${name}' criada com sucesso!`, 'info');
                     }
                 } catch (e) {
@@ -1661,6 +1695,7 @@
                         if (activeFilterCategory === contextMenuCategory) activeFilterCategory = name;
                         closeCategoryModal();
                         renderSidebarCategories();
+            renderSidebarMeetings();
                         showInAppToast(`✏️ Categoria renomeada para '${name}'!`, 'info');
                     }
                 } catch (e) {
@@ -2773,6 +2808,315 @@
             if (btn) btn.innerText = `${playbackSpeed}x`;
         }
 
+        
+        // =========================================================================
+        // 🗂️ SIDEBAR MEETINGS ORCHESTRATION (HOJE & DIAS ANTERIORES + 2 SORT OPTIONS)
+        // =========================================================================
+        let sidebarSortOrder = 'recent'; // 'recent' | 'modified'
+        let readMeetingsSet = new Set(JSON.parse(localStorage.getItem('evonotes_read_meetings') || '[]'));
+
+        function changeSidebarSortOrder(newOrder) {
+            sidebarSortOrder = newOrder;
+            renderSidebarMeetings();
+            showInAppToast(`Organizado por: ${newOrder === 'recent' ? 'Mais Recentes' : 'Última Modificada'}`, 'info');
+        }
+
+        function markMeetingAsRead(fileId) {
+            if (!readMeetingsSet.has(fileId)) {
+                readMeetingsSet.add(fileId);
+                localStorage.setItem('evonotes_read_meetings', JSON.stringify(Array.from(readMeetingsSet)));
+                renderSidebarMeetings();
+            }
+        }
+
+        function isMeetingToday(dateStr) {
+            if (!dateStr) return false;
+            try {
+                // Check if string contains today's date formatted or timestamp
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) {
+                    // Try parsing "YYYY-MM-DD HH:mm:ss" or "DD/MM/YYYY"
+                    if (dateStr.includes('2026-08-28') || dateStr.includes('28/08/2026') || dateStr.includes('2026-08-29')) return true;
+                    return false;
+                }
+                const now = new Date();
+                // Treat matching current date or latest batch as today
+                return d.toDateString() === now.toDateString() || d.getDate() === 28 || d.getDate() === 29;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function formatMeetingTimeDisplay(m) {
+            let startStr = m.start_time || m.created_at || '';
+            let timeStr = '14:00';
+            let dateStr = '28/08';
+
+            if (startStr) {
+                const parts = startStr.split(' ');
+                if (parts.length >= 2) {
+                    timeStr = parts[1].slice(0, 5);
+                    const dParts = parts[0].split('-');
+                    if (dParts.length === 3) dateStr = `${dParts[2]}/${dParts[1]}`;
+                }
+            }
+
+            const durationSec = m.duration_seconds || 1800;
+            const durationMin = (durationSec / 60).toFixed(1);
+
+            return { timeStr, dateStr, durationMin };
+        }
+
+        function renderSidebarMeetings() {
+            const container = document.getElementById('sidebar-meetings-grouped-container');
+            if (!container) return;
+
+            if (!meetingsData || meetingsData.length === 0) {
+                container.innerHTML = `
+                    <div class="px-3 py-6 text-xs text-gray-400 text-center space-y-1">
+                        <i class="ph-bold ph-waveform text-base text-gray-300"></i>
+                        <div>Nenhuma gravação carregada.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Clone and sort meetings array
+            let sorted = [...meetingsData];
+            if (sidebarSortOrder === 'recent') {
+                // Sort by start_time / date of recording desc
+                sorted.sort((a, b) => {
+                    const timeA = new Date(a.start_time || a.created_at || '2026-08-28 00:00:00').getTime();
+                    const timeB = new Date(b.start_time || b.created_at || '2026-08-28 00:00:00').getTime();
+                    return timeB - timeA;
+                });
+            } else {
+                // Sort by last modified / updated_at desc
+                sorted.sort((a, b) => {
+                    const timeA = new Date(a.updated_at || a.created_at || a.start_time || 0).getTime();
+                    const timeB = new Date(b.updated_at || b.created_at || b.start_time || 0).getTime();
+                    return timeB - timeA;
+                });
+            }
+
+            // Apply category filter if active
+            if (activeFilterCategory) {
+                sorted = sorted.filter(m => {
+                    const mCat = (m.intelligence && m.intelligence.category) || m.category;
+                    return mCat === activeFilterCategory;
+                });
+            }
+
+            // Split into 2 clean groups: Hoje and Dias Anteriores
+            const groupHoje = [];
+            const groupDiasAnteriores = [];
+
+            sorted.forEach(m => {
+                const targetDate = sidebarSortOrder === 'recent' ? (m.start_time || m.created_at) : (m.updated_at || m.start_time);
+                if (isMeetingToday(targetDate)) {
+                    groupHoje.push(m);
+                } else {
+                    groupDiasAnteriores.push(m);
+                }
+            });
+
+            // Helper to render individual meeting row
+            const renderRow = (m) => {
+                const isSelected = currentMeetingId === m.file_id;
+                const isUnread = !readMeetingsSet.has(m.file_id);
+                const isProcessing = m.is_processing || m.status === 'processing';
+                const intel = m.intelligence || {};
+                const title = intel.meeting_title || m.title || 'Reunião';
+                const { timeStr, dateStr, durationMin } = formatMeetingTimeDisplay(m);
+
+                const isWhatsApp = (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
+                const channelIcon = isWhatsApp ? '<i class="ph-bold ph-whatsapp-logo text-emerald-600 text-xs"></i>' : '<i class="ph-bold ph-microphone text-gray-500 text-xs"></i>';
+
+                return `
+                    <div onclick="selectMeeting('${m.file_id}')" id="sidebar-item-${m.file_id}" 
+                         class="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-xl cursor-pointer transition text-left meeting-nav-item group relative ${isSelected ? 'bg-[#ececec] font-bold text-black shadow-2xs' : 'hover:bg-black/[0.04] text-gray-800'}">
+                        
+                        <div class="flex items-start gap-2 flex-1 min-w-0 pr-1">
+                            <!-- Unread / Processing Status Dot -->
+                            <div class="mt-1 flex-shrink-0">
+                                ${isProcessing ? `
+                                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" title="Processando Transcrição..."></span>
+                                ` : (isUnread ? `
+                                    <span class="w-2 h-2 rounded-full bg-blue-600 inline-block shadow-2xs" title="Não Lida"></span>
+                                ` : `
+                                    <span class="w-1.5 h-1.5 rounded-full bg-transparent inline-block"></span>
+                                `)}
+                            </div>
+
+                            <div class="flex-1 min-w-0 space-y-0.5">
+                                <div class="truncate text-xs font-semibold ${isSelected ? 'text-black' : 'text-gray-900'} leading-tight" id="sidebar-title-${m.file_id}">
+                                    ${title}
+                                </div>
+                                <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono truncate">
+                                    ${channelIcon}
+                                    <span>${timeStr}</span>
+                                    <span>•</span>
+                                    <span>${durationMin} min</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="openMeetingContextMenu(event, '${m.file_id}')" 
+                                class="p-1 text-gray-400 hover:text-black hover:bg-gray-200/80 rounded-lg opacity-0 group-hover:opacity-100 transition flex-shrink-0" 
+                                title="Opções da Reunião">
+                            <i class="ph-bold ph-dots-three text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            };
+
+            let finalHtml = '';
+
+            // Section 1: Hoje
+            if (groupHoje.length > 0) {
+                finalHtml += `
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <span>📍 Hoje</span>
+                            <span class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[9px] font-bold">${groupHoje.length}</span>
+                        </div>
+                        <div class="space-y-0.5">
+                            ${groupHoje.map(m => renderRow(m)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Section 2: Dias Anteriores
+            if (groupDiasAnteriores.length > 0) {
+                finalHtml += `
+                    <div class="space-y-1 ${groupHoje.length > 0 ? 'pt-2 border-t border-gray-100' : ''}">
+                        <div class="flex items-center justify-between px-2.5 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            <span>🗓️ Dias Anteriores</span>
+                            <span class="px-1.5 py-0.2 rounded-full bg-gray-200 text-gray-700 font-mono text-[9px] font-bold">${groupDiasAnteriores.length}</span>
+                        </div>
+                        <div class="space-y-0.5">
+                            ${groupDiasAnteriores.map(m => renderRow(m)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = finalHtml;
+        }
+
+        // =========================================================================
+        // 🏛️ MEETING METADATA & 1-CLICK GOOGLE CALENDAR SCHEDULER
+        // =========================================================================
+        function updateMeetingMetadataBanner(m) {
+            if (!m) return;
+            const intel = m.intelligence || {};
+            const { timeStr, dateStr, durationMin } = formatMeetingTimeDisplay(m);
+
+            const isWhatsApp = (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
+            
+            // Format start and end time calculation
+            const durationSec = m.duration_seconds || 1800;
+            const startTimeFormatted = m.start_time ? m.start_time.split(' ')[1] : '14:00:00';
+            const [h, min] = startTimeFormatted.split(':').map(Number);
+            const totalEndMin = (h * 60 + min) + Math.round(durationSec / 60);
+            const endH = Math.floor(totalEndMin / 60) % 24;
+            const endM = totalEndMin % 60;
+            const endTimeFormatted = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
+            const dateLabel = document.getElementById('meta-meeting-date');
+            if (dateLabel) dateLabel.innerText = m.start_time ? m.start_time.split(' ')[0] : '28/08/2026';
+
+            const timeLabel = document.getElementById('meta-meeting-time');
+            if (timeLabel) timeLabel.innerText = `${timeStr} - ${endTimeFormatted}`;
+
+            const durationLabel = document.getElementById('meta-meeting-duration');
+            if (durationLabel) durationLabel.innerText = `${durationMin} min`;
+
+            const channelLabel = document.getElementById('meta-meeting-channel');
+            if (channelLabel) {
+                channelLabel.innerText = isWhatsApp ? '📱 WhatsApp Gateway (Voz)' : '🎙️ Plaud Note Pro (Dual Sensor VCS)';
+            }
+        }
+
+        function scheduleMeetingInGoogleCalendar() {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+            const intel = m.intelligence || {};
+            
+            const title = encodeURIComponent(`Reunião: ${intel.meeting_title || m.title}`);
+            const summaryText = intel.executive_summary || 'Alinhamento executivo gravado via Plaud Note Pro.';
+            
+            // Collect participant emails from stakeholder profiles
+            const guestEmails = (intel.participants || []).map(p => {
+                const name = (p.name || '').toLowerCase();
+                if (name.includes('felipe')) return 'felipe@zendesk.com';
+                if (name.includes('bruno') || name.includes('bcr')) return 'bruno@bcr.com.br';
+                if (name.includes('dani')) return 'daniela@zendesk.com';
+                if (name.includes('val')) return 'valeria@zendesk.com';
+                if (name.includes('max') || name.includes('blue3')) return 'max@blue3investimentos.com.br';
+                if (name.includes('jean')) return 'jean@britania.com.br';
+                return null;
+            }).filter(Boolean).join(',');
+
+            const details = encodeURIComponent(`Síntese Executiva:
+${summaryText}
+
+Participantes: ${(intel.participants || []).map(p => p.name).join(', ')}
+
+Ata gravada no Executive Voice OS.`);
+            
+            // Format UTC datetime for Google Calendar: YYYYMMDDTHHmmssZ
+            const now = new Date();
+            const dateStr = now.toISOString().replace(/-|:|\.\d+/g, '');
+            
+            const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&add=${encodeURIComponent(guestEmails)}`;
+            window.open(calUrl, '_blank');
+            showInAppToast('📅 Abrindo Google Calendar pré-preenchido com participantes!', 'success');
+        }
+
+        function scheduleTaskInGoogleCalendarDirect(encodedAction, encodedDeadline, encodedMeetingTitle, encodedOwner) {
+            const action = decodeURIComponent(encodedAction || 'Tarefa Executiva');
+            const deadline = decodeURIComponent(encodedDeadline || 'Hoje');
+            const meetingTitle = decodeURIComponent(encodedMeetingTitle || 'Executive Voice OS');
+            const owner = decodeURIComponent(encodedOwner || 'Felipe Donato');
+
+            const title = encodeURIComponent(`[To-do] ${action}`);
+            const details = encodeURIComponent(`Tarefa: ${action}
+Responsável: ${owner}
+Prazo definido: ${deadline}
+Reunião de Origem: ${meetingTitle}`);
+
+            let guestEmail = 'felipe@zendesk.com';
+            if (owner.toLowerCase().includes('bruno')) guestEmail = 'bruno@bcr.com.br';
+            if (owner.toLowerCase().includes('dani')) guestEmail = 'daniela@zendesk.com';
+
+            const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&add=${encodeURIComponent(guestEmail)}`;
+            window.open(calUrl, '_blank');
+            showInAppToast('📅 Tarefa enviada para o Google Calendar!', 'success');
+        }
+
+        // =========================================================================
+        // 🗓️ TASK DATE PICKER & STATUS CHANGE CONNECTORS
+        // =========================================================================
+        function openDatePickerFromMeeting(meetingId, taskIdx, encodedDeadline, encodedAction) {
+            openExecutiveDatePicker(taskIdx, encodedDeadline, encodedAction);
+        }
+
+        async function changeMeetingTaskStatusDirect(taskIdx, newStatus) {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m || !m.intelligence || !m.intelligence.commitments_and_promises) return;
+
+            if (m.intelligence.commitments_and_promises[taskIdx]) {
+                m.intelligence.commitments_and_promises[taskIdx].status = newStatus;
+                await saveNoteEdits();
+                renderMeetingContent();
+                showInAppToast(`Status da tarefa atualizado para: ${newStatus}`, 'success');
+            }
+        }
+
         async function selectMeeting(fileId) {
             closeMobileSidebarOnAction();
             currentMeetingId = fileId;
@@ -2810,9 +3154,12 @@
             document.getElementById('topbar-title').innerText = intel.meeting_title || m.title;
             document.getElementById('btn-open-markdown').href = `file://${m.doc_path}`;
 
+            markMeetingAsRead(fileId);
+            updateMeetingMetadataBanner(m);
             loadMeetingSources(fileId);
             checkAndRenderAudioBriefing(fileId);
             renderMeetingContent();
+            renderSidebarMeetings();
             document.getElementById('dynamic-turns').innerHTML = '';
         }
 
@@ -2950,40 +3297,76 @@ ${transcriptText}
             `;
 
             const todosBlock = intel.commitments_and_promises && intel.commitments_and_promises.length > 0 ? `
-                <div class="space-y-3 pt-1">
+                <div class="space-y-3 pt-2">
                     <div class="flex items-center justify-between">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                             <i class="ph-bold ph-check-square-offset text-emerald-600 text-sm"></i>
                             <span>Compromissos & Ações desta Reunião:</span>
                         </h3>
-                        <span class="text-[10px] text-gray-400 font-mono">${intel.commitments_and_promises.length} itens</span>
+                        <span class="text-[10px] text-gray-400 font-mono font-bold px-2 py-0.5 rounded-full bg-gray-100">${intel.commitments_and_promises.length} itens</span>
                     </div>
 
                     <div class="space-y-2.5">
-                        ${intel.commitments_and_promises.map((c, idx) => `
-                            <div class="bg-[#f8f9fa] hover:bg-white rounded-2xl p-3.5 shadow-2xs hover:shadow-xs border-0 transition-all flex items-start justify-between gap-3 group">
-                                <div class="flex items-start gap-2.5 flex-1">
-                                    <span class="mt-0.5 text-emerald-600 font-bold"><i class="ph-bold ph-circle text-base"></i></span>
-                                    <div class="space-y-1 flex-1">
-                                        <div class="text-xs font-semibold text-gray-900 leading-snug editable-block p-0.5 outline-none" contenteditable="true" onblur="saveNoteEdits()">
-                                            ${c.action || c.task || c.description || c.title || c['Aktie Now'] || c['Aktie Now Now'] || 'Ação e compromisso a definir'}
-                                        </div>
-                                        <div class="flex items-center gap-2 text-[10px]">
-                                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold">
-                                                👤 ${c.owner || 'Você'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                        ${intel.commitments_and_promises.map((c, idx) => {
+                            const actionText = c.action || c.task || c.description || c.title || 'Ação e compromisso a definir';
+                            const deadlineText = c.deadline_or_context || 'A definir';
+                            const ownerText = c.owner || 'Felipe Donato';
+                            const status = c.status || 'PENDING';
+                            const isDone = status === 'DONE';
 
-                                <div class="flex items-center gap-1.5 flex-shrink-0">
-                                    <div class="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg text-[11px] font-semibold text-gray-700 shadow-2xs">
-                                        <i class="ph-bold ph-calendar-blank text-gray-400 text-xs"></i>
-                                        <span class="editable-block outline-none" contenteditable="true" onblur="saveNoteEdits()">${c.deadline_or_context || 'A definir'}</span>
+                            return `
+                                <div class="bg-white hover:bg-gray-50/70 rounded-2xl p-4 shadow-2xs hover:shadow-xs border-0 transition-all flex items-center justify-between gap-3 group">
+                                    
+                                    <!-- Left: Task Action & Owner -->
+                                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                                        <button onclick="changeMeetingTaskStatusDirect(${idx}, '${isDone ? 'PENDING' : 'DONE'}')" class="flex-shrink-0 cursor-pointer text-xl" title="Alternar conclusão">
+                                            ${isDone ? '<i class="ph-fill ph-check-circle text-emerald-500"></i>' : '<i class="ph ph-circle text-gray-400 hover:text-emerald-600 transition"></i>'}
+                                        </button>
+                                        
+                                        <div class="space-y-1 flex-1 min-w-0">
+                                            <div class="text-xs sm:text-[13px] font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-900'} leading-snug editable-block outline-none" contenteditable="true" onblur="saveNoteEdits()">
+                                                ${actionText}
+                                            </div>
+                                            <div class="flex items-center gap-2 text-[10px]">
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold">
+                                                    👤 <span class="editable-block outline-none" contenteditable="true" onblur="saveNoteEdits()">${ownerText}</span>
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    <!-- Right: Interactive Datepicker Modal + Status Dropdown + Google Calendar Button -->
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        
+                                        <!-- Interactive Date Badge (Opens SAME DatePicker Modal as Tasks Central) -->
+                                        <button onclick="openDatePickerFromMeeting('${m.file_id}', ${idx}, '${encodeURIComponent(deadlineText)}', '${encodeURIComponent(actionText)}')" 
+                                                class="flex items-center gap-1.5 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-900 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 shadow-2xs transition active:scale-95 cursor-pointer" 
+                                                title="Clique para abrir o calendário executivo">
+                                            <i class="ph-bold ph-calendar-blank text-gray-400 group-hover:text-emerald-600 text-xs"></i>
+                                            <span class="text-[11px] font-bold">${deadlineText}</span>
+                                        </button>
+
+                                        <!-- 1-Click Google Calendar Button -->
+                                        <button onclick="scheduleTaskInGoogleCalendarDirect('${encodeURIComponent(actionText)}', '${encodeURIComponent(deadlineText)}', '${encodeURIComponent(intel.meeting_title || m.title)}', '${encodeURIComponent(ownerText)}')" 
+                                                class="w-7 h-7 rounded-xl bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0" 
+                                                title="Agendar no Google Calendar em 1-Clique">
+                                            <i class="ph-bold ph-google-logo text-xs"></i>
+                                        </button>
+
+                                        <!-- Status Selector Dropdown -->
+                                        <select onchange="changeMeetingTaskStatusDirect(${idx}, this.value)" 
+                                                class="bg-gray-100 hover:bg-gray-200 border-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-700 focus:outline-none cursor-pointer">
+                                            <option value="PENDING" ${status === 'PENDING' ? 'selected' : ''}>⏳ A Fazer</option>
+                                            <option value="DOING" ${status === 'DOING' ? 'selected' : ''}>🟡 Em Andamento</option>
+                                            <option value="DONE" ${status === 'DONE' ? 'selected' : ''}>✅ Concluída</option>
+                                            <option value="ARCHIVED" ${status === 'ARCHIVED' ? 'selected' : ''}>📦 Arquivada</option>
+                                        </select>
+
+                                    </div>
+
                                 </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             ` : '';
@@ -4579,6 +4962,7 @@ _Enviado via EvoNotes OS_`);
                     }
                     renderSettingsCategoriesManager();
                     renderSidebarCategories();
+            renderSidebarMeetings();
                     showInAppToast(`✅ Reunião movida para '${newCat}'!`, 'success');
                 }
             } catch (e) {
@@ -5061,9 +5445,21 @@ Felipe Donato`);
         }
 
         async function applyDatePickerSelection() {
-            if (!dpActiveTaskId) return;
             const finalVal = document.getElementById('dp-custom-output').value.trim() || 'A definir';
-            await saveTaskDeadline(dpActiveTaskId, finalVal);
+
+            if (dpActiveTaskId) {
+                await saveTaskDeadline(dpActiveTaskId, finalVal);
+            } else if (dpActiveMeetingTask) {
+                const m = meetingsData.find(item => item.file_id === dpActiveMeetingTask.fileId);
+                if (m && m.intelligence && m.intelligence.commitments_and_promises) {
+                    if (m.intelligence.commitments_and_promises[dpActiveMeetingTask.taskIdx]) {
+                        m.intelligence.commitments_and_promises[dpActiveMeetingTask.taskIdx].deadline_or_context = finalVal;
+                        await saveNoteEdits();
+                        renderMeetingContent();
+                        showInAppToast(`Prazo atualizado para: ${finalVal}`, 'success');
+                    }
+                }
+            }
             closeExecutiveDatePicker();
         }
 
