@@ -23,19 +23,22 @@ if str(_ROOT) not in sys.path:
 
 try:
     from config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
-    from database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources
+    from database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources, get_stakeholder_profile_data, save_stakeholder_profile
     from self_learning_engine import SelfLearningEngine
     from voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
     from whatsapp_voice_ingest import WhatsAppVoiceIngest
+    from intelligence_engine import IntelligenceEngine
+    from resend_engine import resend_engine
+    from google_workspace_bridge import google_bridge
 except ImportError:
     from ..config import DATA_DIR, DESKTOP_ZENDESK_DIR, DASHBOARD_HOST, DASHBOARD_PORT, OPENAI_API_KEY, GOOGLE_API_KEY, CACHE_DIR
-    from ..database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources
+    from ..database import db, get_keyword_analytics, record_keyword_vote, link_meeting_source, get_meeting_sources, get_stakeholder_profile_data, save_stakeholder_profile
     from ..self_learning_engine import SelfLearningEngine
     from ..voice_briefing import VoiceBriefingEngine, AUDIO_BRIEFING_DIR
-    try:
-        from whatsapp_voice_ingest import WhatsAppVoiceIngest
-    except ImportError:
-        from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
+    from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
+    from ..intelligence_engine import IntelligenceEngine
+    from ..resend_engine import resend_engine
+    from ..google_workspace_bridge import google_bridge
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -182,10 +185,7 @@ async def api_sync_plaud(payload: dict = Body(default={})):
             else:
                 # Real dynamic intelligence extraction from actual audio transcript
                 try:
-                    try:
-                        from intelligence_engine import IntelligenceEngine
-                    except ImportError:
-                        from ..intelligence_engine import IntelligenceEngine
+                    # IntelligenceEngine imported at top
                     engine = IntelligenceEngine()
                     intel = engine.analyze(
                         transcript_text=raw_text,
@@ -424,10 +424,7 @@ async def api_reprocess_meeting_template(file_id: str, payload: dict = Body(defa
     if not raw_transcript:
         raise HTTPException(status_code=400, detail="Transcript text is empty")
 
-    try:
-                        from intelligence_engine import IntelligenceEngine
-                    except ImportError:
-                        from ..intelligence_engine import IntelligenceEngine
+    # IntelligenceEngine imported at top
     engine = IntelligenceEngine()
     
     new_intel = engine.analyze(
@@ -632,10 +629,7 @@ SOLICITAÇÃO DO EXECUTIVO:
     stakeholder_context_block = ""
     
     if mentioned_stakeholders:
-        try:
-            from database import get_stakeholder_profile_data
-        except ImportError:
-            from ..database import get_stakeholder_profile_data
+        # get_stakeholder_profile_data imported at top
         for s_name in mentioned_stakeholders:
             s_prof = get_stakeholder_profile_data(s_name)
             # Find tasks & meetings for this stakeholder
@@ -949,10 +943,7 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
     phone = payload.get("phone", "")
     chat_name = payload.get("chat_name", "WhatsApp Voice")
     
-    try:
-        from whatsapp_voice_ingest import WhatsAppVoiceIngest
-    except ImportError:
-        from ..whatsapp_voice_ingest import WhatsAppVoiceIngest
+    # WhatsAppVoiceIngest imported at top
     ingest_engine = WhatsAppVoiceIngest()
     
     res = await ingest_engine.fetch_and_process_latest_audio(phone=phone)
@@ -1043,10 +1034,7 @@ async def api_update_participants(file_id: str, payload: dict = Body(...)):
 async def api_get_stakeholder_360(name: str):
     """Fetches rich 360 profile of a participant with treatment style, meetings and commitments."""
     decoded_name = urllib.parse.unquote(name).strip()
-    try:
-            from database import get_stakeholder_profile_data
-        except ImportError:
-            from ..database import get_stakeholder_profile_data
+    # get_stakeholder_profile_data imported at top
     profile_info = get_stakeholder_profile_data(decoded_name)
     
     meetings = db.get_all_meetings()
@@ -1118,10 +1106,7 @@ async def api_meeting_raw_audio(file_id: str, request: Request):
     )
 
 
-try:
-    from resend_engine import resend_engine
-except ImportError:
-    from ..resend_engine import resend_engine
+# resend_engine imported at top
 
 @app.post("/api/resend/daily-closing")
 async def api_resend_daily_closing(payload: dict = Body(default={})):
@@ -1166,10 +1151,7 @@ async def api_resend_prospect_followup(payload: dict = Body(...)):
     return JSONResponse(result)
 
 
-try:
-    from google_workspace_bridge import google_bridge
-except ImportError:
-    from ..google_workspace_bridge import google_bridge
+# google_bridge imported at top
 
 @app.post("/api/google/compose-email")
 async def api_google_compose_email(payload: dict = Body(...)):
@@ -1512,10 +1494,7 @@ async def api_update_deal_value(deal_id: int, payload: dict = Body(...)):
 async def api_save_stakeholders_batch(payload: dict = Body(...)):
     """Saves user-edited stakeholder profiles permanently into SQLite."""
     stakeholders = payload.get("stakeholders", [])
-    try:
-        from database import save_stakeholder_profile
-    except ImportError:
-        from ..database import save_stakeholder_profile
+    # save_stakeholder_profile imported at top
     
     for s in stakeholders:
         if s.get("name"):
