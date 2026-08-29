@@ -3500,48 +3500,7 @@
             });
         }
 
-        function setLayoutWidth(width) {
-            currentLayoutWidth = width;
-            localStorage.setItem('evonotes_layout_width', width);
 
-            // Dynamic Width Style Injection
-            let widthStyle = document.getElementById('dynamic-width-override');
-            if (!widthStyle) {
-                widthStyle = document.createElement('style');
-                widthStyle.id = 'dynamic-width-override';
-                document.head.appendChild(widthStyle);
-            }
-
-            let maxW = '896px'; // default
-            if (width === 'narrow') maxW = '672px';
-            if (width === 'wide') maxW = '1380px';
-
-            widthStyle.innerHTML = `
-                #chat-stream-container {
-                    max-width: ${maxW} !important;
-                }
-            `;
-
-            const container = document.getElementById('chat-stream-container');
-            if (container) {
-                container.classList.remove('max-w-2xl', 'max-w-4xl', 'max-w-7xl', 'w-full');
-                if (width === 'narrow') container.classList.add('max-w-2xl');
-                else if (width === 'wide') container.classList.add('max-w-7xl');
-                else container.classList.add('max-w-4xl');
-            }
-
-            // Update button visual active state
-            ['default', 'narrow', 'wide'].forEach(w => {
-                const btn = document.getElementById(`width-btn-${w}`);
-                if (btn) {
-                    if (w === width) {
-                        btn.className = 'px-3 py-1 rounded-lg text-xs bg-white text-gray-900 font-bold shadow-xs border-0 outline-none transition cursor-pointer';
-                    } else {
-                        btn.className = 'px-3 py-1 rounded-lg text-xs text-gray-500 hover:text-black bg-transparent border-0 outline-none transition cursor-pointer';
-                    }
-                }
-            });
-        }
 
         function openAiModelsInfoModal() {
             document.getElementById('ai-models-info-modal').classList.remove('hidden');
