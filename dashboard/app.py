@@ -999,6 +999,39 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
         "meeting": created_meeting
     })
 
+
+@app.post("/api/integrations/whatsapp/connect")
+async def api_whatsapp_connect(payload: dict = Body(...)):
+    """Saves WhatsApp credentials and marks integration as connected."""
+    instance_id = payload.get("instance_id", "").strip()
+    token = payload.get("token", "").strip()
+    client_token = payload.get("client_token", "").strip()
+    
+    if not instance_id or not token:
+        raise HTTPException(status_code=400, detail="Identificador da Conta e Token são obrigatórios")
+    
+    db.save_user_integration("whatsapp", {
+        "is_connected": True,
+        "config": {
+            "instance_id": instance_id,
+            "token": token,
+            "client_token": client_token
+        },
+        "connected_at": datetime.now().isoformat()
+    })
+    
+    return JSONResponse({"status": "SUCCESS", "message": "WhatsApp conectado com sucesso!"})
+
+@app.post("/api/integrations/whatsapp/disconnect")
+async def api_whatsapp_disconnect():
+    """Disconnects WhatsApp integration."""
+    db.save_user_integration("whatsapp", {
+        "is_connected": False,
+        "config": {},
+        "connected_at": None
+    })
+    return JSONResponse({"status": "SUCCESS", "message": "WhatsApp desconectado com sucesso!"})
+
 @app.get("/api/whatsapp/contacts")
 async def api_whatsapp_contacts(query: Optional[str] = None):
     """Fetches real contacts and recent chats from Z-API only when WhatsApp is connected."""
