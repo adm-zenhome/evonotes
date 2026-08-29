@@ -4103,45 +4103,25 @@ ${transcriptText}
                             Nenhuma conta comercial específica vinculada a esta gravação.
                         </div>
                     ` : `
-                        <div class="space-y-2.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             ${intel.accounts_discussed.map((acc, accIdx) => {
-                                const nextStepText = acc.next_step || 'Avançar com a conta';
                                 return `
-                                    <div class="bg-gray-50/90 hover:bg-white p-3.5 rounded-2xl border border-gray-100/80 shadow-2xs hover:shadow-xs transition space-y-2 group">
-                                        <div class="flex items-center justify-between gap-3">
-                                            <div class="flex items-center gap-2">
-                                                <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center">
-                                                    <i class="ph-bold ph-buildings text-[11px]"></i>
-                                                </span>
-                                                <span class="text-xs font-bold text-gray-900">${acc.account_name}</span>
-                                                <span class="text-[11px] text-gray-500">— ${acc.opportunity_or_risk}</span>
+                                    <div class="bg-white p-4 rounded-2xl border border-gray-100/80 shadow-2xs hover:shadow-xs transition space-y-2">
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="w-7 h-7 rounded-xl bg-blue-50 text-blue-800 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                                <i class="ph-bold ph-buildings text-sm"></i>
+                                            </span>
+                                            <div class="truncate min-w-0 flex-1">
+                                                <div class="text-xs font-bold text-gray-900 truncate">${acc.account_name}</div>
+                                                <div class="text-[11px] text-gray-500 truncate">${acc.opportunity_or_risk || 'Em alinhamento'}</div>
                                             </div>
                                         </div>
-
-                                        <!-- Linked Actionable Next Step Box -->
-                                        <div class="bg-white p-2.5 rounded-xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                                            <div class="flex items-center gap-2 min-w-0 flex-1">
-                                                <span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
-                                                <div class="text-xs font-medium text-gray-800 truncate">
-                                                    <span class="font-bold text-gray-400">Próximo passo:</span> ${nextStepText}
-                                                </div>
+                                        ${acc.next_step ? `
+                                            <div class="text-[11px] text-gray-700 bg-gray-50 p-2 rounded-xl flex items-start gap-1.5">
+                                                <span class="text-amber-600 font-bold flex-shrink-0">•</span>
+                                                <span class="leading-relaxed"><strong>Foco:</strong> ${acc.next_step}</span>
                                             </div>
-                                            
-                                            <div class="flex items-center gap-2 flex-shrink-0">
-                                                <button onclick="createTaskFromNextStepDirect('${encodeURIComponent(acc.account_name)}', '${encodeURIComponent(nextStepText)}', '${m.file_id}')" 
-                                                        class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 text-[10px] font-bold shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer" 
-                                                        title="Criar tarefa no board de compromissos">
-                                                    <i class="ph-bold ph-plus-circle"></i>
-                                                    <span>Criar Tarefa</span>
-                                                </button>
-
-                                                <button onclick="scheduleTaskInGoogleCalendarDirect('${encodeURIComponent('[' + acc.account_name + '] ' + nextStepText)}', 'Próxima Semana', '${encodeURIComponent(intel.meeting_title || m.title)}', 'Felipe Donato')" 
-                                                        class="w-6 h-6 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-400 hover:text-blue-600 flex items-center justify-center transition shadow-2xs cursor-pointer" 
-                                                        title="Google Calendar">
-                                                    <i class="ph-bold ph-google-logo text-[10px]"></i>
-                                                </button>
-                                            </div>
-                                        </div>
+                                        ` : ''}
                                     </div>
                                 `;
                             }).join('')}
@@ -4217,12 +4197,12 @@ ${transcriptText}
 
             const emailBlock = intel.follow_up_emails && intel.follow_up_emails.length > 0 ? `
                 <div class="space-y-3 pt-2">
-                    <div class="flex items-center justify-between gap-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 whitespace-nowrap">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                             <i class="ph-bold ph-envelope-simple text-red-500 text-sm"></i>
                             <span>Rascunho de E-mail de Follow-up:</span>
                         </h3>
-                        <button onclick="openGmailWebDraft()" class="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-2 shadow-xs transition active:scale-95 flex-shrink-0" title="Abrir rascunho pré-preenchido no Gmail Web">
+                        <button onclick="openGmailWebDraft()" class="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer" title="Abrir rascunho pré-preenchido no Gmail Web">
                             <i class="ph-bold ph-paper-plane-tilt text-xs text-red-400"></i>
                             <span>Abrir no Gmail (1-Click)</span>
                         </button>
@@ -4967,7 +4947,24 @@ ${transcriptText}
             drawer.classList.toggle('hidden');
         }
 
+        function isTaskDueToday(deadline) {
+            if (!deadline) return false;
+            const d = deadline.toLowerCase();
+            return d.includes('hoje') || d.includes('imediato') || d.includes('28/08') || d.includes('29/08');
+        }
+
         function renderSingleTaskCard(t) {
+            const isDone = t.status === 'DONE';
+            const isToday = isTaskDueToday(t.deadline_or_context);
+            const cardBgClass = isToday 
+                ? 'bg-zinc-100/95 hover:bg-zinc-200/80 border border-zinc-300/80 shadow-xs' 
+                : 'bg-white hover:bg-gray-50/80 border-0 shadow-2xs hover:shadow-xs';
+
+            const rationaleText = t.rationale_why || (t.owner && t.owner.includes('Felipe') 
+                ? 'Ação estratégica de liderança para destravar o avanço com stakeholders, eliminar gargalos e acelerar o fechamento no pipeline.' 
+                : `Ação para cumprir compromisso operacional alinhado na reunião e atender a solicitação de ${t.owner || 'stakeholders'}.`);
+            
+            const approachText = t.rationale_how || 'Conecte-se com foco nas prioridades do cliente/interlocutor, valide o valor acordado e proponha o próximo marco direto.';
             const isDone = t.status === 'DONE';
             const isDelegated = t.status === 'DELEGATED';
             const isCancelled = t.status === 'CANCELLED';
@@ -5122,6 +5119,8 @@ ${transcriptText}
 
         async function saveTaskDeadline(taskId, newDeadline) {
             await updateTaskField(taskId, {deadline_or_context: newDeadline.trim()});
+            renderTasksList();
+            showInAppToast(`Prazo atualizado para: ${newDeadline.trim()}`, 'success');
         }
 
         async function updateTaskField(taskId, payload) {
@@ -6205,7 +6204,30 @@ Felipe Donato`);
 
         const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
+        
+        let dpIsForNewTask = false;
+
+        function openDatePickerForNewTask() {
+            dpIsForNewTask = true;
+            dpActiveTaskId = null;
+            dpActiveMeetingTask = null;
+            const currentVal = document.getElementById('quick-task-deadline').value || 'Hoje';
+            document.getElementById('dp-task-preview').innerText = 'Nova Tarefa Executiva';
+            document.getElementById('dp-custom-output').value = currentVal;
+            renderDatePickerCalendar();
+            document.getElementById('executive-datepicker-modal').classList.remove('hidden');
+        }
+
+        async function saveTaskRationaleDirect(taskId, fieldType, text) {
+            const key = fieldType === 'why' ? 'rationale_why' : 'rationale_how';
+            const payload = {};
+            payload[key] = text.trim();
+            await updateTaskField(taskId, payload);
+            showInAppToast('Contexto estratégico atualizado e memorizado!', 'success');
+        }
+
         function openExecutiveDatePicker(taskId, encodedDeadline, encodedAction) {
+            dpIsForNewTask = false;
             dpActiveTaskId = taskId;
             const currentDeadline = decodeURIComponent(encodedDeadline);
             const actionText = decodeURIComponent(encodedAction);
@@ -6303,7 +6325,11 @@ Felipe Donato`);
         async function applyDatePickerSelection() {
             const finalVal = document.getElementById('dp-custom-output').value.trim() || 'A definir';
 
-            if (dpActiveTaskId) {
+            if (dpIsForNewTask) {
+                const deadlineInput = document.getElementById('quick-task-deadline');
+                if (deadlineInput) deadlineInput.value = finalVal;
+                showInAppToast(`Prazo definido: ${finalVal}`, 'info');
+            } else if (dpActiveTaskId) {
                 await saveTaskDeadline(dpActiveTaskId, finalVal);
             } else if (dpActiveMeetingTask) {
                 const m = meetingsData.find(item => item.file_id === dpActiveMeetingTask.fileId);

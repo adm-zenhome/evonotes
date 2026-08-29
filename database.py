@@ -505,8 +505,8 @@ class ExecutiveDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    def update_task_details(self, task_id: int, action: Optional[str] = None, owner: Optional[str] = None, deadline: Optional[str] = None) -> bool:
-        """Updates task action, owner, and deadline line-by-line."""
+    def update_task_details(self, task_id: int, action: Optional[str] = None, owner: Optional[str] = None, deadline: Optional[str] = None, rationale_why: Optional[str] = None, rationale_how: Optional[str] = None) -> bool:
+        """Updates task action, owner, deadline, and strategic rationale line-by-line."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             updates = []
@@ -520,6 +520,12 @@ class ExecutiveDatabase:
             if deadline is not None:
                 updates.append("deadline_or_context = ?")
                 params.append(deadline)
+            if rationale_why is not None:
+                updates.append("rationale_why = ?")
+                params.append(rationale_why)
+            if rationale_how is not None:
+                updates.append("rationale_how = ?")
+                params.append(rationale_how)
             
             if not updates:
                 return False

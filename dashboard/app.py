@@ -707,11 +707,13 @@ async def api_update_task_status(task_id: int, payload: dict = Body(...)):
 
 @app.post("/api/tasks/{task_id}/update")
 async def api_update_task_details(task_id: int, payload: dict = Body(...)):
-    """Updates action, owner or deadline line-by-line."""
+    """Updates action, owner, deadline, and rationale line-by-line."""
     action = payload.get("action")
     owner = payload.get("owner")
     deadline = payload.get("deadline_or_context")
-    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline)
+    rationale_why = payload.get("rationale_why")
+    rationale_how = payload.get("rationale_how")
+    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline, rationale_why=rationale_why, rationale_how=rationale_how)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return JSONResponse({"status": "SUCCESS", "task_id": task_id})
