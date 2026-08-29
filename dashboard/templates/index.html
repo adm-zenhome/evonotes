@@ -271,6 +271,149 @@
             }
         }
 
+
+        // ==============================================================
+        // 🎙️ PLAUD CLOUD DYNAMIC LOGIN & SYNC FLOW
+        // ==============================================================
+
+        let isPlaudAccountConnected = false;
+
+        async function updatePlaudSyncButtonState() {
+            const btnDot = document.getElementById('sync-status-dot');
+            const btnIcon = document.getElementById('sync-floating-icon');
+            const btnLabel = document.getElementById('sync-floating-label');
+            const btn = document.getElementById('btn-floating-sync');
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-waveform text-emerald-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Sincronizar Plaud";
+                    if (btn) btn.onclick = openPlaudSyncChoiceModal;
+                } else {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-gray-400 flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-plugs text-gray-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Conectar Plaud Note";
+                    if (btn) btn.onclick = openPlaudConnectModal;
+                }
+            } catch (e) {
+                console.error('Error checking Plaud status:', e);
+            }
+        }
+
+        async function checkPlaudModalStatus() {
+            const container = document.getElementById('plaud-modal-dynamic-body');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    container.innerHTML = `
+                        <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                                    <i class="ph-bold ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-emerald-950">Conta Conectada</div>
+                                    <div class="text-[11px] text-emerald-700 font-medium">${data.email || 'Plaud Note Pro'}</div>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-200/80 text-emerald-900 text-[10px] font-bold">Ativo</span>
+                        </div>
+
+                        <div class="pt-2 space-y-2">
+                            <button onclick="syncPlaudRecordings(); closePlaudConnectModal();" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-arrows-clockwise text-emerald-400 text-sm"></i>
+                                <span>Sincronizar Gravações Agora</span>
+                            </button>
+                            <button onclick="disconnectPlaudAccount()" class="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 text-xs font-semibold transition cursor-pointer">
+                                Desconectar Conta
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs text-gray-600">
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <i class="ph-bold ph-shield-check text-emerald-600 text-sm"></i> Conexão Segura com a Nuvem Plaud
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">
+                                Digite o e-mail ou o Token da sua conta do aplicativo Plaud. Suas gravações capturadas no gravador serão sincronizadas com diarização de participantes e IA automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-1">E-mail ou Token da Plaud:</label>
+                                <input type="text" id="plaud-email-input" placeholder="ex: felipe@zendesk.com ou seu token..." 
+                                       class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                            </div>
+
+                            <button onclick="savePlaudAccount()" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-plugs-connected text-emerald-400 text-sm"></i>
+                                <span>Conectar Conta Plaud</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error rendering Plaud modal body:', e);
+            }
+        }
+
+        async function openPlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.remove('hidden');
+            await checkPlaudModalStatus();
+        }
+
+        function closePlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.add('hidden');
+        }
+
+        async function savePlaudAccount() {
+            const input = document.getElementById('plaud-email-input');
+            const email = input ? input.value.trim() : '';
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
+            }
+        }
+
+        async function disconnectPlaudAccount() {
+            try {
+                const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
 </script>
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web">
@@ -539,6 +682,149 @@
             }
         }
 
+
+        // ==============================================================
+        // 🎙️ PLAUD CLOUD DYNAMIC LOGIN & SYNC FLOW
+        // ==============================================================
+
+        let isPlaudAccountConnected = false;
+
+        async function updatePlaudSyncButtonState() {
+            const btnDot = document.getElementById('sync-status-dot');
+            const btnIcon = document.getElementById('sync-floating-icon');
+            const btnLabel = document.getElementById('sync-floating-label');
+            const btn = document.getElementById('btn-floating-sync');
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-waveform text-emerald-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Sincronizar Plaud";
+                    if (btn) btn.onclick = openPlaudSyncChoiceModal;
+                } else {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-gray-400 flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-plugs text-gray-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Conectar Plaud Note";
+                    if (btn) btn.onclick = openPlaudConnectModal;
+                }
+            } catch (e) {
+                console.error('Error checking Plaud status:', e);
+            }
+        }
+
+        async function checkPlaudModalStatus() {
+            const container = document.getElementById('plaud-modal-dynamic-body');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    container.innerHTML = `
+                        <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                                    <i class="ph-bold ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-emerald-950">Conta Conectada</div>
+                                    <div class="text-[11px] text-emerald-700 font-medium">${data.email || 'Plaud Note Pro'}</div>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-200/80 text-emerald-900 text-[10px] font-bold">Ativo</span>
+                        </div>
+
+                        <div class="pt-2 space-y-2">
+                            <button onclick="syncPlaudRecordings(); closePlaudConnectModal();" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-arrows-clockwise text-emerald-400 text-sm"></i>
+                                <span>Sincronizar Gravações Agora</span>
+                            </button>
+                            <button onclick="disconnectPlaudAccount()" class="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 text-xs font-semibold transition cursor-pointer">
+                                Desconectar Conta
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs text-gray-600">
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <i class="ph-bold ph-shield-check text-emerald-600 text-sm"></i> Conexão Segura com a Nuvem Plaud
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">
+                                Digite o e-mail ou o Token da sua conta do aplicativo Plaud. Suas gravações capturadas no gravador serão sincronizadas com diarização de participantes e IA automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-1">E-mail ou Token da Plaud:</label>
+                                <input type="text" id="plaud-email-input" placeholder="ex: felipe@zendesk.com ou seu token..." 
+                                       class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                            </div>
+
+                            <button onclick="savePlaudAccount()" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-plugs-connected text-emerald-400 text-sm"></i>
+                                <span>Conectar Conta Plaud</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error rendering Plaud modal body:', e);
+            }
+        }
+
+        async function openPlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.remove('hidden');
+            await checkPlaudModalStatus();
+        }
+
+        function closePlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.add('hidden');
+        }
+
+        async function savePlaudAccount() {
+            const input = document.getElementById('plaud-email-input');
+            const email = input ? input.value.trim() : '';
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
+            }
+        }
+
+        async function disconnectPlaudAccount() {
+            try {
+                const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
 </script>
     <!-- Marked.js (Markdown Renderer) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
@@ -804,6 +1090,149 @@
 
             } catch (e) {
                 console.error('Error rendering dynamic integrations:', e);
+            }
+        }
+
+
+        // ==============================================================
+        // 🎙️ PLAUD CLOUD DYNAMIC LOGIN & SYNC FLOW
+        // ==============================================================
+
+        let isPlaudAccountConnected = false;
+
+        async function updatePlaudSyncButtonState() {
+            const btnDot = document.getElementById('sync-status-dot');
+            const btnIcon = document.getElementById('sync-floating-icon');
+            const btnLabel = document.getElementById('sync-floating-label');
+            const btn = document.getElementById('btn-floating-sync');
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-waveform text-emerald-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Sincronizar Plaud";
+                    if (btn) btn.onclick = openPlaudSyncChoiceModal;
+                } else {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-gray-400 flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-plugs text-gray-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Conectar Plaud Note";
+                    if (btn) btn.onclick = openPlaudConnectModal;
+                }
+            } catch (e) {
+                console.error('Error checking Plaud status:', e);
+            }
+        }
+
+        async function checkPlaudModalStatus() {
+            const container = document.getElementById('plaud-modal-dynamic-body');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    container.innerHTML = `
+                        <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                                    <i class="ph-bold ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-emerald-950">Conta Conectada</div>
+                                    <div class="text-[11px] text-emerald-700 font-medium">${data.email || 'Plaud Note Pro'}</div>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-200/80 text-emerald-900 text-[10px] font-bold">Ativo</span>
+                        </div>
+
+                        <div class="pt-2 space-y-2">
+                            <button onclick="syncPlaudRecordings(); closePlaudConnectModal();" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-arrows-clockwise text-emerald-400 text-sm"></i>
+                                <span>Sincronizar Gravações Agora</span>
+                            </button>
+                            <button onclick="disconnectPlaudAccount()" class="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 text-xs font-semibold transition cursor-pointer">
+                                Desconectar Conta
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs text-gray-600">
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <i class="ph-bold ph-shield-check text-emerald-600 text-sm"></i> Conexão Segura com a Nuvem Plaud
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">
+                                Digite o e-mail ou o Token da sua conta do aplicativo Plaud. Suas gravações capturadas no gravador serão sincronizadas com diarização de participantes e IA automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-1">E-mail ou Token da Plaud:</label>
+                                <input type="text" id="plaud-email-input" placeholder="ex: felipe@zendesk.com ou seu token..." 
+                                       class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                            </div>
+
+                            <button onclick="savePlaudAccount()" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-plugs-connected text-emerald-400 text-sm"></i>
+                                <span>Conectar Conta Plaud</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error rendering Plaud modal body:', e);
+            }
+        }
+
+        async function openPlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.remove('hidden');
+            await checkPlaudModalStatus();
+        }
+
+        function closePlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.add('hidden');
+        }
+
+        async function savePlaudAccount() {
+            const input = document.getElementById('plaud-email-input');
+            const email = input ? input.value.trim() : '';
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
+            }
+        }
+
+        async function disconnectPlaudAccount() {
+            try {
+                const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
             }
         }
 
@@ -2710,7 +3139,7 @@
             initSidebarResizer();
             initSidebarCategories();
             loadPersistedNotificationPrefs();
-            renderActiveIntegrationsPills();
+            renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
         });
 
         let meetingsData = {{ meetings | tojson }};
@@ -8181,6 +8610,149 @@ Felipe Donato`);
             }
         }
 
+
+        // ==============================================================
+        // 🎙️ PLAUD CLOUD DYNAMIC LOGIN & SYNC FLOW
+        // ==============================================================
+
+        let isPlaudAccountConnected = false;
+
+        async function updatePlaudSyncButtonState() {
+            const btnDot = document.getElementById('sync-status-dot');
+            const btnIcon = document.getElementById('sync-floating-icon');
+            const btnLabel = document.getElementById('sync-floating-label');
+            const btn = document.getElementById('btn-floating-sync');
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-waveform text-emerald-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Sincronizar Plaud";
+                    if (btn) btn.onclick = openPlaudSyncChoiceModal;
+                } else {
+                    if (btnDot) btnDot.className = "w-2 h-2 rounded-full bg-gray-400 flex-shrink-0";
+                    if (btnIcon) btnIcon.className = "ph-bold ph-plugs text-gray-400 text-sm group-hover:scale-110 transition-transform";
+                    if (btnLabel) btnLabel.innerText = "Conectar Plaud Note";
+                    if (btn) btn.onclick = openPlaudConnectModal;
+                }
+            } catch (e) {
+                console.error('Error checking Plaud status:', e);
+            }
+        }
+
+        async function checkPlaudModalStatus() {
+            const container = document.getElementById('plaud-modal-dynamic-body');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/plaud/status');
+                const data = await res.json();
+                isPlaudAccountConnected = data.is_connected;
+
+                if (isPlaudAccountConnected) {
+                    container.innerHTML = `
+                        <div class="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                                    <i class="ph-bold ph-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-emerald-950">Conta Conectada</div>
+                                    <div class="text-[11px] text-emerald-700 font-medium">${data.email || 'Plaud Note Pro'}</div>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-200/80 text-emerald-900 text-[10px] font-bold">Ativo</span>
+                        </div>
+
+                        <div class="pt-2 space-y-2">
+                            <button onclick="syncPlaudRecordings(); closePlaudConnectModal();" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-arrows-clockwise text-emerald-400 text-sm"></i>
+                                <span>Sincronizar Gravações Agora</span>
+                            </button>
+                            <button onclick="disconnectPlaudAccount()" class="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 text-xs font-semibold transition cursor-pointer">
+                                Desconectar Conta
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2 text-xs text-gray-600">
+                            <div class="font-bold text-gray-900 flex items-center gap-1.5">
+                                <i class="ph-bold ph-shield-check text-emerald-600 text-sm"></i> Conexão Segura com a Nuvem Plaud
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">
+                                Digite o e-mail ou o Token da sua conta do aplicativo Plaud. Suas gravações capturadas no gravador serão sincronizadas com diarização de participantes e IA automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="space-y-3 pt-1">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-1">E-mail ou Token da Plaud:</label>
+                                <input type="text" id="plaud-email-input" placeholder="ex: felipe@zendesk.com ou seu token..." 
+                                       class="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                            </div>
+
+                            <button onclick="savePlaudAccount()" class="w-full py-3 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-plugs-connected text-emerald-400 text-sm"></i>
+                                <span>Conectar Conta Plaud</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Error rendering Plaud modal body:', e);
+            }
+        }
+
+        async function openPlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.remove('hidden');
+            await checkPlaudModalStatus();
+        }
+
+        function closePlaudConnectModal() {
+            document.getElementById('plaud-connect-modal').classList.add('hidden');
+        }
+
+        async function savePlaudAccount() {
+            const input = document.getElementById('plaud-email-input');
+            const email = input ? input.value.trim() : '';
+            if (!email) {
+                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/plaud/connect', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                });
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao conectar conta: ' + e.message, 'error');
+            }
+        }
+
+        async function disconnectPlaudAccount() {
+            try {
+                const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
+                const data = await res.json();
+                showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
+                await updatePlaudSyncButtonState();
+                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState();
+                closePlaudConnectModal();
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
 </script>
 
 
@@ -8257,105 +8829,33 @@ Felipe Donato`);
 
 
     <!-- Modal Gerenciador de Dispositivo & Conta Plaud Cloud -->
+        <!-- Modal: Conexão & Login Plaud Cloud (100% Dinâmico) -->
     <div id="plaud-connect-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 sm:p-6 hidden select-none">
-        <div class="bg-[#f8f9fa] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] border-0 transition-all">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.25)] border border-gray-100 transition-all">
             
             <!-- Header with Close Button -->
-            <div class="flex items-center justify-between pb-3 border-b border-gray-200/60">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-full bg-white text-emerald-600 flex items-center justify-center text-base font-bold shadow-xs">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center text-lg font-bold shadow-xs">
                         <i class="ph-bold ph-waveform"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 leading-tight">Dispositivo & Conta Plaud</h3>
-                        <p class="text-[11px] text-gray-500 font-medium">Sincronização em tempo real via Nuvem Plaud</p>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight">Conta Plaud Note</h3>
+                        <p class="text-[11px] text-gray-400 font-medium">Sincronização de gravações via Plaud Cloud</p>
                     </div>
                 </div>
-                <button onclick="closePlaudConnectModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-200/80 flex items-center justify-center transition">
+                <button onclick="closePlaudConnectModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center transition cursor-pointer">
                     <i class="ph-bold ph-x text-base"></i>
                 </button>
             </div>
 
-            <!-- Card 1: Dispositivo Ativo -->
-            <div class="bg-white p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                            <i class="ph-bold ph-cpu"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Hardware)</div>
-                            <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span>Conectado & Sincronizado</span>
-                            </div>
-                        </div>
-                    </div>
-                    <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">
-                        Online
-                    </span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 text-[11px]">
-                    <div>
-                        <div class="text-gray-400">Número de Série (SN)</div>
-                        <div class="font-mono font-bold text-gray-800">8810B30300504129</div>
-                    </div>
-                    <div>
-                        <div class="text-gray-400">Modo de Gravação</div>
-                        <div class="font-bold text-gray-800 flex items-center gap-1.5">
-                            <span>Dual-Sensor (Voz + Condução)</span>
-                            <button type="button" onclick="openPlaudSensorInfoModal()" class="w-4 h-4 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition" title="Ver como funcionam os 2 sensores">
-                                <i class="ph-bold ph-info text-[9px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-gray-400">Armazenamento</div>
-                        <div class="font-bold text-gray-800">64 GB Interno</div>
-                    </div>
-                    <div>
-                        <div class="text-gray-400">Gravações Sincronizadas</div>
-                        <div class="font-bold text-emerald-700" id="plaud-sync-count">6 de 6 processadas</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 2: Como Funciona para o Usuário -->
-            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/60 space-y-2 text-xs text-emerald-950">
-                <div class="font-bold flex items-center gap-1.5">
-                    <i class="ph-bold ph-lightning text-emerald-600"></i> Como funciona a conexão do usuário:
-                </div>
-                <p class="text-[11px] text-emerald-900 leading-relaxed">
-                    <b>Zero configuração técnica!</b> O usuário faz login uma única vez com a conta dele da Plaud. Todas as gravações que o Plaud App subir para a nuvem são capturadas e processadas pelo EvoNotes automaticamente.
-                </p>
-            </div>
-
-            <!-- Card 3: Formulário de Conexão / Troca de Conta -->
-            <div class="bg-white p-4 sm:p-5 rounded-2xl space-y-3 shadow-xs border-0 text-xs">
-                <div class="font-bold text-gray-900 text-xs">Conta Plaud Cloud Conectada:</div>
-                <div class="flex items-center gap-2">
-                    <input type="text" id="plaud-email-input" value="feee.deluca (Apple ID)" placeholder="Seu e-mail ou Token da Plaud..." 
-                           class="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800 focus:outline-none focus:border-emerald-500">
-                    <button onclick="savePlaudAccount()" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition">
-                        Salvar
-                    </button>
-                </div>
-            </div>
-
-            <!-- Footer Actions -->
-            <div class="flex items-center justify-between pt-1">
-                <button onclick="syncPlaudRecordings()" class="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                    <i class="ph-bold ph-arrows-clockwise"></i> Sincronizar Nuvem Agora
-                </button>
-                <button onclick="closePlaudConnectModal()" class="px-5 py-2 rounded-full bg-gray-200 hover:bg-gray-300 text-xs font-semibold text-gray-800 transition">
-                    Fechar
-                </button>
+            <!-- Dynamic State Container -->
+            <div id="plaud-modal-dynamic-body" class="space-y-4">
+                <!-- Populated dynamically by checkPlaudModalStatus() -->
             </div>
 
         </div>
     </div>
-
 
     <!-- Modal Informativo: Arquitetura Dual-Sensor Plaud (Cinza Claro & Sem Bordas) -->
     <div id="plaud-sensor-info-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-[80] flex items-center justify-center p-4 sm:p-6 hidden select-none">
