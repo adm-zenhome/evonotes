@@ -17,7 +17,7 @@ USER_EMAIL = os.getenv("EXECUTIVE_EMAIL", "felipe@zflowtech.com")
 APP_BASE_URL = os.getenv("EVONOTES_PUBLIC_URL", "https://zflow.tech/app")
 
 class ResendNotificationEngine:
-    """Dispatches executive transactional emails and daily closing digests via Resend."""
+    """Dispatches executive transactional emails and daily closing digests via EvoNotes Gateway."""
 
     def __init__(self, api_key: Optional[str] = None, sender: Optional[str] = None):
         self.api_key = api_key or os.getenv("RESEND_API_KEY", "")
@@ -25,7 +25,7 @@ class ResendNotificationEngine:
         self.base_url = APP_BASE_URL
 
     def send_email(self, to_email: str, subject: str, html_content: str) -> Dict[str, Any]:
-        """Sends an email via Resend API."""
+        """Sends an email via EvoNotes Gateway API."""
         if not self.api_key:
             logging.warning("RESEND_API_KEY is not set. Simulating email dispatch (preview mode).")
             # Save local preview in cache/dispatches
@@ -56,13 +56,13 @@ class ResendNotificationEngine:
             res = requests.post("https://api.resend.com/emails", headers=headers, json=payload, timeout=10)
             if res.status_code in [200, 201]:
                 data = res.json()
-                logging.info(f"Email sent successfully via Resend: {data.get('id')}")
+                logging.info(f"Email sent successfully via EvoNotes Gateway: {data.get('id')}")
                 return {"status": "SUCCESS", "id": data.get("id")}
             else:
                 logging.error(f"Resend API error ({res.status_code}): {res.text}")
                 return {"status": "ERROR", "detail": res.text}
         except Exception as e:
-            logging.error(f"Exception sending email via Resend: {e}")
+            logging.error(f"Exception sending email via EvoNotes Gateway: {e}")
             return {"status": "ERROR", "detail": str(e)}
 
     def dispatch_new_meeting_processed(self, file_id: str, to_email: str = USER_EMAIL) -> Dict[str, Any]:
@@ -233,7 +233,7 @@ class ResendNotificationEngine:
 
                 <!-- Footer -->
                 <div style="margin-top: 32px; border-top: 1px solid #f0f0f0; padding-top: 16px; text-align: center; font-size: 11px; color: #9ca3af;">
-                    EvoNotes OS • Régua de Disparos Resend<br/>
+                    EvoNotes • Inteligência Executiva de Voz<br/>
                     Você está recebendo este e-mail diário porque é o administrador da organização.
                 </div>
 
@@ -246,7 +246,7 @@ class ResendNotificationEngine:
 
 
     def dispatch_prospect_followup(self, file_id: str, prospect_name: str, prospect_email: str, custom_message: Optional[str] = None) -> Dict[str, Any]:
-        """Sends professional executive follow-up email directly to a prospect/client via Resend."""
+        """Sends professional executive follow-up email directly to a prospect/client via EvoNotes Gateway."""
         meeting = db.get_meeting(file_id)
         if not meeting:
             return {"status": "ERROR", "detail": "Meeting not found"}
