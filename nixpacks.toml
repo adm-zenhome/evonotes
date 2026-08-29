@@ -1,8 +1,13 @@
 [phases.setup]
-nixPkgs = ["python311", "ffmpeg"]
+nixPkgs = ["python311", "ffmpeg", "nodejs_20"]
 
 [phases.install]
-cmds = ["python -m pip install --upgrade pip", "pip install -r requirements.txt"]
+cmds = [
+  "python3 -m ensurepip || true",
+  "python3 -m pip install --upgrade pip",
+  "python3 -m pip install -r requirements.txt",
+  "npm install || true"
+]
 
 [start]
-cmd = "uvicorn dashboard.app:app --host 0.0.0.0 --port ${PORT:-8765}"
+cmd = "python3 -m uvicorn dashboard.app:app --host 0.0.0.0 --port ${PORT:-8765}"
