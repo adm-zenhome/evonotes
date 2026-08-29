@@ -16,17 +16,12 @@ class ExecutiveDatabase:
         """Wipes all meetings, commitments, sources, categories, and resets database to clean state."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM meetings")
-            cursor.execute("DELETE FROM commitments")
-            cursor.execute("DELETE FROM meeting_sources")
-            cursor.execute("DELETE FROM accounts_deals")
-            cursor.execute("DELETE FROM vocabulary_corrections")
-            cursor.execute("DELETE FROM keyword_votes")
-            cursor.execute("DELETE FROM custom_categories")
-            cursor.execute("DELETE FROM user_profiles")
-            cursor.execute("DELETE FROM inferred_exclusions_feedback")
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            tables = [r[0] for r in cursor.fetchall()]
+            for tbl in tables:
+                cursor.execute(f"DELETE FROM {tbl}")
             conn.commit()
-            logging.info("🔥 DATABASE COMPLETELY WIPED AND RESET TO ZERO!")
+            logging.info(f"🔥 DATABASE COMPLETELY WIPED: Cleared tables {tables}!")
 
     def __init__(self, db_path: Path = DB_PATH):
         self.db_path = db_path
@@ -55,6 +50,22 @@ class ExecutiveDatabase:
             """)
 
             # Meetings Table
+            
+            # WhatsApp Audio Inbox Queue (Real Ingestion Queue)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS whatsapp_inbox_queue (
+                    message_id TEXT PRIMARY KEY,
+                    phone TEXT NOT NULL,
+                    sender_name TEXT,
+                    chat_name TEXT,
+                    is_group INTEGER DEFAULT 0,
+                    audio_url TEXT NOT NULL,
+                    duration_seconds INTEGER DEFAULT 0,
+                    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    status TEXT DEFAULT 'PENDING'
+                )
+            """)
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS meetings (
                     file_id TEXT PRIMARY KEY,
@@ -1099,3 +1110,39 @@ def update_meeting_channel(file_id: str, channel_name: str):
         cursor = conn.cursor()
         cursor.execute("UPDATE meetings SET channel = ? WHERE file_id = ?", (channel_name, file_id))
         conn.commit()
+
+
+    def save_whatsapp_inbox_item(self, item: Dict[str, Any]):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO whatsapp_inbox_queue 
+                (message_id, phone, sender_name, chat_name, is_group, audio_url, duration_seconds, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                item["message_id"],
+                item["phone"],
+                item.get("sender_name", item["phone"]),
+                item.get("chat_name", item["phone"]),
+                1 if item.get("is_group") else 0,
+                item["audio_url"],
+                item.get("duration_seconds", 0),
+                item.get("status", "PENDING")
+            ))
+            conn.commit()
+
+    def get_pending_whatsapp_inbox(self) -> List[Dict[str, Any]]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM whatsapp_inbox_queue 
+                WHERE status = 'PENDING' 
+                ORDER BY received_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def mark_whatsapp_inbox_status(self, message_id: str, status: str = "PROCESSED"):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE whatsapp_inbox_queue SET status = ? WHERE message_id = ?", (status, message_id))
+            conn.commit()
