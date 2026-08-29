@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install ffmpeg for Whisper audio chunking and curl for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
@@ -16,4 +15,4 @@ COPY . .
 ENV PORT=8765
 EXPOSE 8765
 
-CMD ["sh", "-c", "uvicorn dashboard.app:app --host 0.0.0.0 --port ${PORT:-8765}"]
+CMD ["python3", "main.py"]
