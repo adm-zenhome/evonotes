@@ -85,13 +85,13 @@
             try {
                 const res = await fetch('/api/plaud/status');
                 const data = await res.json();
-                const isConnected = data.is_connected;
-                const account = data.account_email || 'Minha Conta Plaud';
-                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+                const isConnected = data.is_connected || data.is_active;
+                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
+                const sn = data.serial_number || data.device_sn || '8810B30300504129';
 
                 if (!isConnected) {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
@@ -106,7 +106,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -118,7 +118,7 @@
                                 <div class="space-y-2 pt-1">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                        <input type="email" id="tab-plaud-email-input" value="felipedelucadonato@gmail.com" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
@@ -136,7 +136,7 @@
                     `;
                 } else {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
@@ -151,7 +151,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -174,12 +174,13 @@
                                 </div>
                             </div>
 
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
                                 <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
                                     <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
                                 </button>
-                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
-                                    Desconectar Conta
+                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                                    <i class="ph-bold ph-power"></i>
+                                    <span>Desconectar Conta</span>
                                 </button>
                             </div>
                         </div>
@@ -191,31 +192,52 @@
         }
 
         async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input').value.trim();
-            const token = document.getElementById('tab-plaud-token-input').value.trim();
-            if (!email) {
-                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
-                return;
-            }
+            const email = document.getElementById('tab-plaud-email-input')?.value.trim() || 'felipedelucadonato@gmail.com';
+            const token = document.getElementById('tab-plaud-token-input')?.value.trim() || 'PLAUD_APP_TOKEN';
 
             try {
+                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
                 const res = await fetch('/api/plaud/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({account_email: email, token: token})
+                    body: JSON.stringify({email: email, token: token})
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
                     await renderPlaudHardwareTab();
-                    await updatePlaudSyncButtonState();
+                    triggerPlaudSync('full');
                 } else {
-                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
                 }
             } catch (e) {
-                showInAppToast('Erro na conexão: ' + e.message, 'error');
+                showInAppToast('Erro ao conectar: ' + e.message, 'error');
             }
         }
+
+        async function disconnectPlaudAccount() {
+            try {
+                showInAppToast('Desconectando dispositivo Plaud...', 'info');
+                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
+                const data = await res.json();
+                showInAppToast('Dispositivo Plaud desconectado.', 'info');
+                
+                // Re-render hardware tab immediately
+                await renderPlaudHardwareTab();
+
+                // Update bottom profile pill
+                const bottomPill = document.getElementById('bottom-user-integrations-pill');
+                if (bottomPill) {
+                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
+                }
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+        
+        window.disconnectPlaudAccount = disconnectPlaudAccount;
+        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
+        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
 
 
         // ==============================================================
@@ -414,13 +436,13 @@
             try {
                 const res = await fetch('/api/plaud/status');
                 const data = await res.json();
-                const isConnected = data.is_connected;
-                const account = data.account_email || 'Minha Conta Plaud';
-                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+                const isConnected = data.is_connected || data.is_active;
+                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
+                const sn = data.serial_number || data.device_sn || '8810B30300504129';
 
                 if (!isConnected) {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
@@ -435,7 +457,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -447,7 +469,7 @@
                                 <div class="space-y-2 pt-1">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                        <input type="email" id="tab-plaud-email-input" value="felipedelucadonato@gmail.com" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
@@ -465,7 +487,7 @@
                     `;
                 } else {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
@@ -480,7 +502,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -503,12 +525,13 @@
                                 </div>
                             </div>
 
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
                                 <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
                                     <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
                                 </button>
-                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
-                                    Desconectar Conta
+                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                                    <i class="ph-bold ph-power"></i>
+                                    <span>Desconectar Conta</span>
                                 </button>
                             </div>
                         </div>
@@ -520,31 +543,52 @@
         }
 
         async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input').value.trim();
-            const token = document.getElementById('tab-plaud-token-input').value.trim();
-            if (!email) {
-                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
-                return;
-            }
+            const email = document.getElementById('tab-plaud-email-input')?.value.trim() || 'felipedelucadonato@gmail.com';
+            const token = document.getElementById('tab-plaud-token-input')?.value.trim() || 'PLAUD_APP_TOKEN';
 
             try {
+                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
                 const res = await fetch('/api/plaud/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({account_email: email, token: token})
+                    body: JSON.stringify({email: email, token: token})
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
                     await renderPlaudHardwareTab();
-                    await updatePlaudSyncButtonState();
+                    triggerPlaudSync('full');
                 } else {
-                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
                 }
             } catch (e) {
-                showInAppToast('Erro na conexão: ' + e.message, 'error');
+                showInAppToast('Erro ao conectar: ' + e.message, 'error');
             }
         }
+
+        async function disconnectPlaudAccount() {
+            try {
+                showInAppToast('Desconectando dispositivo Plaud...', 'info');
+                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
+                const data = await res.json();
+                showInAppToast('Dispositivo Plaud desconectado.', 'info');
+                
+                // Re-render hardware tab immediately
+                await renderPlaudHardwareTab();
+
+                // Update bottom profile pill
+                const bottomPill = document.getElementById('bottom-user-integrations-pill');
+                if (bottomPill) {
+                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
+                }
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+        
+        window.disconnectPlaudAccount = disconnectPlaudAccount;
+        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
+        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
 
 
         // ==============================================================
@@ -743,13 +787,13 @@
             try {
                 const res = await fetch('/api/plaud/status');
                 const data = await res.json();
-                const isConnected = data.is_connected;
-                const account = data.account_email || 'Minha Conta Plaud';
-                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+                const isConnected = data.is_connected || data.is_active;
+                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
+                const sn = data.serial_number || data.device_sn || '8810B30300504129';
 
                 if (!isConnected) {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
@@ -764,7 +808,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -776,7 +820,7 @@
                                 <div class="space-y-2 pt-1">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                        <input type="email" id="tab-plaud-email-input" value="felipedelucadonato@gmail.com" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
@@ -794,7 +838,7 @@
                     `;
                 } else {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
@@ -809,7 +853,7 @@
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -832,12 +876,13 @@
                                 </div>
                             </div>
 
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
                                 <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
                                     <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
                                 </button>
-                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
-                                    Desconectar Conta
+                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                                    <i class="ph-bold ph-power"></i>
+                                    <span>Desconectar Conta</span>
                                 </button>
                             </div>
                         </div>
@@ -849,31 +894,52 @@
         }
 
         async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input').value.trim();
-            const token = document.getElementById('tab-plaud-token-input').value.trim();
-            if (!email) {
-                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
-                return;
-            }
+            const email = document.getElementById('tab-plaud-email-input')?.value.trim() || 'felipedelucadonato@gmail.com';
+            const token = document.getElementById('tab-plaud-token-input')?.value.trim() || 'PLAUD_APP_TOKEN';
 
             try {
+                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
                 const res = await fetch('/api/plaud/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({account_email: email, token: token})
+                    body: JSON.stringify({email: email, token: token})
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
                     await renderPlaudHardwareTab();
-                    await updatePlaudSyncButtonState();
+                    triggerPlaudSync('full');
                 } else {
-                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
                 }
             } catch (e) {
-                showInAppToast('Erro na conexão: ' + e.message, 'error');
+                showInAppToast('Erro ao conectar: ' + e.message, 'error');
             }
         }
+
+        async function disconnectPlaudAccount() {
+            try {
+                showInAppToast('Desconectando dispositivo Plaud...', 'info');
+                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
+                const data = await res.json();
+                showInAppToast('Dispositivo Plaud desconectado.', 'info');
+                
+                // Re-render hardware tab immediately
+                await renderPlaudHardwareTab();
+
+                // Update bottom profile pill
+                const bottomPill = document.getElementById('bottom-user-integrations-pill');
+                if (bottomPill) {
+                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
+                }
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+        
+        window.disconnectPlaudAccount = disconnectPlaudAccount;
+        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
+        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
 
 
         // ==============================================================
@@ -9449,13 +9515,13 @@ Felipe Donato`);
             try {
                 const res = await fetch('/api/plaud/status');
                 const data = await res.json();
-                const isConnected = data.is_connected;
-                const account = data.account_email || 'Minha Conta Plaud';
-                const sn = data.device_sn || 'PLAUD-PRO-DUAL-MEMS';
+                const isConnected = data.is_connected || data.is_active;
+                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
+                const sn = data.serial_number || data.device_sn || '8810B30300504129';
 
                 if (!isConnected) {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
@@ -9470,7 +9536,7 @@ Felipe Donato`);
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -9482,7 +9548,7 @@ Felipe Donato`);
                                 <div class="space-y-2 pt-1">
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail ou Apple ID da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
+                                        <input type="email" id="tab-plaud-email-input" value="felipedelucadonato@gmail.com" placeholder="ex: seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Plaud API Token / Senha de App</label>
@@ -9500,7 +9566,7 @@ Felipe Donato`);
                     `;
                 } else {
                     container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
@@ -9515,7 +9581,7 @@ Felipe Donato`);
                                     </div>
                                 </div>
                                 <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> Entenda os 2 Sensores
+                                    <i class="ph-bold ph-info"></i> 2 Sensores
                                 </button>
                             </div>
 
@@ -9538,12 +9604,13 @@ Felipe Donato`);
                                 </div>
                             </div>
 
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100">
+                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
                                 <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
                                     <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
                                 </button>
-                                <button onclick="disconnectPlaudAccount()" class="text-[11px] text-red-600 hover:text-red-800 font-bold transition cursor-pointer">
-                                    Desconectar Conta
+                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                                    <i class="ph-bold ph-power"></i>
+                                    <span>Desconectar Conta</span>
                                 </button>
                             </div>
                         </div>
@@ -9555,31 +9622,52 @@ Felipe Donato`);
         }
 
         async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input').value.trim();
-            const token = document.getElementById('tab-plaud-token-input').value.trim();
-            if (!email) {
-                showInAppToast('Digite um e-mail ou token da Plaud válido', 'error');
-                return;
-            }
+            const email = document.getElementById('tab-plaud-email-input')?.value.trim() || 'felipedelucadonato@gmail.com';
+            const token = document.getElementById('tab-plaud-token-input')?.value.trim() || 'PLAUD_APP_TOKEN';
 
             try {
+                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
                 const res = await fetch('/api/plaud/connect', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({account_email: email, token: token})
+                    body: JSON.stringify({email: email, token: token})
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message || 'Conta Plaud conectada com sucesso!', 'success');
+                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
                     await renderPlaudHardwareTab();
-                    await updatePlaudSyncButtonState();
+                    triggerPlaudSync('full');
                 } else {
-                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
                 }
             } catch (e) {
-                showInAppToast('Erro na conexão: ' + e.message, 'error');
+                showInAppToast('Erro ao conectar: ' + e.message, 'error');
             }
         }
+
+        async function disconnectPlaudAccount() {
+            try {
+                showInAppToast('Desconectando dispositivo Plaud...', 'info');
+                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
+                const data = await res.json();
+                showInAppToast('Dispositivo Plaud desconectado.', 'info');
+                
+                // Re-render hardware tab immediately
+                await renderPlaudHardwareTab();
+
+                // Update bottom profile pill
+                const bottomPill = document.getElementById('bottom-user-integrations-pill');
+                if (bottomPill) {
+                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
+                }
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+        
+        window.disconnectPlaudAccount = disconnectPlaudAccount;
+        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
+        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
 
 
         // ==============================================================
