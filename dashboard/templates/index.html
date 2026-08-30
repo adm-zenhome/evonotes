@@ -4013,8 +4013,8 @@
         }
 
         function openSettingsModal() {
-            renderPlaudHardwareTab();
-            loadWhatsAppVipContacts();
+            if (typeof renderPlaudHardwareTab === 'function') renderPlaudHardwareTab();
+            if (typeof loadWhatsAppVipContacts === 'function') loadWhatsAppVipContacts();
             document.getElementById('settings-modal').classList.remove('hidden');
         }
 
