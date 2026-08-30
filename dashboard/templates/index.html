@@ -1183,7 +1183,7 @@
 
 
                 <!-- Ordenar / Visualização Dropdown -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="sort-controls">
+                <div class="hidden items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="sort-controls">
                     <i class="ph ph-sort-ascending text-gray-400 text-sm"></i>
                     <span class="text-[11px] text-gray-400 font-medium">Ordenar:</span>
                     <select id="sort-selector" onchange="changeNoteOrdering()" class="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer">
@@ -1205,7 +1205,7 @@
                 </div>
 
                 <!-- Split Button: [📄 Markdown] + [▼ Setinha de Integrações] -->
-                <div class="relative inline-flex items-center rounded-full bg-white shadow-xs hover:shadow-sm transition" id="markdown-split-btn">
+                <div class="hidden relative inline-flex items-center rounded-full bg-white shadow-xs hover:shadow-sm transition" id="markdown-split-btn">
                     <button onclick="openDesktopMarkdown()" id="btn-open-markdown" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:text-black transition" title="Abrir arquivo Markdown no Mac">
                         <i class="ph ph-file-text text-sm text-gray-400"></i>
                         <span>Markdown</span>
