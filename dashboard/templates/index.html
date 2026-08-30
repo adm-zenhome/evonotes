@@ -1143,15 +1143,15 @@
         <!-- Top Bar (Fixed on Mobile, Sticky on Desktop - NEVER SCROLLS OFF) -->
         <header class="fixed md:sticky top-0 left-0 right-0 z-40 h-14 border-b border-gray-200/90 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-white md:bg-[#f4f5f7]/95 backdrop-blur-md gap-2 w-full shadow-2xs">
             <div class="flex items-center gap-2 truncate min-w-0 flex-1">
-                <!-- Mobile High-Visibility Navigation Buttons -->
+                <!-- High-Visibility Navigation Buttons (Mobile & Desktop) -->
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
-                        <i class="ph-bold ph-list text-emerald-400 text-sm"></i>
-                        <span class="hidden xs:inline">Menu</span>
+                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-900 hover:bg-black text-white shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
+                        <i class="ph-bold ph-list text-emerald-400 text-base"></i>
                     </button>
                     
-                    <button onclick="showHomeDashboard()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
-                        <i class="ph-bold ph-house text-emerald-600 text-sm"></i>
+                    <button onclick="showHomeDashboard()" id="topbar-btn-home" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
+                        <i class="ph-bold ph-arrow-left text-emerald-400 text-xs"></i>
+                        <i class="ph-bold ph-house text-white text-xs"></i>
                         <span>Início</span>
                     </button>
                 </div>
@@ -1175,7 +1175,7 @@
 
 
                 <!-- Ordenar / Visualização Dropdown -->
-                <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="sort-controls">
+                <div class="hidden md:flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="sort-controls">
                     <i class="ph ph-sort-ascending text-gray-400 text-sm"></i>
                     <span class="text-[11px] text-gray-400 font-medium">Ordenar:</span>
                     <select id="sort-selector" onchange="changeNoteOrdering()" class="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer">
@@ -3637,6 +3637,26 @@
             }
         }
 
+        
+        // Esc Key to Return to Home View
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const settingsModal = document.getElementById('settings-modal');
+                const contactsModal = document.getElementById('whatsapp-contacts-modal');
+                const progressModal = document.getElementById('plaud-sync-live-progress-modal');
+                const choiceModal = document.getElementById('plaud-sync-choice-modal');
+
+                const isAnyModalOpen = (settingsModal && !settingsModal.classList.contains('hidden')) ||
+                                       (contactsModal && !contactsModal.classList.contains('hidden')) ||
+                                       (progressModal && !progressModal.classList.contains('hidden')) ||
+                                       (choiceModal && !choiceModal.classList.contains('hidden'));
+
+                if (!isAnyModalOpen && currentMeetingId) {
+                    showHomeDashboard();
+                }
+            }
+        });
+
         function showHomeDashboard() {
             closeMobileSidebarOnAction();
             currentMeetingId = null;
@@ -5232,8 +5252,8 @@ Reunião de Origem: ${meetingTitle}`);
             if (navTasks) navTasks.classList.remove('bg-[#ececec]', 'font-semibold');
 
             document.getElementById('conversation-thread').classList.remove('hidden');
-            document.getElementById('sort-controls').classList.remove('hidden');
-            document.getElementById('markdown-split-btn').classList.remove('hidden');
+            if (window.innerWidth >= 768) document.getElementById('sort-controls')?.classList.remove('hidden');
+            if (window.innerWidth >= 768) document.getElementById('markdown-split-btn')?.classList.remove('hidden');
 
             document.querySelectorAll('.meeting-nav-item').forEach(el => el.classList.remove('bg-[#ececec]', 'font-semibold'));
             document.getElementById('nav-home').classList.remove('bg-[#ececec]', 'font-semibold');
