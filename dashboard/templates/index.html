@@ -1142,17 +1142,21 @@
         
         <!-- Top Bar (Fixed on Mobile, Sticky on Desktop - NEVER SCROLLS OFF) -->
         <header class="fixed md:sticky top-0 left-0 right-0 z-40 h-14 border-b border-gray-200/90 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-white md:bg-[#f4f5f7]/95 backdrop-blur-md gap-2 w-full shadow-2xs">
-            <div class="flex items-center gap-2 truncate min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 sm:gap-2 truncate min-w-0 flex-1">
                 <!-- Mobile High-Visibility Navigation Buttons -->
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
-                        <i class="ph-bold ph-list text-emerald-400 text-sm"></i>
-                        <span class="hidden xs:inline">Menu</span>
+                <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-900 hover:bg-black text-white shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
+                        <i class="ph-bold ph-list text-emerald-400 text-base"></i>
                     </button>
                     
-                    <button onclick="showHomeDashboard()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
-                        <i class="ph-bold ph-house text-emerald-600 text-sm"></i>
-                        <span>Início</span>
+                    <button onclick="showHomeDashboard()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Tela Inicial">
+                        <i class="ph-bold ph-house text-emerald-600 text-xs sm:text-sm"></i>
+                        <span class="hidden xs:inline">Início</span>
+                    </button>
+
+                    <button onclick="showTasksView()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Central de Tarefas">
+                        <i class="ph-bold ph-check-square text-blue-600 text-xs sm:text-sm"></i>
+                        <span class="hidden xs:inline">Tarefas</span>
                     </button>
                 </div>
                 
@@ -1161,7 +1165,7 @@
                         contenteditable="false" 
                         onblur="saveMeetingTitleFromTopBar(this.innerText)"
                         onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
-                        class="text-xs sm:text-sm font-bold text-[#0d0d0d] truncate px-1.5 py-0.5 rounded-lg transition" 
+                        class="text-xs sm:text-sm font-bold text-[#0d0d0d] truncate px-1 py-0.5 rounded-lg transition" 
                         title="Título da Nota">Tela Inicial • Inteligência Executiva</h2>
                     <button onclick="enableTopBarTitleEdit()" id="topbar-rename-btn" class="hidden text-gray-400 hover:text-black transition p-1 cursor-pointer" title="Renomear esta nota">
                         <i class="ph-bold ph-pencil-simple text-xs"></i>
@@ -1169,8 +1173,12 @@
                 </div>
             </div>
 
-            <!-- Header Actions -->
-            <div class="flex items-center gap-2.5 text-xs" id="header-actions-container">
+            <!-- Header Actions & Mobile Quick Settings -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5 text-xs" id="header-actions-container">
+                <!-- Mobile Direct Settings Button -->
+                <button onclick="openSettingsModal()" class="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 transition active:scale-95 cursor-pointer shadow-2xs" title="Configurações">
+                    <i class="ph-bold ph-gear text-base"></i>
+                </button>
                 
 
 
@@ -1254,7 +1262,7 @@
                     <span id="ptr-label">Puxe para atualizar...</span>
                 </div>
             </div>
-            <div id="workspace-inner-container" class="w-full mx-auto px-4 sm:px-6 py-6 space-y-6 transition-all duration-300 layout-width-container max-w-4xl">
+            <div id="workspace-inner-container" class="w-full mx-auto px-3 sm:px-6 pt-4 pb-36 sm:pb-32 space-y-5 sm:space-y-6 transition-all duration-300 layout-width-container max-w-4xl">
             
             <!-- 🌟 HOME / OVERVIEW EXECUTIVE DASHBOARD (BIFOCAL STRATEGY) -->
             <div id="home-dashboard-view" class="space-y-6 animate-fade-in">
@@ -2106,19 +2114,19 @@
     </div>
 
     
-    <!-- Modal Central de Configurações & Canais (macOS Settings 2-Column Layout • Zero Scrollbar Issues) -->
-    <div id="settings-modal" class="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 hidden select-none animate-fade-in">
-        <div class="bg-[#f8f9fa] rounded-3xl max-w-4xl w-full p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] max-h-[88vh] flex flex-col border-0 transition-all">
+    <!-- Modal Central de Configurações & Canais (Responsive: Horizontal Tabs on Mobile, 2-Col on Desktop) -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 hidden select-none animate-fade-in">
+        <div class="bg-[#f8f9fa] rounded-t-[32px] sm:rounded-3xl max-w-4xl w-full p-4 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] h-[90vh] sm:h-auto sm:max-h-[88vh] flex flex-col border-0 transition-all">
             
             <!-- Modal Header -->
-            <div class="flex items-center justify-between pb-4 border-b border-gray-200/70 flex-shrink-0">
+            <div class="flex items-center justify-between pb-3 sm:pb-4 border-b border-gray-200/70 flex-shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-2xl bg-zinc-950 text-white flex items-center justify-center text-base font-bold shadow-xs">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-zinc-950 text-white flex items-center justify-center text-sm sm:text-base font-bold shadow-xs">
                         <i class="ph-bold ph-gear"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 leading-tight">Configurações do Sistema</h3>
-                        <p class="text-[11px] text-gray-500 font-medium">Dispositivo Plaud, canais de alertas e preferências de inteligência</p>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-900 leading-tight">Configurações do Sistema</h3>
+                        <p class="text-[10px] sm:text-[11px] text-gray-500 font-medium">Dispositivo Plaud, WhatsApp e IA</p>
                     </div>
                 </div>
                 <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-200/80 flex items-center justify-center transition cursor-pointer">
@@ -2126,54 +2134,54 @@
                 </button>
             </div>
 
-            <!-- macOS 2-Column Body: Left Sidebar + Right Content Area -->
-            <div class="flex-1 flex flex-row gap-5 pt-4 min-h-0 overflow-hidden">
+            <!-- Responsive Body: Horizontal Tabs on Mobile, Left Sidebar on Desktop -->
+            <div class="flex-1 flex flex-col md:flex-row gap-3 sm:gap-5 pt-3 sm:pt-4 min-h-0 overflow-hidden">
                 
-                <!-- Left Sidebar Nav (macOS Style) -->
-                <div class="w-56 bg-gray-200/50 p-2 rounded-2xl space-y-1 flex-shrink-0 h-full overflow-y-auto">
+                <!-- Nav Tabs (Horizontal Carousel on Mobile • Left Sidebar on Desktop) -->
+                <div class="w-full md:w-56 bg-gray-200/60 p-1.5 sm:p-2 rounded-2xl flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-y-auto flex-shrink-0 no-scrollbar">
                     <button onclick="switchSettingsTab('tab-channels')" id="btn-tab-channels" 
-                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white text-gray-900 font-bold shadow-xs text-xs transition cursor-pointer text-left">
-                        <div class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-white text-gray-900 font-bold shadow-xs text-xs transition cursor-pointer text-left">
+                        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             <i class="ph-bold ph-bell-simple"></i>
                         </div>
-                        <span class="truncate">Notificações & Canais</span>
+                        <span class="whitespace-nowrap">Canais & WhatsApp</span>
                     </button>
 
                     <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" 
-                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
-                        <div class="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             <i class="ph-bold ph-folders"></i>
                         </div>
-                        <span class="truncate">Listas & Categorias</span>
+                        <span class="whitespace-nowrap">Listas & Categorias</span>
                     </button>
 
                     <button onclick="switchSettingsTab('tab-hardware')" id="btn-tab-hardware" 
-                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
-                        <div class="w-6 h-6 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             <i class="ph-bold ph-waveform"></i>
                         </div>
-                        <span class="truncate">Hardware Plaud</span>
+                        <span class="whitespace-nowrap">Hardware Plaud</span>
                     </button>
 
                     <button onclick="switchSettingsTab('tab-dictionary')" id="btn-tab-dictionary" 
-                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
-                        <div class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-indigo-100 text-indigo-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             <i class="ph-bold ph-book-bookmark"></i>
                         </div>
-                        <span class="truncate">Dicionário & Jargões</span>
+                        <span class="whitespace-nowrap">Dicionário</span>
                     </button>
 
                     <button onclick="switchSettingsTab('tab-preferences')" id="btn-tab-preferences" 
-                            class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
-                        <div class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
+                        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
                             <i class="ph-bold ph-brain"></i>
                         </div>
-                        <span class="truncate">Motores de IA</span>
+                        <span class="whitespace-nowrap">Motores de IA</span>
                     </button>
                 </div>
 
-                <!-- Right Content Panels (Scrollable) -->
-                <div class="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[68vh]">
+                <!-- Right Content Panels (Scrollable Full Width on Mobile) -->
+                <div class="flex-1 overflow-y-auto pr-0.5 sm:pr-1 space-y-4 max-h-[70vh] custom-scrollbar">
                     
                     <!-- PANEL 1: Notificações & Canais -->
                     <div id="settings-content-tab-channels" class="space-y-4">
@@ -4011,6 +4019,40 @@
                 bottomBar.classList.add('layout-default');
             }
         }
+
+        
+        // ==============================================================
+        // 📱 MOBILE SIDEBAR DRAWER CONTROLLER
+        // ==============================================================
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('main-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (!sidebar || !backdrop) return;
+            
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function closeMobileSidebarOnAction() {
+            const sidebar = document.getElementById('main-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (sidebar && window.innerWidth < 768) {
+                sidebar.classList.add('-translate-x-full');
+            }
+            if (backdrop) backdrop.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        
+        window.toggleMobileSidebar = toggleMobileSidebar;
+        window.closeMobileSidebarOnAction = closeMobileSidebarOnAction;
 
         function openSettingsModal() {
             if (typeof renderPlaudHardwareTab === 'function') renderPlaudHardwareTab();
