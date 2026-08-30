@@ -2178,60 +2178,114 @@
                     
                     <!-- PANEL 1: Notificações & Canais -->
                     <div id="settings-content-tab-channels" class="space-y-4">
-                        <!-- Section: WhatsApp Account Connection (Simple & Automated for Executives) -->
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-2xl shadow-2xs flex-shrink-0">
-                                        <i class="ph-bold ph-whatsapp-logo"></i>
+                                                <!-- Section: WhatsApp Seamless QR Code Pairing Flow (Zero Jargon) -->
+                        <div id="wa-connection-main-card" class="bg-white p-5 sm:p-6 rounded-3xl space-y-5 shadow-xs border border-gray-100">
+                            
+                            <!-- Connected State (Rendered dynamically when active) -->
+                            <div id="wa-connected-state-container" class="hidden space-y-4">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shadow-2xs flex-shrink-0">
+                                            <i class="ph-bold ph-whatsapp-logo"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                                <span>WhatsApp Conectado</span>
+                                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            </div>
+                                            <div class="text-xs text-gray-500 font-medium mt-0.5" id="wa-connected-phone-label">+55 11 97430-7292</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="text-sm font-bold text-gray-900">Conexão WhatsApp (Áudios & Notificações)</div>
-                                        <div class="text-[11px] text-gray-500 mt-0.5" id="wa-gateway-status-pill">
-                                            <span class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-1"></span>
-                                            <span>Desconectado • Insira suas chaves de acesso abaixo para ativar</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="openWhatsAppContactsModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer">
+                                            <i class="ph-bold ph-users text-emerald-400"></i>
+                                            <span>Contatos & Grupos</span>
+                                        </button>
+                                        <button onclick="disconnectWhatsAppIntegration()" class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer" title="Desconectar aparelho">
+                                            <i class="ph-bold ph-power"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-950 flex items-center gap-2.5">
+                                    <i class="ph-bold ph-check-circle text-emerald-600 text-base flex-shrink-0"></i>
+                                    <span>Pronto! Áudios acima de 45s de contatos monitorados serão recebidos automaticamente no seu Inbox.</span>
+                                </div>
+                            </div>
+
+                            <!-- Disconnected State (QR Code Pairing Flow) -->
+                            <div id="wa-disconnected-state-container" class="space-y-5">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-2xl shadow-2xs flex-shrink-0">
+                                            <i class="ph-bold ph-whatsapp-logo"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-bold text-gray-900">Conectar seu WhatsApp</div>
+                                            <div class="text-xs text-gray-500 mt-0.5">Escaneie o QR Code abaixo com o WhatsApp do seu celular</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="refreshWhatsAppQRCode()" class="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto">
+                                        <i class="ph-bold ph-arrows-clockwise text-xs"></i>
+                                        <span>Atualizar QR Code</span>
+                                    </button>
+                                </div>
+
+                                <!-- QR Code Box & 3 Simple Steps -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 sm:p-5 rounded-2xl bg-gray-50/80 border border-gray-200/70 items-center">
+                                    
+                                    <!-- QR Code Display -->
+                                    <div class="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-200 shadow-2xs text-center space-y-3 min-h-[220px]">
+                                        <div id="wa-qrcode-viewport" class="w-44 h-44 flex items-center justify-center">
+                                            <div class="flex flex-col items-center gap-2 text-gray-400 text-xs">
+                                                <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-2xl"></i>
+                                                <span>Gerando QR Code...</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-[11px] font-semibold text-gray-500 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            <span id="wa-pairing-status-text">Aguardando leitura do QR Code...</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3 Simple Steps Instructions -->
+                                    <div class="space-y-3">
+                                        <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Como Conectar em 3 Passos:</div>
+                                        
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+                                            <div class="text-xs text-gray-700 leading-relaxed">
+                                                Abra o <strong>WhatsApp</strong> no seu smartphone.
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+                                            <div class="text-xs text-gray-700 leading-relaxed">
+                                                Toque em <strong>Configurações</strong> (ou 3 pontinhos) e selecione <strong>Aparelhos Conectados</strong>.
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-start gap-3">
+                                            <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+                                            <div class="text-xs text-gray-700 leading-relaxed">
+                                                Toque em <strong>Conectar um aparelho</strong> e aponte a câmera para o QR Code ao lado.
+                                            </div>
+                                        </div>
+
+                                        <div class="pt-2">
+                                            <button onclick="confirmManualPairing()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+                                                <i class="ph-bold ph-check"></i>
+                                                <span>Já Escaneei / Verificar Conexão</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                                <button onclick="openWhatsAppContactsModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-users text-emerald-400"></i>
-                                    <span>Contatos & Grupos Monitorados</span>
-                                </button>
                             </div>
 
-                            <!-- Connection Form (Executive Friendly • Zero Tech Jargon) -->
-                            <div id="wa-connect-form-container" class="p-4 rounded-xl bg-gray-50/80 border border-gray-100 space-y-3">
-                                <div class="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                                    <i class="ph-bold ph-key text-emerald-600"></i>
-                                    <span>Chaves de Acesso e Liberação</span>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Identificador da Conta (ID)</label>
-                                        <input type="text" id="wa-input-instance-id" placeholder="ex: 3F07699C1A..." class="w-full bg-white px-3 py-2 rounded-xl text-xs text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Senha / Token de Acesso</label>
-                                        <input type="password" id="wa-input-token" placeholder="ex: FB677694..." class="w-full bg-white px-3 py-2 rounded-xl text-xs text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Chave de Liberação do Cliente</label>
-                                        <input type="password" id="wa-input-client-token" placeholder="ex: Fe3901d4..." class="w-full bg-white px-3 py-2 rounded-xl text-xs text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black">
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1">
-                                    <span class="text-[11px] text-gray-400">Suas chaves são armazenadas localmente com segurança máxima.</span>
-                                    <button onclick="saveAndConnectWhatsApp()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5">
-                                        <i class="ph-bold ph-check text-xs"></i>
-                                        <span>Conectar e Ativar WhatsApp</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Dynamic Monitored VIP Contacts List -->
+                            <!-- Monitored Contacts Summary -->
                             <div class="pt-2 border-t border-gray-100 space-y-2">
                                 <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
-                                    <span>Contatos & Grupos com Ingestão Ativa (>45s):</span>
+                                    <span>Contatos & Grupos Monitorados (>45s):</span>
                                     <span id="wa-vip-contacts-count-badge" class="text-emerald-700 font-bold font-mono">0 Ativos</span>
                                 </div>
                                 <div id="wa-vip-contacts-dynamic-container" class="space-y-2">
@@ -4209,7 +4263,142 @@
             showInAppToast(`Modelo padrão definido: ${modelKey}`, 'success');
         }
 
+        
+        // ==============================================================
+        // 📲 WHATSAPP 1-CLICK QR CODE PAIRING CONTROLLER
+        // ==============================================================
+        let waStatusPollInterval = null;
+
+        async function checkWhatsAppConnectionState() {
+            try {
+                const res = await fetch('/api/integrations/whatsapp/status');
+                const data = await res.json();
+                const isConn = data.is_connected;
+                const phone = data.phone || '+55 11 97430-7292';
+
+                const connContainer = document.getElementById('wa-connected-state-container');
+                const disconnContainer = document.getElementById('wa-disconnected-state-container');
+                const phoneLabel = document.getElementById('wa-connected-phone-label');
+
+                if (isConn) {
+                    if (connContainer) connContainer.classList.remove('hidden');
+                    if (disconnContainer) disconnContainer.classList.add('hidden');
+                    if (phoneLabel) phoneLabel.innerText = phone;
+                    if (waStatusPollInterval) clearInterval(waStatusPollInterval);
+                    loadWhatsAppVipContacts();
+                } else {
+                    if (connContainer) connContainer.classList.add('hidden');
+                    if (disconnContainer) disconnContainer.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error checking WhatsApp status:', e);
+            }
+        }
+
+        async function refreshWhatsAppQRCode() {
+            const viewport = document.getElementById('wa-qrcode-viewport');
+            const statusText = document.getElementById('wa-pairing-status-text');
+            if (viewport) {
+                viewport.innerHTML = `
+                    <div class="flex flex-col items-center gap-2 text-gray-400 text-xs">
+                        <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-2xl"></i>
+                        <span>Gerando QR Code...</span>
+                    </div>
+                `;
+            }
+            if (statusText) statusText.innerText = 'Gerando novo código...';
+
+            try {
+                const res = await fetch('/api/integrations/whatsapp/qr-code');
+                const data = await res.json();
+
+                if (data.already_connected) {
+                    showInAppToast('🟢 WhatsApp já está conectado!', 'success');
+                    await checkWhatsAppConnectionState();
+                    return;
+                }
+
+                if (data.qr_code) {
+                    if (viewport) {
+                        viewport.innerHTML = `<img src="${data.qr_code}" alt="QR Code WhatsApp" class="w-40 h-40 rounded-xl shadow-xs object-contain">`;
+                    }
+                    if (statusText) statusText.innerText = 'Aponte a câmera do WhatsApp para conectar';
+
+                    // Start auto polling for scan
+                    if (waStatusPollInterval) clearInterval(waStatusPollInterval);
+                    waStatusPollInterval = setInterval(async () => {
+                        const sRes = await fetch('/api/integrations/whatsapp/status');
+                        const sData = await sRes.json();
+                        if (sData.is_connected) {
+                            clearInterval(waStatusPollInterval);
+                            showInAppToast('🎉 WhatsApp conectado com sucesso!', 'success');
+                            await checkWhatsAppConnectionState();
+                        }
+                    }, 3000);
+                } else {
+                    // Fallback to instant connect
+                    if (viewport) {
+                        viewport.innerHTML = `
+                            <div class="flex flex-col items-center gap-2 text-emerald-700 text-xs">
+                                <i class="ph-bold ph-check-circle text-3xl text-emerald-600"></i>
+                                <span class="font-bold">Instância Pronta para Ativação</span>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (e) {
+                if (viewport) {
+                    viewport.innerHTML = `
+                        <div class="p-3 text-red-600 text-xs text-center">
+                            Erro ao carregar QR Code: ${e.message}
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function confirmManualPairing() {
+            showInAppToast('Verificando conexão...', 'info');
+            try {
+                const res = await fetch('/api/integrations/whatsapp/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🎉 WhatsApp conectado com sucesso!', 'success');
+                    await checkWhatsAppConnectionState();
+                } else {
+                    showInAppToast('Erro ao conectar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro de conexão: ' + e.message, 'error');
+            }
+        }
+
+        async function disconnectWhatsAppIntegration() {
+            if (!confirm('Deseja realmente desconectar o WhatsApp?')) return;
+            try {
+                const res = await fetch('/api/integrations/whatsapp/disconnect', { method: 'POST' });
+                const data = await res.json();
+                showInAppToast('WhatsApp desconectado.', 'info');
+                await checkWhatsAppConnectionState();
+                refreshWhatsAppQRCode();
+            } catch (e) {
+                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
+            }
+        }
+
+        // Attach to window
+        window.refreshWhatsAppQRCode = refreshWhatsAppQRCode;
+        window.confirmManualPairing = confirmManualPairing;
+        window.disconnectWhatsAppIntegration = disconnectWhatsAppIntegration;
+        window.checkWhatsAppConnectionState = checkWhatsAppConnectionState;
+
         function openSettingsModal() {
+            checkWhatsAppConnectionState();
+            refreshWhatsAppQRCode();
             renderPlaudHardwareTab();
             loadWhatsAppVipContacts();
             document.getElementById('settings-modal').classList.remove('hidden');

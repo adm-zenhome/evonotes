@@ -1000,18 +1000,113 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
     })
 
 
+
+@app.get("/api/integrations/whatsapp/status")
+async def api_whatsapp_status():
+    """Checks live WhatsApp connection status from Z-API."""
+    wa_int = db.get_user_integration("whatsapp")
+    cfg = (wa_int.get("config") if wa_int else {}) or {}
+    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
+    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
+    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
+
+    import requests
+    base_url = f"https://api.z-api.io/instances/{instance_id}/token/{token}"
+    headers = {"Client-Token": client_token, "User-Agent": "Mozilla/5.0"}
+    
+    try:
+        r = requests.get(f"{base_url}/status", headers=headers, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            is_conn = data.get("connected", False) or data.get("smartphoneConnected", False)
+            phone = data.get("phone", "") or "+55 11 97430-7292"
+            
+            # Auto-sync in SQLite
+            db.save_user_integration("whatsapp", {
+                "is_connected": is_conn,
+                "phone": phone if is_conn else "",
+                "config": {
+                    "instance_id": instance_id,
+                    "token": token,
+                    "client_token": client_token
+                },
+                "connected_at": datetime.now().isoformat() if is_conn else None
+            })
+            
+            return JSONResponse({
+                "status": "SUCCESS",
+                "is_connected": is_conn,
+                "phone": phone if is_conn else "",
+                "message": "WhatsApp Conectado" if is_conn else "WhatsApp Desconectado"
+            })
+    except Exception as e:
+        logging.error(f"Error checking Z-API status: {e}")
+    
+    return JSONResponse({
+        "status": "SUCCESS",
+        "is_connected": False,
+        "phone": "",
+        "message": "Desconectado"
+    })
+
+@app.get("/api/integrations/whatsapp/qr-code")
+async def api_whatsapp_qrcode():
+    """Fetches live QR Code from Z-API for 1-click scanning."""
+    wa_int = db.get_user_integration("whatsapp")
+    cfg = (wa_int.get("config") if wa_int else {}) or {}
+    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
+    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
+    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
+
+    import requests
+    base_url = f"https://api.z-api.io/instances/{instance_id}/token/{token}"
+    headers = {"Client-Token": client_token, "User-Agent": "Mozilla/5.0"}
+    
+    try:
+        # First check status
+        r_status = requests.get(f"{base_url}/status", headers=headers, timeout=5)
+        if r_status.status_code == 200:
+            s_data = r_status.json()
+            if s_data.get("connected", False) or s_data.get("smartphoneConnected", False):
+                phone = s_data.get("phone", "") or "+55 11 97430-7292"
+                db.save_user_integration("whatsapp", {
+                    "is_connected": True,
+                    "phone": phone,
+                    "config": {"instance_id": instance_id, "token": token, "client_token": client_token},
+                    "connected_at": datetime.now().isoformat()
+                })
+                return JSONResponse({
+                    "status": "SUCCESS",
+                    "already_connected": True,
+                    "phone": phone
+                })
+        
+        # If not connected, get QR code image
+        r_qr = requests.get(f"{base_url}/qr-code/image", headers=headers, timeout=8)
+        if r_qr.status_code == 200:
+            qr_data = r_qr.json()
+            qr_val = qr_data.get("value", "")
+            return JSONResponse({
+                "status": "SUCCESS",
+                "already_connected": False,
+                "qr_code": qr_val
+            })
+    except Exception as e:
+        logging.error(f"Error fetching QR code from Z-API: {e}")
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+    
+    return JSONResponse({"status": "ERROR", "message": "Não foi possível gerar o QR Code no momento."}, status_code=500)
+
 @app.post("/api/integrations/whatsapp/connect")
 async def api_whatsapp_connect(payload: dict = Body(...)):
     """Saves WhatsApp credentials and marks integration as connected."""
-    instance_id = payload.get("instance_id", "").strip()
-    token = payload.get("token", "").strip()
-    client_token = payload.get("client_token", "").strip()
-    
-    if not instance_id or not token:
-        raise HTTPException(status_code=400, detail="Identificador da Conta e Token são obrigatórios")
+    instance_id = payload.get("instance_id", "").strip() or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
+    token = payload.get("token", "").strip() or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
+    client_token = payload.get("client_token", "").strip() or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
     
     db.save_user_integration("whatsapp", {
         "is_connected": True,
+        "phone": "+55 11 97430-7292",
         "config": {
             "instance_id": instance_id,
             "token": token,
@@ -1025,9 +1120,22 @@ async def api_whatsapp_connect(payload: dict = Body(...)):
 @app.post("/api/integrations/whatsapp/disconnect")
 async def api_whatsapp_disconnect():
     """Disconnects WhatsApp integration."""
+    wa_int = db.get_user_integration("whatsapp")
+    cfg = (wa_int.get("config") if wa_int else {}) or {}
+    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
+    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
+    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
+
+    try:
+        import requests
+        requests.get(f"https://api.z-api.io/instances/{instance_id}/token/{token}/disconnect", headers={"Client-Token": client_token}, timeout=5)
+    except Exception:
+        pass
+
     db.save_user_integration("whatsapp", {
         "is_connected": False,
-        "config": {},
+        "phone": "",
+        "config": {"instance_id": instance_id, "token": token, "client_token": client_token},
         "connected_at": None
     })
     return JSONResponse({"status": "SUCCESS", "message": "WhatsApp desconectado com sucesso!"})
