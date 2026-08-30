@@ -1143,25 +1143,35 @@
         <!-- Top Bar (Fixed on Mobile, Sticky on Desktop - NEVER SCROLLS OFF) -->
         <header class="fixed md:sticky top-0 left-0 right-0 z-40 h-14 border-b border-gray-200/90 px-3 sm:px-6 flex items-center justify-between flex-shrink-0 bg-white md:bg-[#f4f5f7]/95 backdrop-blur-md gap-2 w-full shadow-2xs">
             <div class="flex items-center gap-2 truncate min-w-0 flex-1">
-                <!-- High-Visibility Navigation Buttons (Mobile & Desktop) -->
+                
+                <!-- Navigation Control: Adaptive Back / Menu Button -->
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <button onclick="toggleMobileSidebar()" class="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-900 hover:bg-black text-white shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
+                    
+                    <!-- Mobile Hamburger (Shown when on Home) -->
+                    <button onclick="toggleMobileSidebar()" id="topbar-btn-menu" class="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-900 hover:bg-black text-white shadow-xs active:scale-95 transition cursor-pointer" title="Abrir Menu Lateral">
                         <i class="ph-bold ph-list text-emerald-400 text-base"></i>
                     </button>
-                    
-                    <button onclick="showHomeDashboard()" id="topbar-btn-home" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
-                        <i class="ph-bold ph-arrow-left text-emerald-400 text-xs"></i>
-                        <i class="ph-bold ph-house text-white text-xs"></i>
+
+                    <!-- Back to Home Button (Always Prominent on Mobile & Desktop) -->
+                    <button onclick="showHomeDashboard()" id="topbar-btn-back" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer" title="Voltar para a Tela Inicial">
+                        <i class="ph-bold ph-arrow-left text-emerald-400 text-sm"></i>
                         <span>Início</span>
+                    </button>
+
+                    <!-- Tasks Central Shortcut Button -->
+                    <button onclick="showTasksCentralView()" id="topbar-btn-tasks" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Central de Tarefas">
+                        <i class="ph-bold ph-check-square text-blue-600 text-xs"></i>
+                        <span>Tarefas</span>
                     </button>
                 </div>
                 
+                <!-- Current View Title / Note Name -->
                 <div class="flex items-center gap-1.5 truncate flex-1 min-w-0">
                     <h2 id="topbar-title" 
                         contenteditable="false" 
                         onblur="saveMeetingTitleFromTopBar(this.innerText)"
                         onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
-                        class="text-xs sm:text-sm font-bold text-[#0d0d0d] truncate px-1.5 py-0.5 rounded-lg transition" 
+                        class="text-xs sm:text-sm font-bold text-[#0d0d0d] truncate px-1 py-0.5 rounded-lg transition" 
                         title="Título da Nota">Tela Inicial • Inteligência Executiva</h2>
                     <button onclick="enableTopBarTitleEdit()" id="topbar-rename-btn" class="hidden text-gray-400 hover:text-black transition p-1 cursor-pointer" title="Renomear esta nota">
                         <i class="ph-bold ph-pencil-simple text-xs"></i>
@@ -1169,8 +1179,12 @@
                 </div>
             </div>
 
-            <!-- Header Actions -->
-            <div class="flex items-center gap-2.5 text-xs" id="header-actions-container">
+            <!-- Header Actions (Responsive Controls) -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5 text-xs" id="header-actions-container">
+                <!-- Mobile Direct Settings Gear (Always Accessible with 1 Tap) -->
+                <button onclick="openSettingsModal()" class="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 transition active:scale-95 cursor-pointer shadow-2xs" title="Configurações">
+                    <i class="ph-bold ph-gear text-base"></i>
+                </button>
                 
 
 
@@ -3662,14 +3676,27 @@
             currentMeetingId = null;
             
             // Strictly show Home and hide all other views
-            document.getElementById('home-dashboard-view').classList.remove('hidden');
-            document.getElementById('conversation-thread').classList.add('hidden');
+            const homeView = document.getElementById('home-dashboard-view');
+            if (homeView) homeView.classList.remove('hidden');
+
+            const convThread = document.getElementById('conversation-thread');
+            if (convThread) convThread.classList.add('hidden');
+
             const tasksView = document.getElementById('tasks-central-view');
             if (tasksView) tasksView.classList.add('hidden');
 
-            document.getElementById('topbar-title').innerText = 'Tela Inicial • Inteligência Executiva';
-            document.getElementById('sort-controls').classList.add('hidden');
-            document.getElementById('markdown-split-btn').classList.add('hidden');
+            const topTitle = document.getElementById('topbar-title');
+            if (topTitle) topTitle.innerText = 'Tela Inicial • Inteligência Executiva';
+
+            const sc = document.getElementById('sort-controls');
+            if (sc) sc.classList.add('hidden');
+
+            const mb = document.getElementById('markdown-split-btn');
+            if (mb) mb.classList.add('hidden');
+
+            // Scroll workspace smoothly to top
+            const scrollContainer = document.getElementById('chat-stream-container');
+            if (scrollContainer) scrollContainer.scrollTop = 0;
 
             document.querySelectorAll('.meeting-nav-item').forEach(el => el.classList.remove('bg-[#ececec]', 'font-semibold'));
             const navTasks = document.getElementById('nav-tasks');
