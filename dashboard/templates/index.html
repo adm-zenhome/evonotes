@@ -5,915 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Executive Voice OS — Second Brain</title>
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com">
-        // ==============================================================
-        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
-        // ==============================================================
-
-        async function loadWhatsAppVipContacts() {
-            // VIP contacts section removed - clean WhatsApp connection only
-            return;
-        }
-
-        // ==============================================================
-        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
-        // ==============================================================
-
-        async function renderPlaudHardwareTab() {
-            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/plaud/status');
-                const data = await res.json();
-                const isConnected = data.is_connected || data.is_active;
-                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
-                const sn = data.serial_number || data.device_sn || '8810B30300504129';
-
-                if (!isConnected) {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform-slash"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                                            <span>Dispositivo Desconectado</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
-                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
-                                <p class="text-[11px] text-gray-500 leading-relaxed">
-                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
-                                </p>
-                                <div class="space-y-2 pt-1">
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Senha da Plaud Cloud ou Token de API</label>
-                                        <input type="password" id="tab-plaud-token-input" placeholder="Digite sua senha da Plaud" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                </div>
-                                <div class="pt-2">
-                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
-                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
-                                        <span>Conectar Dispositivo Plaud</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Conectado & Sincronizado via Nuvem</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
-                                <div>
-                                    <div class="text-gray-400">Dispositivo</div>
-                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Modo de Captura Ativo</div>
-                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Conta Plaud Conectada</div>
-                                    <div class="font-bold text-gray-800 truncate">${account}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Status da Nuvem</div>
-                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
-                                </div>
-                            </div>
-
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
-                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
-                                </button>
-                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
-                                    <i class="ph-bold ph-power"></i>
-                                    <span>Desconectar Conta</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
-            }
-        }
-
-        async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input')?.value.trim();
-            const password = document.getElementById('tab-plaud-token-input')?.value.trim();
-            
-            if (!email) {
-                showInAppToast('Por favor, digite o e-mail da sua conta Plaud', 'error');
-                document.getElementById('tab-plaud-email-input')?.focus();
-                return;
-            }
-            if (!password) {
-                showInAppToast('Por favor, digite a senha da sua conta Plaud ou Token de API', 'error');
-                document.getElementById('tab-plaud-token-input')?.focus();
-                return;
-            }
-
-            try {
-                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
-                const res = await fetch('/api/plaud/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email, token: token})
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
-                    await renderPlaudHardwareTab();
-                    triggerPlaudSync('full');
-                } else {
-                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro ao conectar: ' + e.message, 'error');
-            }
-        }
-
-        async function disconnectPlaudAccount() {
-            try {
-                showInAppToast('Desconectando dispositivo Plaud...', 'info');
-                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
-                const data = await res.json();
-                showInAppToast('Dispositivo Plaud desconectado.', 'info');
-                
-                // Re-render hardware tab immediately
-                await renderPlaudHardwareTab();
-
-                // Update bottom profile pill
-                const bottomPill = document.getElementById('bottom-user-integrations-pill');
-                if (bottomPill) {
-                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
-                }
-            } catch (e) {
-                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
-            }
-        }
-        
-        window.disconnectPlaudAccount = disconnectPlaudAccount;
-        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
-        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
-
-
-        // ==============================================================
-        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
-        // ==============================================================
-
-        function toggleTaskDateDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-date-dropdown');
-            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
-            if (ownerDropdown) ownerDropdown.classList.add('hidden');
-            if (dropdown) dropdown.classList.toggle('hidden');
-        }
-
-        function toggleTaskOwnerDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-owner-dropdown');
-            const dateDropdown = document.getElementById('quick-task-date-dropdown');
-            if (dateDropdown) dateDropdown.classList.add('hidden');
-            if (dropdown) {
-                dropdown.classList.toggle('hidden');
-                loadDynamicStakeholdersOwnerList();
-            }
-        }
-
-        function setTaskDeadline(val, label) {
-            document.getElementById('quick-task-deadline').value = val;
-            document.getElementById('quick-task-deadline-label').innerText = label;
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-        }
-
-        function openNativeCalendarPicker() {
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-            const picker = document.getElementById('native-task-date-picker');
-            if (picker) {
-                if (picker.showPicker) {
-                    picker.showPicker();
-                } else {
-                    picker.focus();
-                    picker.click();
-                }
-            }
-        }
-
-        function selectNativeCalendarDate(dateVal) {
-            if (!dateVal) return;
-            const parts = dateVal.split('-');
-            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-            setTaskDeadline(formatted, `🗓️ ${formatted}`);
-        }
-
-        function setTaskOwner(ownerVal, label) {
-            document.getElementById('quick-task-owner').value = ownerVal;
-            document.getElementById('quick-task-owner-label').innerText = label;
-            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
-        }
-
-        function loadDynamicStakeholdersOwnerList() {
-            const list = document.getElementById('dynamic-stakeholders-owner-list');
-            if (!list) return;
-
-            const stakeholders = [
-                { name: "Dani", role: "Diretoria" },
-                { name: "Valéria", role: "Enterprise AE" },
-                { name: "Mineiro", role: "Enterprise AE" },
-                { name: "Bruno Rodrigues", role: "CEO / BCR" },
-                { name: "Felipe Bastos", role: "Executivo / BCR" },
-                { name: "Caio", role: "Especialista ZX" },
-                { name: "Max", role: "Cliente / Blue3" }
-            ];
-
-            list.innerHTML = stakeholders.map(s => `
-                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
-                    <div class="flex items-center gap-2 truncate">
-                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
-                        <span class="truncate">${s.name}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
-                </div>
-            `).join('');
-        }
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', () => {
-            const d1 = document.getElementById('quick-task-date-dropdown');
-            const d2 = document.getElementById('quick-task-owner-dropdown');
-            if (d1) d1.classList.add('hidden');
-            if (d2) d2.classList.add('hidden');
-        });
-
-        // ==============================================================
-        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
-        // ==============================================================
-
-        async function executeBatchTasksAction(actionType) {
-            try {
-                showInAppToast('Executando ação em lote...', 'info');
-                const res = await fetch('/api/tasks/batch-action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action_type: actionType })
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message, 'success');
-                    await loadTasksCentral();
-                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
-                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
-                    }
-                } else {
-                    showInAppToast('Erro: ' + data.message, 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
-            }
-        }
-
-</script>
-    <script src="https://unpkg.com/@phosphor-icons/web">
-        // ==============================================================
-        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
-        // ==============================================================
-
-        async function loadWhatsAppVipContacts() {
-            // VIP contacts section removed - clean WhatsApp connection only
-            return;
-        }
-
-        // ==============================================================
-        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
-        // ==============================================================
-
-        async function renderPlaudHardwareTab() {
-            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/plaud/status');
-                const data = await res.json();
-                const isConnected = data.is_connected || data.is_active;
-                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
-                const sn = data.serial_number || data.device_sn || '8810B30300504129';
-
-                if (!isConnected) {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform-slash"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                                            <span>Dispositivo Desconectado</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
-                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
-                                <p class="text-[11px] text-gray-500 leading-relaxed">
-                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
-                                </p>
-                                <div class="space-y-2 pt-1">
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Senha da Plaud Cloud ou Token de API</label>
-                                        <input type="password" id="tab-plaud-token-input" placeholder="Digite sua senha da Plaud" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                </div>
-                                <div class="pt-2">
-                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
-                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
-                                        <span>Conectar Dispositivo Plaud</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Conectado & Sincronizado via Nuvem</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
-                                <div>
-                                    <div class="text-gray-400">Dispositivo</div>
-                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Modo de Captura Ativo</div>
-                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Conta Plaud Conectada</div>
-                                    <div class="font-bold text-gray-800 truncate">${account}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Status da Nuvem</div>
-                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
-                                </div>
-                            </div>
-
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
-                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
-                                </button>
-                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
-                                    <i class="ph-bold ph-power"></i>
-                                    <span>Desconectar Conta</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
-            }
-        }
-
-        async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input')?.value.trim();
-            const password = document.getElementById('tab-plaud-token-input')?.value.trim();
-            
-            if (!email) {
-                showInAppToast('Por favor, digite o e-mail da sua conta Plaud', 'error');
-                document.getElementById('tab-plaud-email-input')?.focus();
-                return;
-            }
-            if (!password) {
-                showInAppToast('Por favor, digite a senha da sua conta Plaud ou Token de API', 'error');
-                document.getElementById('tab-plaud-token-input')?.focus();
-                return;
-            }
-
-            try {
-                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
-                const res = await fetch('/api/plaud/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email, token: token})
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
-                    await renderPlaudHardwareTab();
-                    triggerPlaudSync('full');
-                } else {
-                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro ao conectar: ' + e.message, 'error');
-            }
-        }
-
-        async function disconnectPlaudAccount() {
-            try {
-                showInAppToast('Desconectando dispositivo Plaud...', 'info');
-                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
-                const data = await res.json();
-                showInAppToast('Dispositivo Plaud desconectado.', 'info');
-                
-                // Re-render hardware tab immediately
-                await renderPlaudHardwareTab();
-
-                // Update bottom profile pill
-                const bottomPill = document.getElementById('bottom-user-integrations-pill');
-                if (bottomPill) {
-                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
-                }
-            } catch (e) {
-                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
-            }
-        }
-        
-        window.disconnectPlaudAccount = disconnectPlaudAccount;
-        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
-        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
-
-
-        // ==============================================================
-        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
-        // ==============================================================
-
-        function toggleTaskDateDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-date-dropdown');
-            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
-            if (ownerDropdown) ownerDropdown.classList.add('hidden');
-            if (dropdown) dropdown.classList.toggle('hidden');
-        }
-
-        function toggleTaskOwnerDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-owner-dropdown');
-            const dateDropdown = document.getElementById('quick-task-date-dropdown');
-            if (dateDropdown) dateDropdown.classList.add('hidden');
-            if (dropdown) {
-                dropdown.classList.toggle('hidden');
-                loadDynamicStakeholdersOwnerList();
-            }
-        }
-
-        function setTaskDeadline(val, label) {
-            document.getElementById('quick-task-deadline').value = val;
-            document.getElementById('quick-task-deadline-label').innerText = label;
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-        }
-
-        function openNativeCalendarPicker() {
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-            const picker = document.getElementById('native-task-date-picker');
-            if (picker) {
-                if (picker.showPicker) {
-                    picker.showPicker();
-                } else {
-                    picker.focus();
-                    picker.click();
-                }
-            }
-        }
-
-        function selectNativeCalendarDate(dateVal) {
-            if (!dateVal) return;
-            const parts = dateVal.split('-');
-            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-            setTaskDeadline(formatted, `🗓️ ${formatted}`);
-        }
-
-        function setTaskOwner(ownerVal, label) {
-            document.getElementById('quick-task-owner').value = ownerVal;
-            document.getElementById('quick-task-owner-label').innerText = label;
-            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
-        }
-
-        function loadDynamicStakeholdersOwnerList() {
-            const list = document.getElementById('dynamic-stakeholders-owner-list');
-            if (!list) return;
-
-            const stakeholders = [
-                { name: "Dani", role: "Diretoria" },
-                { name: "Valéria", role: "Enterprise AE" },
-                { name: "Mineiro", role: "Enterprise AE" },
-                { name: "Bruno Rodrigues", role: "CEO / BCR" },
-                { name: "Felipe Bastos", role: "Executivo / BCR" },
-                { name: "Caio", role: "Especialista ZX" },
-                { name: "Max", role: "Cliente / Blue3" }
-            ];
-
-            list.innerHTML = stakeholders.map(s => `
-                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
-                    <div class="flex items-center gap-2 truncate">
-                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
-                        <span class="truncate">${s.name}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
-                </div>
-            `).join('');
-        }
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', () => {
-            const d1 = document.getElementById('quick-task-date-dropdown');
-            const d2 = document.getElementById('quick-task-owner-dropdown');
-            if (d1) d1.classList.add('hidden');
-            if (d2) d2.classList.add('hidden');
-        });
-
-        // ==============================================================
-        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
-        // ==============================================================
-
-        async function executeBatchTasksAction(actionType) {
-            try {
-                showInAppToast('Executando ação em lote...', 'info');
-                const res = await fetch('/api/tasks/batch-action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action_type: actionType })
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message, 'success');
-                    await loadTasksCentral();
-                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
-                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
-                    }
-                } else {
-                    showInAppToast('Erro: ' + data.message, 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
-            }
-        }
-
-</script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
-        // ==============================================================
-        // 📱 DYNAMIC WHATSAPP VIP CONTACTS CONTROLLER
-        // ==============================================================
-
-        async function loadWhatsAppVipContacts() {
-            // VIP contacts section removed - clean WhatsApp connection only
-            return;
-        }
-
-        // ==============================================================
-        // 🎙️ DYNAMIC HARDWARE PLAUD TAB CONTROLLER
-        // ==============================================================
-
-        async function renderPlaudHardwareTab() {
-            const container = document.getElementById('plaud-hardware-tab-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/plaud/status');
-                const data = await res.json();
-                const isConnected = data.is_connected || data.is_active;
-                const account = data.email || data.cloud_account || data.account_email || 'felipedelucadonato@gmail.com';
-                const sn = data.serial_number || data.device_sn || '8810B30300504129';
-
-                if (!isConnected) {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform-slash"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                                            <span>Dispositivo Desconectado</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="p-4 rounded-2xl bg-gray-50/70 border border-gray-100 space-y-3">
-                                <div class="text-xs font-bold text-gray-900">Conectar Conta Plaud Cloud</div>
-                                <p class="text-[11px] text-gray-500 leading-relaxed">
-                                    Insira o e-mail da sua conta Plaud ou o seu Token de API para sincronizar gravações do seu hardware automaticamente.
-                                </p>
-                                <div class="space-y-2 pt-1">
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">E-mail da Conta Plaud</label>
-                                        <input type="email" id="tab-plaud-email-input" placeholder="seu_email@exemplo.com" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Senha da Plaud Cloud ou Token de API</label>
-                                        <input type="password" id="tab-plaud-token-input" placeholder="Digite sua senha da Plaud" class="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-black">
-                                    </div>
-                                </div>
-                                <div class="pt-2">
-                                    <button onclick="savePlaudAccountFromTab()" id="btn-tab-connect-plaud" class="w-full px-4 py-2.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition active:scale-95 cursor-pointer">
-                                        <i class="ph-bold ph-plugs-connected text-emerald-400"></i>
-                                        <span>Conectar Dispositivo Plaud</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = `
-                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-2xs">
-                                        <i class="ph-bold ph-waveform"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-bold text-gray-900">Plaud Note Pro (Dual-Sensor Hardware)</div>
-                                        <div class="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5">
-                                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            <span>Conectado & Sincronizado via Nuvem</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onclick="openPlaudSensorInfoModal()" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-100 transition flex items-center gap-1 cursor-pointer">
-                                    <i class="ph-bold ph-info"></i> 2 Sensores
-                                </button>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100 text-[11px]">
-                                <div>
-                                    <div class="text-gray-400">Dispositivo</div>
-                                    <div class="font-mono font-bold text-gray-800">${sn}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Modo de Captura Ativo</div>
-                                    <div class="font-bold text-gray-800">Dual MEMS + Condução Óssea (VCS)</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Conta Plaud Conectada</div>
-                                    <div class="font-bold text-gray-800 truncate">${account}</div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-400">Status da Nuvem</div>
-                                    <div class="font-bold text-emerald-700">Operacional & Automático</div>
-                                </div>
-                            </div>
-
-                            <div class="pt-3 flex items-center justify-between border-t border-gray-100 gap-2">
-                                <button onclick="closeSettingsModal(); openPlaudSyncChoiceModal()" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer">
-                                    <i class="ph-bold ph-arrows-clockwise text-emerald-400"></i> Sincronizar Nuvem Agora
-                                </button>
-                                <button onclick="disconnectPlaudAccount()" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
-                                    <i class="ph-bold ph-power"></i>
-                                    <span>Desconectar Conta</span>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (e) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Erro: ${e.message}</div>`;
-            }
-        }
-
-        async function savePlaudAccountFromTab() {
-            const email = document.getElementById('tab-plaud-email-input')?.value.trim();
-            const password = document.getElementById('tab-plaud-token-input')?.value.trim();
-            
-            if (!email) {
-                showInAppToast('Por favor, digite o e-mail da sua conta Plaud', 'error');
-                document.getElementById('tab-plaud-email-input')?.focus();
-                return;
-            }
-            if (!password) {
-                showInAppToast('Por favor, digite a senha da sua conta Plaud ou Token de API', 'error');
-                document.getElementById('tab-plaud-token-input')?.focus();
-                return;
-            }
-
-            try {
-                showInAppToast('Conectando ao Plaud Note Cloud...', 'info');
-                const res = await fetch('/api/plaud/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email, token: token})
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast('Dispositivo Plaud conectado com sucesso!', 'success');
-                    await renderPlaudHardwareTab();
-                    triggerPlaudSync('full');
-                } else {
-                    showInAppToast('Erro ao conectar: ' + (data.detail || data.message), 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro ao conectar: ' + e.message, 'error');
-            }
-        }
-
-        async function disconnectPlaudAccount() {
-            try {
-                showInAppToast('Desconectando dispositivo Plaud...', 'info');
-                const res = await fetch('/api/plaud/disconnect', { method: 'POST' });
-                const data = await res.json();
-                showInAppToast('Dispositivo Plaud desconectado.', 'info');
-                
-                // Re-render hardware tab immediately
-                await renderPlaudHardwareTab();
-
-                // Update bottom profile pill
-                const bottomPill = document.getElementById('bottom-user-integrations-pill');
-                if (bottomPill) {
-                    bottomPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span> Nenhuma Conexão Ativa';
-                }
-            } catch (e) {
-                showInAppToast('Erro ao desconectar: ' + e.message, 'error');
-            }
-        }
-        
-        window.disconnectPlaudAccount = disconnectPlaudAccount;
-        window.savePlaudAccountFromTab = savePlaudAccountFromTab;
-        window.renderPlaudHardwareTab = renderPlaudHardwareTab;
-
-
-        // ==============================================================
-        // 📅 QUICK TASK DATE & STAKEHOLDER POPOVER CONTROLLERS
-        // ==============================================================
-
-        function toggleTaskDateDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-date-dropdown');
-            const ownerDropdown = document.getElementById('quick-task-owner-dropdown');
-            if (ownerDropdown) ownerDropdown.classList.add('hidden');
-            if (dropdown) dropdown.classList.toggle('hidden');
-        }
-
-        function toggleTaskOwnerDropdown(e) {
-            if (e) e.stopPropagation();
-            const dropdown = document.getElementById('quick-task-owner-dropdown');
-            const dateDropdown = document.getElementById('quick-task-date-dropdown');
-            if (dateDropdown) dateDropdown.classList.add('hidden');
-            if (dropdown) {
-                dropdown.classList.toggle('hidden');
-                loadDynamicStakeholdersOwnerList();
-            }
-        }
-
-        function setTaskDeadline(val, label) {
-            document.getElementById('quick-task-deadline').value = val;
-            document.getElementById('quick-task-deadline-label').innerText = label;
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-        }
-
-        function openNativeCalendarPicker() {
-            document.getElementById('quick-task-date-dropdown').classList.add('hidden');
-            const picker = document.getElementById('native-task-date-picker');
-            if (picker) {
-                if (picker.showPicker) {
-                    picker.showPicker();
-                } else {
-                    picker.focus();
-                    picker.click();
-                }
-            }
-        }
-
-        function selectNativeCalendarDate(dateVal) {
-            if (!dateVal) return;
-            const parts = dateVal.split('-');
-            const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-            setTaskDeadline(formatted, `🗓️ ${formatted}`);
-        }
-
-        function setTaskOwner(ownerVal, label) {
-            document.getElementById('quick-task-owner').value = ownerVal;
-            document.getElementById('quick-task-owner-label').innerText = label;
-            document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
-        }
-
-        function loadDynamicStakeholdersOwnerList() {
-            const list = document.getElementById('dynamic-stakeholders-owner-list');
-            if (!list) return;
-
-            const stakeholders = [
-                { name: "Dani", role: "Diretoria" },
-                { name: "Valéria", role: "Enterprise AE" },
-                { name: "Mineiro", role: "Enterprise AE" },
-                { name: "Bruno Rodrigues", role: "CEO / BCR" },
-                { name: "Felipe Bastos", role: "Executivo / BCR" },
-                { name: "Caio", role: "Especialista ZX" },
-                { name: "Max", role: "Cliente / Blue3" }
-            ];
-
-            list.innerHTML = stakeholders.map(s => `
-                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
-                    <div class="flex items-center gap-2 truncate">
-                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
-                        <span class="truncate">${s.name}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
-                </div>
-            `).join('');
-        }
-
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', () => {
-            const d1 = document.getElementById('quick-task-date-dropdown');
-            const d2 = document.getElementById('quick-task-owner-dropdown');
-            if (d1) d1.classList.add('hidden');
-            if (d2) d2.classList.add('hidden');
-        });
-
-        // ==============================================================
-        // ⚡ BATCH TASKS AI ACTIONS (GRANOLA TERMINAL INTEGRATION)
-        // ==============================================================
-
-        async function executeBatchTasksAction(actionType) {
-            try {
-                showInAppToast('Executando ação em lote...', 'info');
-                const res = await fetch('/api/tasks/batch-action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action_type: actionType })
-                });
-                const data = await res.json();
-                if (data.status === 'SUCCESS') {
-                    showInAppToast(data.message, 'success');
-                    await loadTasksCentral();
-                    if (typeof renderGranolaTerminalSystemMsg === 'function') {
-                        renderGranolaTerminalSystemMsg(`✅ **Ação Executada:** ${data.message}`);
-                    }
-                } else {
-                    showInAppToast('Erro: ' + data.message, 'error');
-                }
-            } catch (e) {
-                showInAppToast('Erro na ação em lote: ' + e.message, 'error');
-            }
-        }
-
-</script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -3400,7 +2494,7 @@
             }
 
             container.innerHTML = deals.map(d => {
-                const valRaw = d.value_amount || 75000;
+                const valRaw = d.value_amount || 0;
                 const valStr = valRaw >= 1000 ? `R$ ${(valRaw / 1000).toFixed(0)}k` : `R$ ${valRaw}`;
                 const quoteStr = d.quote_citation ? `"${d.quote_citation}"` : (d.opportunity_or_risk || 'Oportunidade citada na reunião');
                 const tasks = d.tasks || [];
@@ -3621,7 +2715,7 @@
                             </div>
                             <div class="space-y-1">
                                 <div class="text-xs font-bold text-gray-900">Dispositivo Plaud Desconectado</div>
-                                <div class="text-[11px] text-gray-500 max-w-sm mx-auto">Conecte sua conta da Plaud Cloud em Configurações para carregar suas 11 gravações pendentes.</div>
+                                <div class="text-[11px] text-gray-500 max-w-sm mx-auto">Conecte sua conta da Plaud Cloud em Configurações para carregar suas gravações pendentes.</div>
                             </div>
                             <button onclick="openSettingsModal(); switchSettingsTab('tab-hardware');" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer">
                                 ⚡ Conectar Conta Plaud
@@ -5088,22 +4182,11 @@
             }
         }
 
-        function isMeetingToday(dateStr) {
+                function isMeetingToday(dateStr) {
             if (!dateStr) return false;
-            try {
-                // Check if string contains today's date formatted or timestamp
-                const d = new Date(dateStr);
-                if (isNaN(d.getTime())) {
-                    // Try parsing "YYYY-MM-DD HH:mm:ss" or "DD/MM/YYYY"
-                    if (dateStr.includes('2026-08-28') || dateStr.includes('28/08/2026') || dateStr.includes('2026-08-29')) return true;
-                    return false;
-                }
-                const now = new Date();
-                // Treat matching current date or latest batch as today
-                return d.toDateString() === now.toDateString() || d.getDate() === 28 || d.getDate() === 29;
-            } catch (e) {
-                return false;
-            }
+            const now = new Date();
+            const d = new Date(dateStr);
+            return !isNaN(d.getTime()) && d.toDateString() === now.toDateString();
         }
 
         function formatMeetingTimeDisplay(m) {
@@ -5407,25 +4490,12 @@ Ata gravada no Executive Voice OS.`);
             }
         }
 
-        function scheduleTaskInGoogleCalendarDirect(encodedAction, encodedDeadline, encodedMeetingTitle, encodedOwner) {
-            const action = decodeURIComponent(encodedAction || 'Tarefa Executiva');
-            const deadline = decodeURIComponent(encodedDeadline || 'Hoje');
-            const meetingTitle = decodeURIComponent(encodedMeetingTitle || 'Executive Voice OS');
-            const owner = decodeURIComponent(encodedOwner || 'Felipe Donato');
-
-            const title = encodeURIComponent(`[To-do] ${action}`);
-            const details = encodeURIComponent(`Tarefa: ${action}
-Responsável: ${owner}
-Prazo definido: ${deadline}
-Reunião de Origem: ${meetingTitle}`);
-
-            let guestEmail = 'felipe@zendesk.com';
-            if (owner.toLowerCase().includes('bruno')) guestEmail = 'bruno@bcr.com.br';
-            if (owner.toLowerCase().includes('dani')) guestEmail = 'daniela@zendesk.com';
-
-            const calUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&add=${encodeURIComponent(guestEmail)}`;
-            window.open(calUrl, '_blank');
-            showInAppToast('📅 Tarefa enviada para o Google Calendar!', 'success');
+                function scheduleTaskInGoogleCalendarDirect(taskId, title, owner, deadline) {
+            const encodedTitle = encodeURIComponent(`[Ação] ${title}`);
+            const encodedDetails = encodeURIComponent(`Responsável: ${owner}
+Prazo/Contexto: ${deadline}`);
+            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodedTitle}&details=${encodedDetails}`;
+            window.open(url, '_blank');
         }
 
         // =========================================================================
@@ -7557,15 +6627,7 @@ Reunião de Origem: ${meetingTitle}`);
 
         
         // ========== @MENTION AUTOCOMPLETE ENGINE ==========
-        const AVAILABLE_STAKEHOLDERS = [
-            { name: "Bruno Rodrigues", role: "CEO BCR", avatar: "BR" },
-            { name: "Daniela Reis", role: "Head Parcerias Zendesk", avatar: "DR" },
-            { name: "Valéria (Val)", role: "Enterprise AE", avatar: "VA" },
-            { name: "Mineiro", role: "Voice Specialist", avatar: "MI" },
-            { name: "Max", role: "Sponsor Blue3", avatar: "MA" },
-            { name: "Rafa", role: "Jurídico / Comitê", avatar: "RA" },
-            { name: "Caio", role: "Especialista ZX", avatar: "CA" }
-        ];
+        const AVAILABLE_STAKEHOLDERS = [];
 
         function initMentionListeners() {
             const inputs = document.querySelectorAll('input[type="text"], textarea');
@@ -7945,11 +7007,7 @@ _Enviado via EvoNotes OS_`);
             await syncPlaudRecordings();
         }
 
-        function checkWhatsAppStatus() {
-            const menu = document.getElementById('sync-sources-menu');
-            if (menu) menu.classList.add('hidden');
-            showInAppToast('📱 WhatsApp Voice Ingest está ATIVO!\nInstância Z-API conectada e pronta para receber áudios.', 'info')
-        }
+        
 
 
         
@@ -8675,7 +7733,7 @@ Felipe Donato`);
 
         function openProspectEmailModal(fileId, name, email) {
             currentProspectFileId = fileId || currentMeetingId;
-            document.getElementById('prospect-send-name').value = name || 'Daniela Reis';
+            document.getElementById('prospect-send-name').value = name || '';
             document.getElementById('prospect-send-email').value = email || '';
             document.getElementById('prospect-email-modal').classList.remove('hidden');
         }
@@ -9902,29 +8960,19 @@ Felipe Donato`);
             document.getElementById('quick-task-owner-dropdown').classList.add('hidden');
         }
 
-        function loadDynamicStakeholdersOwnerList() {
-            const list = document.getElementById('dynamic-stakeholders-owner-list');
-            if (!list) return;
-
-            const stakeholders = [
-                { name: "Dani", role: "Diretoria" },
-                { name: "Valéria", role: "Enterprise AE" },
-                { name: "Mineiro", role: "Enterprise AE" },
-                { name: "Bruno Rodrigues", role: "CEO / BCR" },
-                { name: "Felipe Bastos", role: "Executivo / BCR" },
-                { name: "Caio", role: "Especialista ZX" },
-                { name: "Max", role: "Cliente / Blue3" }
-            ];
-
-            list.innerHTML = stakeholders.map(s => `
-                <div onclick="setTaskOwner('${s.name}', '${s.name} (${s.role})')" class="px-3 py-1.5 hover:bg-gray-100 rounded-xl cursor-pointer flex items-center justify-between text-gray-800">
-                    <div class="flex items-center gap-2 truncate">
-                        <span class="w-5 h-5 rounded-full bg-gray-200 text-gray-700 font-bold flex items-center justify-center text-[9px] flex-shrink-0">${s.name.slice(0,2).toUpperCase()}</span>
-                        <span class="truncate">${s.name}</span>
-                    </div>
-                    <span class="text-[10px] text-gray-400 font-medium">${s.role}</span>
-                </div>
-            `).join('');
+                function loadDynamicStakeholdersOwnerList() {
+            const dropdown = document.getElementById('task-new-owner-select');
+            if (!dropdown) return;
+            
+            // Extract distinct owners from actual tasks in SQLite
+            const ownersSet = new Set(['Felipe Donato (Você)']);
+            if (window.currentTasksList && Array.isArray(window.currentTasksList)) {
+                window.currentTasksList.forEach(t => {
+                    if (t.owner && t.owner.trim()) ownersSet.add(t.owner.trim());
+                });
+            }
+            
+            dropdown.innerHTML = Array.from(ownersSet).map(name => `<option value="${name}">${name}</option>`).join('');
         }
 
         // Close dropdowns when clicking outside
@@ -10371,7 +9419,7 @@ Felipe Donato`);
                         DR
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 leading-tight" id="stk-name">Daniela Reis</h3>
+                        <h3 class="text-base font-bold text-gray-900 leading-tight" id="stk-name">--</h3>
                         <p class="text-[11px] text-emerald-700 font-semibold" id="stk-role">Diretora • Zendesk</p>
                     </div>
                 </div>
@@ -10614,7 +9662,7 @@ Felipe Donato`);
                 </div>
                 <div>
                     <label class="text-[11px] font-bold text-gray-700">E-mail do Prospect</label>
-                    <input type="email" id="prospect-send-email" placeholder="ex: daniela.reis@zendesk.com" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 text-xs focus:ring-1 focus:ring-black">
+                    <input type="email" id="prospect-send-email" placeholder="contato@empresa.com" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 text-xs focus:ring-1 focus:ring-black">
                 </div>
                 <div class="p-3 rounded-xl bg-gray-50 text-[11px] text-gray-600 space-y-1">
                     <div class="font-bold text-gray-800">📦 O e-mail incluirá automaticamente:</div>

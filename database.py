@@ -434,7 +434,7 @@ class ExecutiveDatabase:
                     acc.get("account_name", ""), 
                     acc.get("opportunity_or_risk", ""), 
                     acc.get("next_step", ""),
-                    acc.get("value_amount", 75000),
+                    acc.get("value_amount", 0),
                     acc.get("quote_citation", "")
                 ))
 
@@ -788,64 +788,7 @@ def get_meeting_sources(meeting_id: str) -> List[Dict[str, Any]]:
 record_keyword_feedback = record_keyword_vote
 
 
-STAKEHOLDER_PROFILES = {
-    "bruno rodrigues": {
-        "name": "Bruno Rodrigues",
-        "company": "BCR (Business & Customer Relations)",
-        "role": "CEO & Founder",
-        "communication_style": "C-Level Direto e Assertivo (Foco em ROI, Velocidade e Margem)",
-        "treatment_guidelines": "Tratar com tom executivo, sem preâmbulos ou rodeios. Focar em geração de receita conjunta (ZCC + BCR), destravar parcerias e prazos concretos. Valoriza clareza de margens e comissões.",
-        "key_topics": ["Pipeline ZCC", "Conta Mantiqueira", "Telefonia SIP", "Comissões 25%"]
-    },
-    "daniela reis": {
-        "name": "Daniela Reis",
-        "company": "Zendesk",
-        "role": "Head de Parcerias & Alianças Estratégicas",
-        "communication_style": "Institucional, Estratégico e Focado em Governança de Ecossistema",
-        "treatment_guidelines": "Tratar com tom diplomático e profissional. Enfatizar alinhamento com metas globais da Zendesk, compliance de parceiros e expansão estruturada.",
-        "key_topics": ["Escopo Técnico", "Parcerias Premier", "Capacitação de Canais"]
-    },
-    "valéria": {
-        "name": "Valéria (Val)",
-        "company": "Zendesk",
-        "role": "Enterprise Account Executive",
-        "communication_style": "Colaborativo, Focado em Co-selling e Fechamento de Grandes Contas",
-        "treatment_guidelines": "Tom próximo de parceira de vendas. Alinhar estratégias conjuntas para destravar contas compartilhadas e divisão clara de frentes comerciais.",
-        "key_topics": ["Conta Cacau Show", "Pipeline Enterprise", "Demonstrações Simultâneas"]
-    },
-    "mineiro": {
-        "name": "Mineiro",
-        "company": "Zendesk",
-        "role": "Enterprise AE & Voice Specialist",
-        "communication_style": "Técnico-Comercial, Pragmático e Orientado a Solução",
-        "treatment_guidelines": "Tom objetivo. Focar em viabilidade técnica de arquitetura, integração com gateways de voz e suporte à entrega de valor.",
-        "key_topics": ["Telefonia SIP", "Gateways de Voz", "Integração Omnichannel"]
-    },
-    "rafa": {
-        "name": "Rafa",
-        "company": "Comitê Jurídico & Governança",
-        "role": "Consultor Jurídico / Contratos",
-        "communication_style": "Formal, Meticuloso e Focado em Risco Contratual",
-        "treatment_guidelines": "Tratar com formalidade e precisão. Citar cláusulas, minutas contratuais, prazos de comitê e proteção de responsabilidade civil/comercial.",
-        "key_topics": ["Minuta Contratual", "Aprovação de Comitê", "Cláusulas de Rescisão"]
-    },
-    "max": {
-        "name": "Max",
-        "company": "Blue3 Investimentos",
-        "role": "Sponsor Executivo / Liderança Comercial",
-        "communication_style": "Financeiro, Analítico e Orientado a Custo-Benefício",
-        "treatment_guidelines": "Tom executivo do mercado financeiro. Focar em custo por assento, retorno sobre investimento do FNR e flexibilidade de implementação.",
-        "key_topics": ["Pricing Blue3", "Modelo FNR", "Automação com IA"]
-    },
-    "caio": {
-        "name": "Caio",
-        "company": "Zendesk",
-        "role": "Especialista ZX (Zendesk Experience)",
-        "communication_style": "Técnico Especializado e Consultivo",
-        "treatment_guidelines": "Tom técnico direto. Focar em templates de demonstração, configuração de sandbox e integrações de API.",
-        "key_topics": ["Sandbox", "APIs de IA", "Showcase de Produto"]
-    }
-}
+STAKEHOLDER_PROFILES = {}
 
 def get_stakeholder_profile_data(name: str) -> dict:
     clean_name = name.lower().strip()
@@ -1079,7 +1022,7 @@ def get_unified_stakeholders_list() -> list:
                 stk_map[k] = {
                     "name": p_name,
                     "role": p.get("role", "Stakeholder Executivo"),
-                    "company": "Zendesk / Parceiro",
+                    "company": "",
                     "participated": 0,
                     "mentioned": 0,
                     "treatment_guidelines": f"Tratar {p_name} com tom executivo e foco em alinhamentos claros.",
@@ -1102,8 +1045,8 @@ def get_unified_stakeholders_list() -> list:
 
     results = []
     for k, s in stk_map.items():
-        p_count = max(s["participated"], 1)
-        m_count = max(s["mentioned"], 1)
+        p_count = s["participated"]
+        m_count = s["mentioned"]
         
         rel_tasks = [
             {"id": t.get("id"), "action": t.get("action"), "deadline": t.get("deadline_or_context"), "status": t.get("status")}
