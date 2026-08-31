@@ -953,7 +953,7 @@
                         </button>
 
                         <!-- Menu Dropdown (100% Dinâmico do SQLite) -->
-                        <div id="sync-sources-menu" class="absolute top-11 left-0 sm:left-0 w-64 sm:w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none overflow-hidden">
+                        <div id="sync-sources-menu" class="absolute top-11 left-0 w-56 sm:w-60 bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[99] hidden space-y-1 text-xs select-none">
                             <div id="sync-sources-dynamic-content" class="space-y-1">
                                 <!-- Populated dynamically by renderActiveIntegrationsPills() -->
                             </div>
@@ -1110,17 +1110,7 @@
                 
 
 
-                <!-- Ordenar / Visualização Dropdown -->
-                <div class="hidden md:flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="sort-controls">
-                    <i class="ph ph-sort-ascending text-gray-400 text-sm"></i>
-                    <span class="text-[11px] text-gray-400 font-medium">Ordenar:</span>
-                    <select id="sort-selector" onchange="changeNoteOrdering()" class="bg-transparent text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer">
-                        <option value="standard">Padrão Executivo</option>
-                        <option value="todos_first">To-Dos & Ações no Topo</option>
-                        <option value="accounts_first">Deals & Contas no Topo</option>
-                        <option value="email_first">E-mail de Follow-up no Topo</option>
-                    </select>
-                </div>
+                
 
                 <!-- Layout Width Selector (Desktop only, sober & clean) -->
                 <div class="hidden md:flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-xs text-gray-700" id="layout-width-controls" title="Ajustar largura de leitura">
