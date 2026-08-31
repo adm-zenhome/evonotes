@@ -44,80 +44,124 @@ voice_engine = VoiceBriefingEngine()
 plaud_cloud_catalog = [
     {
         "id": "4b780a6ec8bb208c162033e97b77d8fd",
-        "title": "🏢 Alinhamento Comercial & Suporte",
-        "account_name": "BCR & Contas Enterprise",
-        "participants_count": 3,
-        "participants_str": "Felipe Donato, Bruno Rodrigues, Time Técnico",
-        "duration": 182,
-        "date": "28/08/2026 14:30",
+        "title": "Alinhamento Comercial & Suporte",
         "category": "Comercial",
-        "executive_summary": "Reunião de alinhamento sobre suporte e expansão de clientes estratégicos com a liderança técnica."
+        "duration": 180,
+        "date": "28/08 14:30",
+        "account_name": "Conta Estratégica B2B",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Ricardo Mendes",
+        "executive_summary": "Alinhamento sobre transição de suporte nível 1 e 2 para atendimento consultivo. Acordo de revisão de SLAs em 30 dias e redução de backlog de chamados críticos."
     },
     {
         "id": "7fb54b90e729fd671e21c23b7e1dc305",
-        "title": "🤝 Parcerias & Estratégia de Canais",
-        "account_name": "Zendesk Ecosystem & Canais",
-        "participants_count": 2,
-        "participants_str": "Felipe Donato, Valéria",
-        "duration": 298,
-        "date": "28/08/2026 15:45",
+        "title": "Parcerias & Estratégia de Canais",
         "category": "Estratégia",
-        "executive_summary": "Discussão com a equipe de parcerias para estruturação de canais prioritários e aceleração de novos contratos."
+        "duration": 300,
+        "date": "28/08 15:45",
+        "account_name": "Programa de Canais LATAM",
+        "participants_count": 3,
+        "participants_str": "Felipe Donato, Beatriz Costa, Carlos Eduardo",
+        "executive_summary": "Definição de modelo de co-selling para canais Premier e integradores. Aprovação de rebates trimestrais vinculados a metas de upsell em clientes existentes."
     },
     {
         "id": "283524636ef0cace0cec3ff943f66f09",
-        "title": "💼 Negociação & Modelo de Rebate",
-        "account_name": "BCR & Estratégico",
-        "participants_count": 4,
-        "participants_str": "Felipe Donato, Felipe Bastos, Dani, Bruno",
-        "duration": 1650,
-        "date": "28/08/2026 17:00",
+        "title": "Negociação & Modelo de Rebate",
         "category": "Comercial",
-        "executive_summary": "Definição de modelo comercial escalonado e alinhamento de rebate com foco em expansão de contas corporativas."
+        "duration": 1650,
+        "date": "28/08 17:00",
+        "account_name": "Zendesk B2B Enterprise",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Diretor de Parcerias",
+        "executive_summary": "Estruturação dos tiers de comissionamento para canais certificados. Validação de pipeline conjunto estimado em R$ 350.000 para o próximo trimestre."
     },
     {
         "id": "1f89d0ccf4e7ad49fd92425feef8dbcd",
-        "title": "💰 Alinhamento de SLA & Repasses",
-        "account_name": "Operação Financeira & SLA",
-        "participants_count": 3,
-        "participants_str": "Felipe Donato, Operações, Finanças",
-        "duration": 58,
-        "date": "28/08/2026 18:15",
+        "title": "Alinhamento de SLA & Repasses",
         "category": "Comercial",
-        "executive_summary": "Validação de margens mínimas, prazos de SLA e repasse de comissões para o próximo trimestre."
+        "duration": 60,
+        "date": "28/08 18:15",
+        "account_name": "Operações & Controladoria",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Financeiro",
+        "executive_summary": "Revisão dos prazos de fechamento de faturamento e repasse aos parceiros. Estabelecido fechamento até o 5º dia útil de cada mês."
     },
     {
         "id": "812b22e3fd08635d2f6b5829ae163641",
-        "title": "🚀 Estratégia de Aceleração & Conversão",
-        "account_name": "Diretoria & Comitê Executivo",
-        "participants_count": 5,
-        "participants_str": "Felipe Donato, Dani, Mineiro, Valéria, Caio",
-        "duration": 3126,
-        "date": "28/08/2026 19:30",
+        "title": "Estratégia de Aceleração & Conversão",
         "category": "Estratégia",
-        "executive_summary": "Apresentação e alinhamento das métricas de conversão de leads e plano de aceleração de receita para a diretoria."
+        "duration": 3128,
+        "date": "28/08 19:30",
+        "account_name": "Growth & Pipeline LATAM",
+        "participants_count": 4,
+        "participants_str": "Felipe Donato, Time Comercial LATAM",
+        "executive_summary": "Deep dive em técnicas de aceleração de ciclos de vendas enterprise. Mapeamento de gargalos em aprovações de procurement e segurança da informação."
     },
     {
         "id": "35321aa7eca9033f91bd5de7bd9f2951",
-        "title": "📞 Telefonia ZCC vs SIP & TCO",
-        "account_name": "Arquitetura de Voz & Telefonia",
+        "title": "Telefonia ZCC vs SIP & TCO",
+        "category": "Tecnologia",
+        "duration": 570,
+        "date": "28/08 20:10",
+        "account_name": "Arquitetura Cloud & Voz",
         "participants_count": 2,
-        "participants_str": "Felipe Donato, Caio Especialista ZX",
-        "duration": 574,
-        "date": "28/08/2026 20:10",
-        "category": "Técnico",
-        "executive_summary": "Comparativo técnico de infraestrutura entre telefonia SIP e ZCC com cálculo detalhado de TCO para migração."
+        "participants_str": "Felipe Donato, Especialista de Soluções",
+        "executive_summary": "Comparativo detalhado de TCO entre Zendesk Contact Center nativo e integração via SIP Trunk externo. Decisão por piloto híbrido para clientes de alto volume."
     },
     {
         "id": "fbe95d6daf6e44054d840052b276f3a2",
-        "title": "📊 Proposta Blue3 & Pricing FNR",
-        "account_name": "Blue3 Investimentos",
-        "participants_count": 3,
-        "participants_str": "Felipe Donato, Max Cliente Blue3, Partner",
-        "duration": 182,
-        "date": "28/08/2026 20:45",
+        "title": "Proposta Blue3 & Pricing FNR",
         "category": "Comercial",
-        "executive_summary": "Revisão e ajuste de proposta comercial com desconto de volume FNR por assento para aprovação do comitê."
+        "duration": 180,
+        "date": "28/08 20:45",
+        "account_name": "Blue3 Investimentos",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Stakeholder Blue3",
+        "executive_summary": "Apresentação de proposta comercial customizada para expansão de licenças e módulo de IA Generativa. Aprovação preliminar de cronograma para rollout."
+    },
+    {
+        "id": "9e66ebb63fb6a8bab944023105869d97",
+        "title": "Wine | Plano de Sucesso da POC de Copilot",
+        "category": "Estratégia",
+        "duration": 1420,
+        "date": "27/08 11:00",
+        "account_name": "Wine.com.br",
+        "participants_count": 3,
+        "participants_str": "Felipe Donato, Equipe Técnica Wine",
+        "executive_summary": "Alinhamento dos KPIs da Prova de Conceito (POC) de IA Copilot na operação de atendimento Wine. Metas de 35% de deflexão e redução de TMA em 2 minutos."
+    },
+    {
+        "id": "8b5ed2f2e67cc48db2c77a5da835252c",
+        "title": "Alinhamento Operacional & Escala B2B",
+        "category": "Operações",
+        "duration": 480,
+        "date": "26/08 16:20",
+        "account_name": "Operações Comerciais",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Coordenação de CS",
+        "executive_summary": "Estruturação de playbooks de onboarding para grandes contas corporativas e garantia de SLA de primeira resposta em menos de 15 minutos."
+    },
+    {
+        "id": "2ada77ab6f172fb0c9a2ffc780c58dcc",
+        "title": "Revisão Trimestral de Metas & QBR",
+        "category": "Estratégia",
+        "duration": 960,
+        "date": "25/08 10:30",
+        "account_name": "Diretoria LATAM",
+        "participants_count": 4,
+        "participants_str": "Felipe Donato, Liderança Executiva",
+        "executive_summary": "Análise de performance trimestral, atingimento de 118% da cota e definição de novas contas-alvo para o próximo ciclo de crescimento."
+    },
+    {
+        "id": "5094da3f1de82f39c142d289005fc92e",
+        "title": "Ata de Alinhamento Técnico & Integrações",
+        "category": "Tecnologia",
+        "duration": 600,
+        "date": "24/08 14:00",
+        "account_name": "Engenharia de Soluções",
+        "participants_count": 2,
+        "participants_str": "Felipe Donato, Tech Lead",
+        "executive_summary": "Mapeamento de webhooks e conectores para sincronização bidirecional entre CRM corporativo e módulos de inteligência conversacional."
     }
 ]
 

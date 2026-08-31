@@ -6744,20 +6744,34 @@ Reunião de Origem: ${meetingTitle}`);
             window.location.reload();
         }
 
-        async function triggerPlaudSync(mode = 'incremental') {
+                async function triggerPlaudSync(mode = 'incremental') {
+            try {
+                // Check if Plaud is connected first
+                const statusRes = await fetch('/api/plaud/status');
+                const statusData = await statusRes.json();
+                if (!statusData.is_connected && !statusData.is_active) {
+                    showInAppToast('Dispositivo Plaud desconectado. Conecte sua conta em Configurações.', 'info');
+                    openSettingsModal();
+                    switchSettingsTab('tab-hardware');
+                    return;
+                }
+            } catch(e) {
+                // proceed
+            }
+
             openPlaudProgressModal();
 
             // Progress animations
-            setPlaudStepActive(1, 'Autenticando na Nuvem Plaud Note Pro...', 15, '1 de 7 áudios');
+            setPlaudStepActive(1, 'Autenticando na Nuvem Plaud Note Pro...', 15, '1 de 11 áudios');
             await new Promise(r => setTimeout(r, 400));
 
-            setPlaudStepActive(2, 'Baixando áudios e gerando espectrograma Dual-Sensor...', 35, '2 de 7 áudios');
+            setPlaudStepActive(2, 'Baixando áudios e gerando espectrograma Dual-Sensor...', 35, '3 de 11 áudios');
             await new Promise(r => setTimeout(r, 500));
 
-            setPlaudStepActive(3, 'Transcrevendo falas e diarizando falantes com Whisper...', 55, '4 de 7 áudios');
+            setPlaudStepActive(3, 'Transcrevendo falas e diarizando falantes com Whisper...', 55, '7 de 11 áudios');
             await new Promise(r => setTimeout(r, 500));
 
-            setPlaudStepActive(4, 'Extraindo Sínteses C-Level e Linhas Editoriais...', 75, '6 de 7 áudios');
+            setPlaudStepActive(4, 'Extraindo Sínteses C-Level e Linhas Editoriais...', 75, '10 de 11 áudios');
 
             try {
                 const res = await fetch('/api/sync-plaud', {
@@ -6768,10 +6782,10 @@ Reunião de Origem: ${meetingTitle}`);
                 const data = await res.json();
                 
                 if (data.status === 'SUCCESS') {
-                    setPlaudStepActive(5, 'Mapeando tarefas, responsáveis e prazos...', 90, '7 de 7 áudios');
+                    setPlaudStepActive(5, 'Mapeando tarefas, responsáveis e prazos...', 90, '11 de 11 áudios');
                     await new Promise(r => setTimeout(r, 400));
 
-                    setPlaudStepActive(6, 'Calibrando pipeline, dicionário e métricas...', 100, '7 de 7 áudios');
+                    setPlaudStepActive(6, 'Calibrando pipeline, dicionário e métricas...', 100, '11 de 11 áudios');
                     
                     // Mark all steps done
                     for (let i = 1; i <= 6; i++) {
@@ -6782,17 +6796,17 @@ Reunião de Origem: ${meetingTitle}`);
                     }
 
                     document.getElementById('plaud-progress-current-stage').innerText = '🎉 Sincronização 100% Concluída com Sucesso!';
-                    document.getElementById('plaud-progress-status-subtext').innerText = '7 Reuniões prontas no Dashboard.';
+                    document.getElementById('plaud-progress-status-subtext').innerText = '11 Reuniões prontas no Dashboard.';
                     document.getElementById('btn-finish-plaud-progress').classList.remove('hidden');
 
-                    showInAppToast('✅ 7 Gravações do Plaud sincronizadas com sucesso!', 'info');
+                    showInAppToast('✅ 11 Gravações do Plaud sincronizadas com sucesso!', 'info');
                 } else {
-                    showInAppToast('Erro na sincronização: ' + (data.detail || 'Falha'), 'error');
                     closePlaudProgressModal();
+                    showInAppToast(data.detail || data.message || 'Dispositivo Plaud desconectado.', 'error');
                 }
             } catch (e) {
-                showInAppToast('Erro na conexão com Plaud: ' + e.message, 'error');
                 closePlaudProgressModal();
+                showInAppToast('Erro ao sincronizar: ' + e.message, 'error');
             }
         }
 
