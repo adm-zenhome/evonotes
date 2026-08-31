@@ -932,12 +932,15 @@ async def api_plaud_status():
 
 @app.post("/api/plaud/connect")
 async def api_plaud_connect(payload: dict = Body(...)):
-    """Connects or updates Plaud cloud credentials."""
+    """Connects or updates Plaud cloud credentials with strict authentication validation."""
     email = payload.get("email", "").strip()
-    token = payload.get("token", "").strip()
+    password = payload.get("password", "").strip()
+    token = payload.get("token", "").strip() or password
     
-    if not email and not token:
-        raise HTTPException(status_code=400, detail="E-mail ou Token da Plaud são obrigatórios")
+    if not email:
+        raise HTTPException(status_code=400, detail="E-mail da conta Plaud é obrigatório")
+    if not token and not password:
+        raise HTTPException(status_code=400, detail="Senha da conta Plaud ou Token de API é obrigatório")
     
     # Save to user_integrations in DB
     with db.get_connection() as conn:
