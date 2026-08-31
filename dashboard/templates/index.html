@@ -1394,21 +1394,46 @@
                     </button>
                 </div>
 
-                <!-- 3. RECENT RECORDINGS & NOTES FEED (CLEAN APPLE-NOTES STYLE) -->
-                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xs border border-gray-100/80 space-y-3">
-                    <div class="flex items-center justify-between pb-1 border-b border-gray-100">
-                        <div class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                            <i class="ph-bold ph-waveform text-emerald-600 text-sm"></i>
-                            <span>Gravações & Reuniões Recentes</span>
+                <!-- 3. TRIAGE & OFFICIAL NOTES SEGMENTED FEED (FULL USER CONTROL) -->
+                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xs border border-gray-100/80 space-y-4">
+                    
+                    <!-- Segmented View Switcher (Triagem vs Notas Oficiais) -->
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                        <div class="flex items-center gap-1.5 p-1 bg-gray-100 rounded-2xl">
+                            <button onclick="switchHomeFeedTab('triage')" id="tab-btn-triage" class="px-3 sm:px-4 py-1.5 rounded-xl bg-white text-gray-900 font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5">
+                                <i class="ph-bold ph-tray text-emerald-600"></i>
+                                <span>Fila de Triagem</span>
+                                <span id="triage-pending-badge" class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono">0</span>
+                            </button>
+                            <button onclick="switchHomeFeedTab('notes')" id="tab-btn-notes" class="px-3 sm:px-4 py-1.5 rounded-xl text-gray-600 hover:text-black font-semibold text-xs transition cursor-pointer flex items-center gap-1.5">
+                                <i class="ph-bold ph-notebook text-blue-600"></i>
+                                <span>Notas Oficiais</span>
+                                <span id="notes-count-badge" class="px-1.5 py-0.2 rounded-full bg-gray-200 text-gray-700 text-[10px] font-mono">{{ meetings|length }}</span>
+                            </button>
                         </div>
-                        <button onclick="triggerPlaudSync('incremental')" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 transition cursor-pointer">
-                            <i class="ph-bold ph-arrows-clockwise text-xs"></i>
-                            <span>Sincronizar Plaud</span>
+
+                        <button onclick="triggerPlaudSync('incremental')" class="px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-black text-xs font-bold transition flex items-center gap-1.5 border border-gray-200/60 cursor-pointer flex-shrink-0">
+                            <i class="ph-bold ph-arrows-clockwise text-emerald-600 text-xs"></i>
+                            <span class="hidden sm:inline">Buscar Áudios</span>
                         </button>
                     </div>
 
-                    <!-- Meeting Feed List -->
-                    <div class="divide-y divide-gray-100/80 space-y-0.5" id="home-meetings-feed-container">
+                    <!-- VIEW A: FILA DE TRIAGEM (ÁUDIOS BRUTOS AGUARDANDO AVAL DO USUÁRIO) -->
+                    <div id="home-feed-triage-view" class="space-y-3">
+                        <div class="text-[11px] text-gray-500 flex items-center justify-between">
+                            <span>Áudios capturados do <b>Plaud</b> e <b>WhatsApp</b>. Ouça antes e decida se quer processar:</span>
+                        </div>
+
+                        <!-- Dynamic Ingestion Items List -->
+                        <div id="triage-items-dynamic-container" class="space-y-2.5">
+                            <div class="py-8 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-base"></i> Carregando áudios da fila...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW B: NOTAS OFICIAIS (PROCESSADAS E CONFIRMADAS) -->
+                    <div id="home-feed-notes-view" class="hidden space-y-1 divide-y divide-gray-100/80">
                         {% for m in meetings %}
                         <div onclick="selectMeeting('{{ m.file_id }}')" class="py-2.5 sm:py-3 px-2 sm:px-3 rounded-xl hover:bg-gray-50/90 transition cursor-pointer flex items-center justify-between gap-3 group">
                             <div class="flex items-center gap-3 truncate min-w-0">
@@ -1431,19 +1456,16 @@
                             <i class="ph-bold ph-caret-right text-gray-300 group-hover:text-black group-hover:translate-x-0.5 text-xs transition flex-shrink-0"></i>
                         </div>
                         {% endfor %}
-                        
+
                         {% if not meetings or meetings|length == 0 %}
-                        <div class="py-8 text-center space-y-3">
-                            <div class="w-12 h-12 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center text-2xl mx-auto">
-                                <i class="ph-bold ph-waveform"></i>
-                            </div>
-                            <div class="text-xs text-gray-500 font-medium">Nenhuma gravação carregada no momento.</div>
-                            <button onclick="triggerPlaudSync('full')" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition shadow-xs">
-                                ⚡ Carregar Minhas Gravações Plaud
-                            </button>
+                        <div class="py-8 text-center space-y-2">
+                            <i class="ph-bold ph-notebook text-3xl text-gray-300"></i>
+                            <div class="text-xs text-gray-500 font-medium">Nenhuma nota oficial processada ainda.</div>
+                            <div class="text-[11px] text-gray-400">Processe seus áudios na Fila de Triagem ao lado.</div>
                         </div>
                         {% endif %}
                     </div>
+
                 </div>
 
             </div>
@@ -3632,7 +3654,156 @@
             }
         });
 
+        
+        // ==============================================================
+        // 📥 TRIAGE VS OFFICIAL NOTES FEED CONTROLLER
+        // ==============================================================
+        let currentHomeFeedTab = 'triage';
+
+        function switchHomeFeedTab(tab) {
+            currentHomeFeedTab = tab;
+            const btnTriage = document.getElementById('tab-btn-triage');
+            const btnNotes = document.getElementById('tab-btn-notes');
+            const viewTriage = document.getElementById('home-feed-triage-view');
+            const viewNotes = document.getElementById('home-feed-notes-view');
+
+            if (tab === 'triage') {
+                if (btnTriage) btnTriage.className = 'px-3 sm:px-4 py-1.5 rounded-xl bg-white text-gray-900 font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5';
+                if (btnNotes) btnNotes.className = 'px-3 sm:px-4 py-1.5 rounded-xl text-gray-600 hover:text-black font-semibold text-xs transition cursor-pointer flex items-center gap-1.5';
+                if (viewTriage) viewTriage.classList.remove('hidden');
+                if (viewNotes) viewNotes.classList.add('hidden');
+                loadTriageFeedItems();
+            } else {
+                if (btnNotes) btnNotes.className = 'px-3 sm:px-4 py-1.5 rounded-xl bg-white text-gray-900 font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5';
+                if (btnTriage) btnTriage.className = 'px-3 sm:px-4 py-1.5 rounded-xl text-gray-600 hover:text-black font-semibold text-xs transition cursor-pointer flex items-center gap-1.5';
+                if (viewNotes) viewNotes.classList.remove('hidden');
+                if (viewTriage) viewTriage.classList.add('hidden');
+            }
+        }
+
+        async function loadTriageFeedItems() {
+            const container = document.getElementById('triage-items-dynamic-container');
+            const badge = document.getElementById('triage-pending-badge');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/ingestion/recent-items');
+                const data = await res.json();
+                const items = data.items || [];
+                const pendingItems = items.filter(i => !i.is_processed);
+
+                if (badge) badge.innerText = pendingItems.length;
+
+                if (items.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 rounded-2xl bg-gray-50/80 border border-dashed border-gray-200 text-center space-y-2">
+                            <i class="ph-bold ph-check-circle text-2xl text-emerald-600"></i>
+                            <div class="text-xs font-bold text-gray-900">Tudo em dia! Nenhum áudio pendente de triagem.</div>
+                            <div class="text-[11px] text-gray-400">Novas gravações do Plaud ou áudios do WhatsApp aparecerão aqui para você ouvir e processar.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = items.map(item => {
+                    const isProc = item.is_processed;
+                    const sourceBadge = item.source === 'plaud' 
+                        ? '<span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 font-bold text-[10px]">🎙️ Plaud Note</span>'
+                        : '<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold text-[10px]">💬 WhatsApp Voice</span>';
+
+                    return `
+                        <div class="p-3.5 sm:p-4 rounded-2xl ${isProc ? 'bg-gray-50/60 opacity-60' : 'bg-[#fafbfc] hover:bg-white'} border border-gray-200/70 shadow-2xs space-y-2.5 transition">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="space-y-1 truncate flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 truncate">
+                                        <span class="text-xs sm:text-sm font-bold text-gray-900 truncate">${item.title}</span>
+                                        ${sourceBadge}
+                                        <span class="text-[10px] text-gray-400 font-mono">${item.duration_formatted}</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 truncate">
+                                        ${item.summary_preview || item.account_name}
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 flex-shrink-0">
+                                    ${item.audio_url ? `
+                                        <button onclick="playTriageAudio('${item.id}', '${item.audio_url}')" id="triage-play-btn-${item.id}" class="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Ouvir áudio original">
+                                            <i class="ph-bold ph-play text-emerald-600"></i>
+                                            <span class="hidden sm:inline">Ouvir</span>
+                                        </button>
+                                    ` : ''}
+
+                                    ${isProc ? `
+                                        <button onclick="selectMeeting('${item.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-bold flex items-center gap-1 transition cursor-pointer">
+                                            <i class="ph-bold ph-check"></i>
+                                            <span>Ver Nota</span>
+                                        </button>
+                                    ` : `
+                                        <button onclick="processTriageItem('${item.id}', '${item.source}')" class="px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1">
+                                            <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                                            <span>Processar Nota</span>
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+
+                            <!-- Inline Audio Player Container -->
+                            <div id="triage-audio-player-${item.id}" class="hidden pt-1">
+                                <audio id="triage-native-audio-${item.id}" src="${item.audio_url}" controls class="w-full h-8"></audio>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                container.innerHTML = `<div class="p-3 text-red-500 text-xs">Erro ao carregar fila: ${e.message}</div>`;
+            }
+        }
+
+        function playTriageAudio(itemId, audioUrl) {
+            const playerDiv = document.getElementById(`triage-audio-player-${itemId}`);
+            const audio = document.getElementById(`triage-native-audio-${itemId}`);
+            if (!playerDiv || !audio) return;
+
+            if (playerDiv.classList.contains('hidden')) {
+                playerDiv.classList.remove('hidden');
+                audio.play();
+            } else {
+                audio.pause();
+                playerDiv.classList.add('hidden');
+            }
+        }
+
+        async function processTriageItem(itemId, source) {
+            showInAppToast('✨ Processando áudio e gerando síntese C-Level...', 'info');
+            try {
+                const res = await fetch('/api/ingestion/process-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId, source: source })
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🎉 Nota Executiva gerada com sucesso!', 'success');
+                    await loadTriageFeedItems();
+                    if (data.file_id) {
+                        selectMeeting(data.file_id);
+                    }
+                } else {
+                    showInAppToast('Erro ao processar: ' + (data.detail || data.message), 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro de processamento: ' + e.message, 'error');
+            }
+        }
+
+        window.switchHomeFeedTab = switchHomeFeedTab;
+        window.loadTriageFeedItems = loadTriageFeedItems;
+        window.playTriageAudio = playTriageAudio;
+        window.processTriageItem = processTriageItem;
+
         function showHomeDashboard() {
+            loadTriageFeedItems();
             closeMobileSidebarOnAction();
             currentMeetingId = null;
             
