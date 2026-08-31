@@ -1968,8 +1968,8 @@ async def api_integrations_status():
 @app.get("/api/ingestion/recent-items")
 async def api_ingestion_recent_items():
     """Returns recent audio items with audio player URLs and 'Há X dias sem ação'."""
-    plaud_status = db.get_user_integration("plaud")
-    is_plaud_connected = bool(plaud_status and plaud_status.get("is_connected"))
+    plaud_status = db.get_user_integration("plaud_cloud_felipe") or db.get_user_integration("plaud")
+    is_plaud_connected = bool(plaud_status and (plaud_status.get("is_active") or plaud_status.get("is_connected")))
     processed_meeting_ids = {m.get("file_id") for m in db.get_all_meetings()}
     items = []
     
