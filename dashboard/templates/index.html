@@ -1408,7 +1408,7 @@
                 </div>
 
                 <!-- 2. WHATSAPP CONNECTION STATUS / 1-CLICK PAIRING BANNER -->
-                <div id="home-wa-status-card" class="bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs border border-gray-100/80 transition flex items-center justify-between gap-3">
+                <div id="home-wa-status-card" class="hidden bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xs border border-gray-100/80 transition flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3 truncate">
                         <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0">
                             <i class="ph-bold ph-whatsapp-logo"></i>
@@ -9189,7 +9189,7 @@ Felipe Donato`);
                     closeWhatsAppAudioInboxModal();
                     
                     // Reload meetings and select new note
-                    await loadMeetings();
+                    await loadMeetings(); checkWhatsAppStatus();
                     if (data.file_id) {
                         selectMeeting(data.file_id, false);
                     }
@@ -9682,7 +9682,7 @@ Felipe Donato`);
                 
                 if (data.status === 'SUCCESS') {
                     showInAppToast(data.message || 'Item processado com sucesso!', 'success');
-                    await loadMeetings();
+                    await loadMeetings(); checkWhatsAppStatus();
                     await loadTasks();
                     await loadIngestionItems();
                     if (data.file_id) {
