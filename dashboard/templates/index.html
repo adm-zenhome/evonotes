@@ -3681,18 +3681,41 @@
             }
         }
 
-        async function loadTriageFeedItems() {
+                async function loadTriageFeedItems() {
             const container = document.getElementById('triage-items-dynamic-container');
             const badge = document.getElementById('triage-pending-badge');
             if (!container) return;
 
             try {
+                // Check Plaud connection status
+                const pStatusRes = await fetch('/api/plaud/status');
+                const pStatus = await pStatusRes.json();
+                const isPlaudConnected = pStatus.is_connected || pStatus.is_active;
+
                 const res = await fetch('/api/ingestion/recent-items');
                 const data = await res.json();
                 const items = data.items || [];
                 const pendingItems = items.filter(i => !i.is_processed);
 
                 if (badge) badge.innerText = pendingItems.length;
+
+                if (!isPlaudConnected && items.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 rounded-2xl bg-gray-50/80 border border-dashed border-gray-200 text-center space-y-3">
+                            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center text-2xl mx-auto shadow-2xs">
+                                <i class="ph-bold ph-waveform-slash"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-xs font-bold text-gray-900">Dispositivo Plaud Desconectado</div>
+                                <div class="text-[11px] text-gray-500 max-w-sm mx-auto">Conecte sua conta da Plaud Cloud em Configurações para carregar suas 11 gravações pendentes.</div>
+                            </div>
+                            <button onclick="openSettingsModal(); switchSettingsTab('tab-hardware');" class="px-4 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer">
+                                ⚡ Conectar Conta Plaud
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
 
                 if (items.length === 0) {
                     container.innerHTML = `
