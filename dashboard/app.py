@@ -236,7 +236,6 @@ async def api_sync_plaud(payload: dict = Body(default={})):
         conn.commit()
 
     rich_catalog_intel = {}
-    }
 
     synced_count = 0
     for rec in plaud_cloud_catalog:
