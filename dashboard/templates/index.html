@@ -11,66 +11,8 @@
         // ==============================================================
 
         async function loadWhatsAppVipContacts() {
-            const container = document.getElementById('wa-vip-contacts-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/whatsapp/vip-contacts');
-                const data = await res.json();
-                const contacts = data.contacts || [];
-
-                if (countBadge) {
-                    countBadge.innerText = `${contacts.length} Ativo(s)`;
-                }
-                const statusPill = document.getElementById('wa-gateway-status-pill');
-                if (statusPill) {
-                    if (data.is_connected && contacts.length > 0) {
-                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
-                    } else {
-                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
-                    }
-                }
-
-                if (contacts.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
-                                <i class="ph-bold ph-user-plus"></i>
-                            </div>
-                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
-                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
-                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
-                                <i class="ph-bold ph-plus text-emerald-400"></i>
-                                <span>Adicionar Contato VIP</span>
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        ${contacts.map(c => `
-                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
-                                    </span>
-                                    <div class="truncate">
-                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
-                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } catch (e) {
-                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
-            }
+            // VIP contacts section removed - clean WhatsApp connection only
+            return;
         }
 
         // ==============================================================
@@ -372,66 +314,8 @@
         // ==============================================================
 
         async function loadWhatsAppVipContacts() {
-            const container = document.getElementById('wa-vip-contacts-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/whatsapp/vip-contacts');
-                const data = await res.json();
-                const contacts = data.contacts || [];
-
-                if (countBadge) {
-                    countBadge.innerText = `${contacts.length} Ativo(s)`;
-                }
-                const statusPill = document.getElementById('wa-gateway-status-pill');
-                if (statusPill) {
-                    if (data.is_connected && contacts.length > 0) {
-                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
-                    } else {
-                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
-                    }
-                }
-
-                if (contacts.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
-                                <i class="ph-bold ph-user-plus"></i>
-                            </div>
-                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
-                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
-                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
-                                <i class="ph-bold ph-plus text-emerald-400"></i>
-                                <span>Adicionar Contato VIP</span>
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        ${contacts.map(c => `
-                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
-                                    </span>
-                                    <div class="truncate">
-                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
-                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } catch (e) {
-                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
-            }
+            // VIP contacts section removed - clean WhatsApp connection only
+            return;
         }
 
         // ==============================================================
@@ -733,66 +617,8 @@
         // ==============================================================
 
         async function loadWhatsAppVipContacts() {
-            const container = document.getElementById('wa-vip-contacts-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/whatsapp/vip-contacts');
-                const data = await res.json();
-                const contacts = data.contacts || [];
-
-                if (countBadge) {
-                    countBadge.innerText = `${contacts.length} Ativo(s)`;
-                }
-                const statusPill = document.getElementById('wa-gateway-status-pill');
-                if (statusPill) {
-                    if (data.is_connected && contacts.length > 0) {
-                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
-                    } else {
-                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
-                    }
-                }
-
-                if (contacts.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
-                                <i class="ph-bold ph-user-plus"></i>
-                            </div>
-                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
-                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
-                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
-                                <i class="ph-bold ph-plus text-emerald-400"></i>
-                                <span>Adicionar Contato VIP</span>
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        ${contacts.map(c => `
-                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
-                                    </span>
-                                    <div class="truncate">
-                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
-                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } catch (e) {
-                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
-            }
+            // VIP contacts section removed - clean WhatsApp connection only
+            return;
         }
 
         // ==============================================================
@@ -9698,66 +9524,8 @@ Felipe Donato`);
         // ==============================================================
 
         async function loadWhatsAppVipContacts() {
-            const container = document.getElementById('wa-vip-contacts-dynamic-container');
-            if (!container) return;
-
-            try {
-                const res = await fetch('/api/whatsapp/vip-contacts');
-                const data = await res.json();
-                const contacts = data.contacts || [];
-
-                if (countBadge) {
-                    countBadge.innerText = `${contacts.length} Ativo(s)`;
-                }
-                const statusPill = document.getElementById('wa-gateway-status-pill');
-                if (statusPill) {
-                    if (data.is_connected && contacts.length > 0) {
-                        statusPill.className = "text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Gateway Conectado • ${contacts.length} Contato(s) VIP</span>`;
-                    } else {
-                        statusPill.className = "text-[11px] text-gray-400 font-medium flex items-center gap-1.5 mt-0.5";
-                        statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span><span>Gateway Desconectado • Sem Contatos</span>`;
-                    }
-                }
-
-                if (contacts.length === 0) {
-                    container.innerHTML = `
-                        <div class="p-6 text-center text-xs text-gray-400 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 space-y-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-base">
-                                <i class="ph-bold ph-user-plus"></i>
-                            </div>
-                            <div class="font-medium text-gray-700">Nenhum Contato VIP Configurado</div>
-                            <div class="text-[11px] text-gray-400">Adicione os números autorizados a enviar e receber áudios e briefings no WhatsApp.</div>
-                            <button onclick="openWhatsAppContactsModal()" class="px-3.5 py-1.5 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5">
-                                <i class="ph-bold ph-plus text-emerald-400"></i>
-                                <span>Adicionar Contato VIP</span>
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        ${contacts.map(c => `
-                            <div class="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-                                <div class="flex items-center gap-2 truncate">
-                                    <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                                        ${(c.name || 'VIP').slice(0, 2).toUpperCase()}
-                                    </span>
-                                    <div class="truncate">
-                                        <div class="font-bold text-emerald-950 truncate">${c.name}</div>
-                                        <div class="text-[10px] text-emerald-800 font-mono">${c.phone}</div>
-                                    </div>
-                                </div>
-                                <span class="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shadow-2xs flex-shrink-0">Ativo</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } catch (e) {
-                container.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Erro ao carregar contatos: ${e.message}</div>`;
-            }
+            // VIP contacts section removed - clean WhatsApp connection only
+            return;
         }
 
         // ==============================================================
