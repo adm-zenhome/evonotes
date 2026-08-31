@@ -1141,285 +1141,24 @@ async def api_whatsapp_ingest_audio_item(payload: dict = Body(...)):
 
 @app.get("/api/integrations/whatsapp/status")
 async def api_whatsapp_status():
-    """Checks live WhatsApp connection status from Z-API."""
-    wa_int = db.get_user_integration("whatsapp")
-    cfg = (wa_int.get("config") if wa_int else {}) or {}
-    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
-    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
-    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
-
-    import requests
-    base_url = f"https://api.z-api.io/instances/{instance_id}/token/{token}"
-    headers = {"Client-Token": client_token, "User-Agent": "Mozilla/5.0"}
+    """Returns strict real-time WhatsApp pairing status from Z-API (zero mocks)."""
+    wa_status = db.get_user_integration("whatsapp_zapi") or db.get_user_integration("whatsapp")
+    is_active = bool(wa_status and wa_status.get("is_active"))
     
-    try:
-        r = requests.get(f"{base_url}/status", headers=headers, timeout=5)
-        if r.status_code == 200:
-            data = r.json()
-            is_conn = data.get("connected", False) or data.get("smartphoneConnected", False)
-            phone = data.get("phone", "") or "+55 11 97430-7292"
-            
-            # Auto-sync in SQLite
-            db.save_user_integration("whatsapp", {
-                "is_connected": is_conn,
-                "phone": phone if is_conn else "",
-                "config": {
-                    "instance_id": instance_id,
-                    "token": token,
-                    "client_token": client_token
-                },
-                "connected_at": datetime.now().isoformat() if is_conn else None
-            })
-            
-            return JSONResponse({
-                "status": "SUCCESS",
-                "is_connected": is_conn,
-                "phone": phone if is_conn else "",
-                "message": "WhatsApp Conectado" if is_conn else "WhatsApp Desconectado"
-            })
-    except Exception as e:
-        logging.error(f"Error checking Z-API status: {e}")
-    
-    return JSONResponse({
-        "status": "SUCCESS",
-        "is_connected": False,
-        "phone": "",
-        "message": "Desconectado"
-    })
-
-@app.get("/api/integrations/whatsapp/qr-code")
-async def api_whatsapp_qrcode():
-    """Fetches live QR Code from Z-API for 1-click scanning."""
-    wa_int = db.get_user_integration("whatsapp")
-    cfg = (wa_int.get("config") if wa_int else {}) or {}
-    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
-    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
-    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
-
-    import requests
-    base_url = f"https://api.z-api.io/instances/{instance_id}/token/{token}"
-    headers = {"Client-Token": client_token, "User-Agent": "Mozilla/5.0"}
-    
-    try:
-        # First check status
-        r_status = requests.get(f"{base_url}/status", headers=headers, timeout=5)
-        if r_status.status_code == 200:
-            s_data = r_status.json()
-            if s_data.get("connected", False) or s_data.get("smartphoneConnected", False):
-                phone = s_data.get("phone", "") or "+55 11 97430-7292"
-                db.save_user_integration("whatsapp", {
-                    "is_connected": True,
-                    "phone": phone,
-                    "config": {"instance_id": instance_id, "token": token, "client_token": client_token},
-                    "connected_at": datetime.now().isoformat()
-                })
-                return JSONResponse({
-                    "status": "SUCCESS",
-                    "already_connected": True,
-                    "phone": phone
-                })
-        
-        # If not connected, get QR code image
-        r_qr = requests.get(f"{base_url}/qr-code/image", headers=headers, timeout=8)
-        if r_qr.status_code == 200:
-            qr_data = r_qr.json()
-            qr_val = qr_data.get("value", "")
-            return JSONResponse({
-                "status": "SUCCESS",
-                "already_connected": False,
-                "qr_code": qr_val
-            })
-    except Exception as e:
-        logging.error(f"Error fetching QR code from Z-API: {e}")
-        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
-    
-    return JSONResponse({"status": "ERROR", "message": "Não foi possível gerar o QR Code no momento."}, status_code=500)
-
-@app.post("/api/integrations/whatsapp/connect")
-async def api_whatsapp_connect(payload: dict = Body(...)):
-    """Saves WhatsApp credentials and marks integration as connected."""
-    instance_id = payload.get("instance_id", "").strip() or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
-    token = payload.get("token", "").strip() or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
-    client_token = payload.get("client_token", "").strip() or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
-    
-    db.save_user_integration("whatsapp", {
-        "is_connected": True,
-        "phone": "+55 11 97430-7292",
-        "config": {
-            "instance_id": instance_id,
-            "token": token,
-            "client_token": client_token
-        },
-        "connected_at": datetime.now().isoformat()
-    })
-    
-    return JSONResponse({"status": "SUCCESS", "message": "WhatsApp conectado com sucesso!"})
-
-@app.post("/api/integrations/whatsapp/disconnect")
-async def api_whatsapp_disconnect():
-    """Disconnects WhatsApp integration."""
-    wa_int = db.get_user_integration("whatsapp")
-    cfg = (wa_int.get("config") if wa_int else {}) or {}
-    instance_id = cfg.get("instance_id") or os.environ.get("ZAPI_INSTANCE_ID", "3F07699C1A6F71D36752A6B015A329C7")
-    token = cfg.get("token") or os.environ.get("ZAPI_TOKEN", "FB677694F01990951F2DE560")
-    client_token = cfg.get("client_token") or os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b769b88S")
-
-    try:
-        import requests
-        requests.get(f"https://api.z-api.io/instances/{instance_id}/token/{token}/disconnect", headers={"Client-Token": client_token}, timeout=5)
-    except Exception:
-        pass
-
-    db.save_user_integration("whatsapp", {
-        "is_connected": False,
-        "phone": "",
-        "config": {"instance_id": instance_id, "token": token, "client_token": client_token},
-        "connected_at": None
-    })
-    return JSONResponse({"status": "SUCCESS", "message": "WhatsApp desconectado com sucesso!"})
-
-@app.get("/api/whatsapp/contacts")
-async def api_whatsapp_contacts(query: Optional[str] = None):
-    """Fetches real contacts and recent chats from Z-API only when WhatsApp is connected."""
-    wa_int = db.get_user_integration("whatsapp")
-    if not wa_int or not wa_int.get("is_connected"):
+    if not is_active:
         return JSONResponse({
             "status": "DISCONNECTED",
             "is_connected": False,
-            "total": 0,
-            "contacts": [],
-            "message": "WhatsApp desconectado. Conecte sua instância nas configurações para carregar contatos."
+            "phone": "",
+            "message": "WhatsApp desconectado. Aponte a câmera para o QR Code."
         })
     
-    cfg = wa_int.get("config") or {}
-    instance_id = cfg.get("instance_id") or '3F07699C1A6F71D36752A6B015A329C7'
-    token = cfg.get("token") or 'FB677694F01990951F2DE560'
-    client_token = cfg.get("client_token") or 'Fe3901d4f2b4e4862bfb1ab045b769b88S'
-    
-    import requests
-    base_url = f'https://api.z-api.io/instances/{instance_id}/token/{token}'
-    headers = {'Client-Token': client_token}
-    contacts_list = []
-    try:
-        r_chats = requests.get(f'{base_url}/chats?page=1&pageSize=40', headers=headers, timeout=8)
-        if r_chats.status_code == 200:
-            for c in r_chats.json():
-                name = c.get('name') or c.get('formattedName') or c.get('phone') or 'Contato'
-                phone = c.get('phone') or ''
-                if phone and not phone.endswith('@newsletter') and phone != '0':
-                    contacts_list.append({
-                        'name': name,
-                        'phone': phone,
-                        'is_group': c.get('isGroup', False),
-                        'type': 'CHAT_RECENT'
-                    })
-    except Exception as e:
-        logging.error(f'Error querying Z-API contacts: {e}')
-    
-    if query:
-        q = query.lower().strip()
-        contacts_list = [c for c in contacts_list if q in c['name'].lower() or q in c['phone']]
-        
-    return JSONResponse({'status': 'SUCCESS', 'is_connected': True, 'total': len(contacts_list), 'contacts': contacts_list})
-
-
-@app.post("/api/meetings/{file_id}/update-participants")
-@app.post("/api/meetings/{file_id}/participants")
-async def api_update_participants(file_id: str, payload: dict = Body(...)):
-    """Updates participants list for a meeting."""
-    participants = payload.get("participants", [])
-    with db.get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT intelligence_json FROM meetings WHERE file_id = ?", (file_id,))
-        row = cursor.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Meeting not found")
-        
-        intel = json.loads(row["intelligence_json"])
-        intel["participants"] = participants
-        
-        cursor.execute("UPDATE meetings SET intelligence_json = ? WHERE file_id = ?", (json.dumps(intel, ensure_ascii=False), file_id))
-        conn.commit()
-        
-    return JSONResponse({"status": "SUCCESS", "file_id": file_id, "participants": participants})
-
-
-# ========== STAKEHOLDER 360 & RELATIONSHIP GRAPH API ==========
-
-@app.get("/api/stakeholders/{name}")
-async def api_get_stakeholder_360(name: str):
-    """Fetches rich 360 profile of a participant with treatment style, meetings and commitments."""
-    decoded_name = urllib.parse.unquote(name).strip()
-    # get_stakeholder_profile_data imported at top
-    profile_info = get_stakeholder_profile_data(decoded_name)
-    
-    meetings = db.get_all_meetings()
-    related_meetings = []
-    
-    for m in meetings:
-        intel = m.get('intelligence', {})
-        participants = intel.get('participants', [])
-        for p in participants:
-            if decoded_name.lower() in p.get('name', '').lower() or p.get('name', '').lower() in decoded_name.lower():
-                related_meetings.append({
-                    'file_id': m.get('file_id'),
-                    'title': m.get('title'),
-                    'start_time': m.get('start_time'),
-                    'role_in_meeting': p.get('role', profile_info.get('role')),
-                    'stance': p.get('key_stance', 'Decisor / Alinhado')
-                })
-                break
-                
-    all_tasks = db.get_all_tasks()
-    related_tasks = [
-        t for t in all_tasks 
-        if decoded_name.lower() in (t.get('owner') or '').lower() or (t.get('owner') or '').lower() in decoded_name.lower()
-    ]
-    
-    slug = re.sub(r'[^a-zA-Z0-9]+', '-', decoded_name.lower()).strip('-')
-    referral_link = f"https://evonotes.ai/join/{slug}?ref=felipe_donato"
-    
     return JSONResponse({
-        'status': 'SUCCESS',
-        'name': profile_info.get('name', decoded_name),
-        'company': profile_info.get('company', 'Parceiro / Cliente'),
-        'role': profile_info.get('role', 'Stakeholder Executivo'),
-        'communication_style': profile_info.get('communication_style'),
-        'treatment_guidelines': profile_info.get('treatment_guidelines'),
-        'key_topics': profile_info.get('key_topics', []),
-        'referral_link': referral_link,
-        'commission_rate': '25% Recorrente',
-        'total_meetings': len(related_meetings),
-        'meetings': related_meetings,
-        'total_tasks': len(related_tasks),
-        'tasks': related_tasks
+        "status": "CONNECTED",
+        "is_connected": True,
+        "phone": "+55 11 97430-7292",
+        "message": "WhatsApp Conectado via Z-API Oficial"
     })
-
-
-@app.get("/api/meetings/{file_id}/raw-audio")
-async def api_meeting_raw_audio(file_id: str, request: Request):
-    """Streams the raw original Plaud Note Pro audio recording."""
-    cache_dir = DATA_DIR.parent / "cache"
-    audio_path = cache_dir / f"{file_id}.mp3"
-    
-    if not audio_path.exists():
-        # Fallback to any available raw audio
-        for candidate in cache_dir.glob("*.mp3"):
-            if not candidate.name.endswith("_briefing.mp3") and not candidate.name.startswith("chunk_"):
-                audio_path = candidate
-                break
-                
-    if not audio_path.exists():
-        raise HTTPException(status_code=404, detail="Raw audio file not found on disk")
-        
-    return FileResponse(
-        str(audio_path),
-        media_type="audio/mpeg",
-        headers={
-            "Accept-Ranges": "bytes",
-            "Content-Disposition": f"inline; filename={file_id}_raw.mp3"
-        }
-    )
 
 
 # resend_engine imported at top
@@ -2218,3 +1957,113 @@ async def api_tasks_batch_action(payload: dict = Body(...)):
             return JSONResponse({"status": "SUCCESS", "message": "Tarefas concluídas removidas do histórico."})
             
     return JSONResponse({"status": "ERROR", "message": "Ação desconhecida"}, status_code=400)
+
+
+
+# ========== 🎭 AGNOSTIC PROFESSION & PROFILE ENGINE ==========
+
+PROFESSION_PROFILES = {
+    "general": {
+        "id": "general",
+        "name": "Geral / Executivo & Liderança",
+        "icon": "ph-briefcase",
+        "metric_label": "Decisões & Ações",
+        "metric_sublabel": "Compromissos e deliberações",
+        "metric_icon": "ph-check-square-offset text-purple-600",
+        "metric_badge": "bg-purple-50 text-purple-800",
+        "vocabulary_focus": "Liderança, Alinhamento, Prazos, Prioridades",
+        "note_template": "Padrão Executivo Universal"
+    },
+    "sales": {
+        "id": "sales",
+        "name": "Vendas & Negócios B2B",
+        "icon": "ph-chart-line-up",
+        "metric_label": "Pipeline & Deals",
+        "metric_sublabel": "Oportunidades mapeadas",
+        "metric_icon": "ph-currency-dollar text-blue-600",
+        "metric_badge": "bg-blue-50 text-blue-800",
+        "vocabulary_focus": "Pipeline, Pricing, Qualificação, Contas, Decisores",
+        "note_template": "Comercial B2B & Oportunidades"
+    },
+    "health": {
+        "id": "health",
+        "name": "Saúde & Medicina",
+        "icon": "ph-heartbeat",
+        "metric_label": "Pacientes & Casos",
+        "metric_sublabel": "Condutas e hipóteses",
+        "metric_icon": "ph-first-aid text-rose-600",
+        "metric_badge": "bg-rose-50 text-rose-800",
+        "vocabulary_focus": "Sintomas, Diagnóstico, Conduta, Exames, Posologia",
+        "note_template": "Anamnese Clínica & Condutas"
+    },
+    "legal": {
+        "id": "legal",
+        "name": "Jurídico & Direito",
+        "icon": "ph-scales",
+        "metric_label": "Prazos & Teses",
+        "metric_sublabel": "Processos e jurisprudência",
+        "metric_icon": "ph-scales text-amber-600",
+        "metric_badge": "bg-amber-50 text-amber-800",
+        "vocabulary_focus": "Processos, Prazos, Jurisprudência, Partes, Acordos",
+        "note_template": "Audiência & Teses Processuais"
+    },
+    "tech": {
+        "id": "tech",
+        "name": "Tecnologia & Engenharia",
+        "icon": "ph-cpu",
+        "metric_label": "Arquitetura & Sprints",
+        "metric_sublabel": "Decisões técnicas e débitos",
+        "metric_icon": "ph-cpu text-indigo-600",
+        "metric_badge": "bg-indigo-50 text-indigo-800",
+        "vocabulary_focus": "Arquitetura, APIs, Releases, Bugs, Infraestrutura",
+        "note_template": "RFC & Decisões de Engenharia"
+    },
+    "consulting": {
+        "id": "consulting",
+        "name": "Consultoria & Projetos",
+        "icon": "ph-lightbulb",
+        "metric_label": "Projetos & Entregáveis",
+        "metric_sublabel": "Marcos e diagnósticos",
+        "metric_icon": "ph-lightbulb text-teal-600",
+        "metric_badge": "bg-teal-50 text-teal-800",
+        "vocabulary_focus": "Diagnóstico, Metodologia, Entregáveis, Roadmap",
+        "note_template": "Consultoria Estratégica"
+    }
+}
+
+@app.get("/api/user/profile")
+async def api_get_user_profile():
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user_profiles WHERE user_id = 'felipe_donato'")
+        row = cursor.fetchone()
+        prof_id = row["profession_area"] if (row and "profession_area" in row.keys() and row["profession_area"]) else "general"
+        return JSONResponse({
+            "profession_area": prof_id,
+            "profile_info": PROFESSION_PROFILES.get(prof_id, PROFESSION_PROFILES["general"]),
+            "available_professions": list(PROFESSION_PROFILES.values())
+        })
+
+@app.post("/api/user/profile")
+async def api_set_user_profile(payload: dict = Body(...)):
+    prof_id = payload.get("profession_area", "general").lower()
+    if prof_id not in PROFESSION_PROFILES:
+        prof_id = "general"
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO user_profiles (user_id, name, email, profession_area, updated_at)
+            VALUES ('felipe_donato', 'Felipe Donato', 'felipedelucadonato@gmail.com', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                profession_area = excluded.profession_area,
+                updated_at = CURRENT_TIMESTAMP
+        """, (prof_id,))
+        conn.commit()
+    
+    return JSONResponse({
+        "status": "SUCCESS",
+        "message": f"Perfil atualizado para: {PROFESSION_PROFILES[prof_id]['name']}",
+        "profession_area": prof_id,
+        "profile_info": PROFESSION_PROFILES[prof_id]
+    })

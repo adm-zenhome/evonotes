@@ -953,7 +953,7 @@
                         </button>
 
                         <!-- Menu Dropdown (100% Dinâmico do SQLite) -->
-                        <div id="sync-sources-menu" class="absolute top-11 right-0 w-60 sm:w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none overflow-hidden">
+                        <div id="sync-sources-menu" class="absolute top-11 left-0 sm:left-0 w-64 sm:w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-gray-100 p-2 z-[90] hidden space-y-1 text-xs select-none overflow-hidden">
                             <div id="sync-sources-dynamic-content" class="space-y-1">
                                 <!-- Populated dynamically by renderActiveIntegrationsPills() -->
                             </div>
@@ -1213,19 +1213,19 @@
                         <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate mt-0.5">Tempo economizado</div>
                     </div>
 
-                    <!-- Metric 2: Pipeline -->
-                    <div onclick="openPipelineBreakdownModal()" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-sm transition cursor-pointer border border-gray-100/80 group">
+                    <!-- Metric 2: Dynamic Agnostic Domain Metric -->
+                    <div onclick="openProfileMetricsModal()" class="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xs hover:shadow-sm transition cursor-pointer border border-gray-100/80 group">
                         <div class="flex items-center justify-between text-gray-400 text-xs font-semibold">
-                            <span class="flex items-center gap-1.5 text-blue-700 font-bold">
-                                <i class="ph-bold ph-chart-line-up text-sm sm:text-base text-blue-600"></i>
-                                <span>Pipeline</span>
+                            <span class="flex items-center gap-1.5 text-purple-700 font-bold" id="home-metric-2-header">
+                                <i class="ph-bold ph-check-square-offset text-sm sm:text-base text-purple-600" id="home-metric-2-icon"></i>
+                                <span id="home-metric-2-label">Decisões & Ações</span>
                             </span>
-                            <span class="text-[10px] text-gray-400 font-mono">{{ analytics.bifocal.deals_mapped }} deals</span>
+                            <span class="text-[10px] text-gray-400 font-mono" id="home-metric-2-subbadge">0 ações</span>
                         </div>
-                        <div class="mt-1.5 text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-blue-700 transition" id="metric-pipeline-val">
-                            {{ analytics.bifocal.pipeline_value }}
+                        <div class="mt-1.5 text-xl sm:text-3xl font-extrabold text-gray-900 tracking-tight group-hover:text-purple-700 transition" id="home-metric-2-value">
+                            0
                         </div>
-                        <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate mt-0.5">Oportunidades ativas</div>
+                        <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate mt-0.5" id="home-metric-2-sublabel">Deliberações mapeadas</div>
                     </div>
 
                 </div>
@@ -1993,6 +1993,11 @@
                         <span class="whitespace-nowrap">Canais & WhatsApp</span>
                     </button>
 
+                                        <button onclick="switchSettingsTab('tab-profile')" id="btn-tab-profile" 
+                            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition text-gray-600 hover:bg-gray-100 text-left cursor-pointer">
+                        <i class="ph-bold ph-user-circle text-base text-indigo-600"></i>
+                        <span>Área & Profissão</span>
+                    </button>
                     <button onclick="switchSettingsTab('tab-categories')" id="btn-tab-categories" 
                             class="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:text-black hover:bg-white/60 font-medium text-xs transition cursor-pointer text-left">
                         <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold flex-shrink-0">
@@ -2030,6 +2035,84 @@
                 <div class="flex-1 overflow-y-auto pr-0.5 sm:pr-1 space-y-4 max-h-[70vh] custom-scrollbar">
                     
                     <!-- PANEL 1: Notificações & Canais -->
+                    
+                    <!-- PANEL 0: Área de Atuação & Especialização da IA -->
+                    <div id="settings-content-tab-profile" class="space-y-4 hidden">
+                        <div class="bg-white p-5 rounded-2xl space-y-4 shadow-xs border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-gray-900">Sua Área de Atuação & Especialização</div>
+                                    <div class="text-[11px] text-gray-500 mt-0.5">O modelo de IA calibra termos, métricas da Home e formatos de notas de acordo com seu perfil.</div>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-800 text-[10px] font-bold font-mono" id="current-profession-badge">
+                                    Geral (Universal)
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1" id="professions-selection-grid">
+                                <div onclick="selectProfession('general')" id="prof-card-general" class="p-3.5 rounded-2xl border-2 border-zinc-900 bg-zinc-50/70 cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-briefcase"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Geral / Executivo & Liderança</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Padrão agnóstico. Foco em decisões, prazos e sínteses executivas.</div>
+                                    </div>
+                                </div>
+
+                                <div onclick="selectProfession('sales')" id="prof-card-sales" class="p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-chart-line-up"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Vendas & Comercial B2B</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Foco em Pipeline, Deals, Pricing, Qualificação de Contas e Objeções.</div>
+                                    </div>
+                                </div>
+
+                                <div onclick="selectProfession('health')" id="prof-card-health" class="p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-heartbeat"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Saúde & Medicina</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Anamneses clínicas, hipóteses diagnósticas, exames e condutas médicas.</div>
+                                    </div>
+                                </div>
+
+                                <div onclick="selectProfession('legal')" id="prof-card-legal" class="p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-scales"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Jurídico & Direito</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Audiências, prazos processuais, teses jurídicas, acordos e partes.</div>
+                                    </div>
+                                </div>
+
+                                <div onclick="selectProfession('tech')" id="prof-card-tech" class="p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-cpu"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Tecnologia & Engenharia</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Decisões de arquitetura (RFCs), débitos técnicos, sprints e releases.</div>
+                                    </div>
+                                </div>
+
+                                <div onclick="selectProfession('consulting')" id="prof-card-consulting" class="p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-base flex-shrink-0">
+                                        <i class="ph-bold ph-lightbulb"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Consultoria & Projetos</div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">Diagnósticos estratégicos, metodologias, entregáveis e planos de ação.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="settings-content-tab-channels" class="space-y-4">
                                                 <!-- Section: WhatsApp Seamless QR Code Pairing Flow (Zero Jargon) -->
                         <div id="wa-connection-main-card" class="bg-white p-5 sm:p-6 rounded-3xl space-y-5 shadow-xs border border-gray-100">
@@ -2139,26 +2222,31 @@
                         </div>
 
                         <!-- Section: WhatsApp Notifications & Ingest -->
-                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border-0">
-                            <div class="flex items-center gap-2.5 pb-2 border-b border-gray-100">
-                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base font-bold shadow-2xs">
-                                    <i class="ph-bold ph-whatsapp-logo"></i>
+                        <div class="bg-white p-5 rounded-2xl space-y-3.5 shadow-xs border border-gray-100">
+                            <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-base font-bold shadow-2xs">
+                                        <i class="ph-bold ph-whatsapp-logo"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-gray-900">Notificações & Ingestão WhatsApp</div>
+                                        <div class="text-[10px] text-gray-400">Ativação automática quando o aparelho estiver conectado</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="text-xs font-bold text-gray-900">Canais de WhatsApp (Voz & Notificações)</div>
-                                    <div class="text-[10px] text-gray-400">Sem configurações técnicas • Apenas marque o que deseja receber</div>
-                                </div>
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-bold" id="wa-toggles-status-badge">
+                                    Desconectado
+                                </span>
                             </div>
 
-                            <div class="space-y-3 text-xs">
+                            <div class="space-y-3 text-xs opacity-50" id="wa-notifications-toggles-container">
                                 <div class="flex items-center justify-between gap-4">
                                     <div>
                                         <div class="font-bold text-gray-900">Ingestão de Voz via WhatsApp</div>
                                         <div class="text-[11px] text-gray-500">Envie notas de voz para gerar atas, follow-ups e tarefas automaticamente.</div>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_ingest', this.checked)" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    <label class="relative inline-flex items-center cursor-not-allowed flex-shrink-0">
+                                        <input type="checkbox" id="toggle-wa-ingest" disabled onchange="toggleNotificationPref('wa_ingest', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                                     </label>
                                 </div>
 
@@ -2167,20 +2255,9 @@
                                         <div class="font-bold text-gray-900">Briefing Matinal no WhatsApp (08h00)</div>
                                         <div class="text-[11px] text-gray-500">Receba no WhatsApp a lista de compromissos e prioridades do dia.</div>
                                     </div>
-                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_morning', this.checked)" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                                    </label>
-                                </div>
-
-                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between gap-4">
-                                    <div>
-                                        <div class="font-bold text-gray-900">Alerta Imediato de Call Processada</div>
-                                        <div class="text-[11px] text-gray-500">Notificação rápida com os 3 principais pontos assim que o áudio for transcrito.</div>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                                        <input type="checkbox" checked onchange="toggleNotificationPref('wa_call_ready', this.checked)" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                    <label class="relative inline-flex items-center cursor-not-allowed flex-shrink-0">
+                                        <input type="checkbox" id="toggle-wa-morning" disabled onchange="toggleNotificationPref('wa_morning', this.checked)" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                                     </label>
                                 </div>
                             </div>
@@ -3699,7 +3776,82 @@
                 // Keep banner visible if check fails
             }
         }
+        
+        // ==============================================================
+        // 🎭 AGNOSTIC PROFESSION & PROFILE CONTROLLER
+        // ==============================================================
+        let currentProfessionArea = 'general';
+
+        async function loadUserProfile() {
+            try {
+                const res = await fetch('/api/user/profile');
+                const data = await res.json();
+                currentProfessionArea = data.profession_area || 'general';
+                applyProfessionToUI(data.profile_info);
+            } catch(e) {
+                console.log('Error loading user profile:', e);
+            }
+        }
+
+        function applyProfessionToUI(info) {
+            if (!info) return;
+            
+            // Update Home Metric 2
+            const labelEl = document.getElementById('home-metric-2-label');
+            const sublabelEl = document.getElementById('home-metric-2-sublabel');
+            const headerEl = document.getElementById('home-metric-2-header');
+            const iconEl = document.getElementById('home-metric-2-icon');
+            const valEl = document.getElementById('home-metric-2-value');
+            const subbadgeEl = document.getElementById('home-metric-2-subbadge');
+            const currentBadge = document.getElementById('current-profession-badge');
+
+            if (labelEl) labelEl.innerText = info.metric_label || 'Decisões & Ações';
+            if (sublabelEl) sublabelEl.innerText = info.metric_sublabel || 'Deliberações mapeadas';
+            if (currentBadge) currentBadge.innerText = info.name || 'Geral (Universal)';
+
+            // Update selection cards border in settings
+            const allProfCards = ['general', 'sales', 'health', 'legal', 'tech', 'consulting'];
+            allProfCards.forEach(p => {
+                const card = document.getElementById(`prof-card-${p}`);
+                if (card) {
+                    if (p === info.id) {
+                        card.className = "p-3.5 rounded-2xl border-2 border-zinc-900 bg-zinc-50/70 cursor-pointer transition flex items-start gap-3 shadow-2xs";
+                    } else {
+                        card.className = "p-3.5 rounded-2xl border border-gray-200 hover:border-gray-400 bg-white cursor-pointer transition flex items-start gap-3";
+                    }
+                }
+            });
+        }
+
+        async function selectProfession(profId) {
+            showInAppToast('Atualizando perfil profissional...', 'info');
+            try {
+                const res = await fetch('/api/user/profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({profession_area: profId})
+                });
+                const data = await res.json();
+                if (data.status === 'SUCCESS') {
+                    showInAppToast(data.message, 'success');
+                    applyProfessionToUI(data.profile_info);
+                }
+            } catch(e) {
+                showInAppToast('Erro ao atualizar perfil: ' + e.message, 'error');
+            }
+        }
+
+        function openProfileMetricsModal() {
+            openSettingsModal();
+            switchSettingsTab('tab-profile');
+        }
+
+        window.selectProfession = selectProfession;
+        window.loadUserProfile = loadUserProfile;
+        window.openProfileMetricsModal = openProfileMetricsModal;
+
         function showHomeDashboard() {
+            loadUserProfile();
             checkWhatsAppStatus();
             loadTriageFeedItems();
             closeMobileSidebarOnAction();
@@ -7969,7 +8121,7 @@ _Enviado via EvoNotes OS_`);
         }
 
         function switchSettingsTab(tabId) {
-            const allTabs = ['tab-channels', 'tab-categories', 'tab-hardware', 'tab-dictionary', 'tab-preferences'];
+            const allTabs = ['tab-profile', 'tab-channels', 'tab-categories', 'tab-hardware', 'tab-dictionary', 'tab-preferences'];
             
             allTabs.forEach(t => {
                 const content = document.getElementById(`settings-content-${t}`);
