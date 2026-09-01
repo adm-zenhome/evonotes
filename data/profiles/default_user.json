@@ -1,29 +1,13 @@
 {
-  "user_id": "felipe_donato",
-  "user_name": "Felipe Donato",
+  "user_id": "default_user",
+  "user_name": "Executivo",
   "company": "Zendesk",
   "preferred_voice_tone": "Executivo Direto, Confiante e Sofisticado",
   "elevenlabs_voice_id": "JBFqnCBsd6RMkjVDRZzb",
   "calibration_meetings_processed": 0,
   "calibration_target": 10,
   "calibration_status": "LEARNING",
-  "vocabulary_and_jargon": [
-    "Jurisprudência",
-    "Trânsito em Julgado",
-    "Petição Inicial",
-    "Liminar",
-    "Agravo de Instrumento",
-    "Contestação",
-    "Réu",
-    "Autor",
-    "Sucumbência",
-    "Dano Moral",
-    "Súmula",
-    "Honorários",
-    "Audiência de Conciliação",
-    "Decadência",
-    "Prescrição"
-  ],
+  "vocabulary_and_jargon": [],
   "stakeholders": [],
   "style_preferences": {
     "bullet_format": "Conciso e orientado a decisões",
@@ -31,5 +15,5 @@
     "risk_sensitivity": "ALTA"
   },
   "learned_insights": [],
-  "last_updated": "2026-09-01T16:49:15.222009"
+  "last_updated": "2026-09-01T16:39:41.709175"
 }

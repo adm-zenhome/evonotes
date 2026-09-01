@@ -60,12 +60,17 @@ Compromissos: {json.dumps(commitments, ensure_ascii=False)}
 Contas e Deals: {json.dumps(accounts, ensure_ascii=False)}
 """
 
-        response = self.openai_client.chat.completions.create(
-            model="gpt-4o",
-            temperature=0.4,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.choices[0].message.content.strip()
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                temperature=0.4,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            logging.warning(f"OpenAI script generation error ({e}), generating deterministic script fallback.")
+            first_action = commitments[0].get('action', 'Avançar com alinhamentos') if commitments else 'Revisar itens da reunião'
+            return f"Fala {user_name}, briefing executivo de {title}. Principais decisões alinhadas: {summary[:200]}. Próximo passo prioritário: {first_action}. Todas as diretrizes estão salvas no EvoNotes."
 
     def create_audio_briefing(self, file_id: str, intelligence: Dict[str, Any], user_profile: Optional[Dict[str, Any]] = None, force_new_take: bool = False, custom_direction: Optional[str] = None) -> Optional[Path]:
         """Generates script and synthesizes MP3 via ElevenLabs/OpenAI, preserving historical versions."""
@@ -112,21 +117,38 @@ Contas e Deals: {json.dumps(accounts, ensure_ascii=False)}
         with open(script_file, "w", encoding="utf-8") as f:
             f.write(script)
 
-        # Synthesize audio with ElevenLabs (or fallback to OpenAI TTS HD)
+        # Synthesize audio with ElevenLabs (or fallback to OpenAI TTS HD or macOS local)
         voice_id = (user_profile or {}).get("elevenlabs_voice_id", "JBFqnCBsd6RMkjVDRZzb")
+        audio_bytes = None
         try:
             audio_bytes = self.eleven_client.text_to_speech(text=script, voice_id=voice_id)
-        except Exception as e:
-            logging.warning(f"ElevenLabs synthesis error, falling back to OpenAI TTS HD: {e}")
-            tts_res = self.openai_client.audio.speech.create(
-                model="tts-1-hd",
-                voice="onyx",
-                input=script
-            )
-            audio_bytes = tts_res.content
+        except Exception as e1:
+            logging.warning(f"ElevenLabs synthesis error, falling back to OpenAI TTS HD: {e1}")
+            try:
+                tts_res = self.openai_client.audio.speech.create(
+                    model="tts-1-hd",
+                    voice="onyx",
+                    input=script
+                )
+                audio_bytes = tts_res.content
+            except Exception as e2:
+                logging.warning(f"OpenAI TTS error, falling back to macOS local TTS: {e2}")
+                import subprocess, tempfile
+                with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as tf:
+                    temp_aiff = tf.name
+                subprocess.run(["say", "-v", "Luciana", "-o", temp_aiff, script[:500]], check=False)
+                if Path(temp_aiff).exists():
+                    subprocess.run(["ffmpeg", "-y", "-i", temp_aiff, "-codec:a", "libmp3lame", "-qscale:a", "2", str(output_file)], check=False)
+                    try:
+                        os.remove(temp_aiff)
+                    except Exception:
+                        pass
+                if output_file.exists():
+                    audio_bytes = output_file.read_bytes()
 
-        with open(output_file, "wb") as f:
-            f.write(audio_bytes)
+        if audio_bytes:
+            with open(output_file, "wb") as f:
+                f.write(audio_bytes)
 
         # Update latest take in versions json
         versions.append({

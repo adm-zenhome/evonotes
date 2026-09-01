@@ -87,8 +87,12 @@ class ExecutiveDatabase:
             conn.commit()
 
     def get_connection(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA busy_timeout = 10000;")
+        conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
         return conn
 
     def init_db(self):
@@ -273,6 +277,26 @@ class ExecutiveDatabase:
             except Exception:
                 pass
 
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN saved_minutes_per_meeting INTEGER DEFAULT 20")
+            except Exception:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN time_multiplier REAL DEFAULT 1.5")
+            except Exception:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN profession_area TEXT DEFAULT 'general'")
+            except Exception:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE user_profiles ADD COLUMN whatsapp_phone TEXT DEFAULT '+55 11 97430-7292'")
+            except Exception:
+                pass
+
 
             # Integrations Log & Config
             cursor.execute("""
@@ -286,11 +310,27 @@ class ExecutiveDatabase:
                 )
             """)
 
-            try:
-                cursor.execute("ALTER TABLE user_profiles ADD COLUMN notification_prefs_json TEXT DEFAULT '{}'")
-            except Exception:
-                pass
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS keyword_feedback (
+                    user_id TEXT NOT NULL,
+                    term TEXT NOT NULL,
+                    vote INTEGER NOT NULL,
+                    last_voted TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, term)
+                )
+            """)
 
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS meeting_source_links (
+                    id TEXT PRIMARY KEY,
+                    meeting_id TEXT NOT NULL,
+                    source_type TEXT NOT NULL,
+                    source_uri TEXT NOT NULL,
+                    title TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (meeting_id) REFERENCES meetings(file_id) ON DELETE CASCADE
+                )
+            """)
 
             conn.commit()
             logging.info(f"SQLite database initialized at {self.db_path}")
@@ -461,26 +501,37 @@ class ExecutiveDatabase:
                         logging.error(f"Error updating summary json: {e}")
             conn.commit()
 
-    def update_meeting_title(self, file_id: str, new_title: str):
+    def update_meeting_full(self, file_id: str, title: Optional[str] = None, executive_summary: Optional[str] = None, custom_notes: Optional[str] = None) -> bool:
+        """Updates meeting title, executive summary and custom notes in SQLite."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT intelligence_json FROM meetings WHERE file_id = ?", (file_id,))
+            cursor.execute("SELECT * FROM meetings WHERE file_id = ?", (file_id,))
             row = cursor.fetchone()
-            if row and row["intelligence_json"]:
+            if not row:
+                return False
+            
+            intel = {}
+            if row["intelligence_json"]:
                 try:
                     intel = json.loads(row["intelligence_json"])
-                    intel["meeting_title"] = new_title
-                    cursor.execute("""
-                        UPDATE meetings 
-                        SET title = ?, intelligence_json = ?, updated_at = CURRENT_TIMESTAMP 
-                        WHERE file_id = ?
-                    """, (new_title, json.dumps(intel, ensure_ascii=False), file_id))
-                except Exception as e:
-                    logging.error(f"Error updating meeting title json: {e}")
-                    cursor.execute("UPDATE meetings SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE file_id = ?", (new_title, file_id))
-            else:
-                cursor.execute("UPDATE meetings SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE file_id = ?", (new_title, file_id))
+                except Exception:
+                    intel = {}
+            
+            new_title = title if title is not None else row["title"]
+            new_summary = executive_summary if executive_summary is not None else row["executive_summary"]
+            new_notes = custom_notes if custom_notes is not None else row["custom_notes"]
+            
+            intel["meeting_title"] = new_title
+            intel["executive_summary"] = new_summary
+            
+            cursor.execute("""
+                UPDATE meetings
+                SET title = ?, executive_summary = ?, custom_notes = ?, intelligence_json = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE file_id = ?
+            """, (new_title, new_summary, new_notes, json.dumps(intel, ensure_ascii=False), file_id))
             conn.commit()
+            return True
+
 
         # Also update meetings_db.json
         try:
@@ -894,22 +945,28 @@ def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
 def rename_category(old_name: str, new_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE custom_categories SET name = ? WHERE name = ?", (new_name, old_name))
-        cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, old_name))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (old_name, old_name))
+        row = cursor.fetchone()
+        current_name = row["name"] if row else old_name
+        cursor.execute("UPDATE custom_categories SET name = ? WHERE id = ? OR name = ?", (new_name, old_name, current_name))
+        cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, current_name))
         conn.commit()
 
 def delete_category(cat_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM custom_categories WHERE name = ?", (cat_name,))
-        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (cat_name,))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (cat_name, cat_name))
+        row = cursor.fetchone()
+        actual_name = row["name"] if row else cat_name
+        cursor.execute("DELETE FROM custom_categories WHERE id = ? OR name = ?", (cat_name, actual_name))
+        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (actual_name,))
         # Record exclusion feedback
         cursor.execute("""
             INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
             VALUES ('category', ?, 'DELETED_BY_USER')
-        """, (cat_name,))
+        """, (actual_name,))
         conn.commit()
-        logging.info(f"Category '{cat_name}' permanently deleted and recorded in exclusion feedback.")
+        logging.info(f"Category '{actual_name}' permanently deleted and recorded in exclusion feedback.")
 
 
 def get_user_notification_preferences(user_id: str = "felipe_donato") -> dict:
@@ -939,11 +996,41 @@ def save_user_notification_preferences(user_id: str = "felipe_donato", prefs: di
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO user_profiles (user_id, user_name, notification_prefs_json)
-            VALUES (?, 'Felipe Donato', ?)
+            VALUES (?, 'Usuário', ?)
             ON CONFLICT(user_id) DO UPDATE SET 
                 notification_prefs_json = excluded.notification_prefs_json,
                 updated_at = CURRENT_TIMESTAMP
         """, (user_id, json.dumps(prefs)))
+        conn.commit()
+
+
+def get_user_efficiency_settings(user_id: str = "default_user") -> dict:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT saved_minutes_per_meeting, time_multiplier FROM user_profiles WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row and row["saved_minutes_per_meeting"] is not None:
+            return {
+                "saved_minutes_per_meeting": row["saved_minutes_per_meeting"],
+                "time_multiplier": row["time_multiplier"] or 1.5
+            }
+    return {
+        "saved_minutes_per_meeting": 20,
+        "time_multiplier": 1.5
+    }
+
+
+def save_user_efficiency_settings(user_id: str = "default_user", saved_minutes: int = 20, multiplier: float = 1.5):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO user_profiles (user_id, user_name, saved_minutes_per_meeting, time_multiplier)
+            VALUES (?, 'Usuário', ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET 
+                saved_minutes_per_meeting = excluded.saved_minutes_per_meeting,
+                time_multiplier = excluded.time_multiplier,
+                updated_at = CURRENT_TIMESTAMP
+        """, (user_id, saved_minutes, multiplier))
         conn.commit()
 
 
@@ -1140,14 +1227,13 @@ def save_whatsapp_inbox_item(item: Dict[str, Any]):
         ))
         conn.commit()
 
-def get_pending_whatsapp_inbox() -> List[Dict[str, Any]]:
+def get_pending_whatsapp_inbox(limit: Optional[int] = None) -> List[Dict[str, Any]]:
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM whatsapp_inbox_queue 
-            WHERE status = 'PENDING' 
-            ORDER BY received_at DESC
-        """)
+        query = "SELECT * FROM whatsapp_inbox_queue WHERE status = 'PENDING' ORDER BY received_at DESC"
+        if limit is not None:
+            query += f" LIMIT {int(limit)}"
+        cursor.execute(query)
         return [dict(row) for row in cursor.fetchall()]
 
 def mark_whatsapp_inbox_status(message_id: str, status: str = "PROCESSED"):
@@ -1156,12 +1242,43 @@ def mark_whatsapp_inbox_status(message_id: str, status: str = "PROCESSED"):
         cursor.execute("UPDATE whatsapp_inbox_queue SET status = ? WHERE message_id = ?", (status, message_id))
         conn.commit()
 
+def get_user_whatsapp_phone(user_id: str = "felipe_donato") -> str:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT whatsapp_phone FROM user_profiles WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row and row["whatsapp_phone"]:
+            return row["whatsapp_phone"]
+        return "+55 11 97430-7292"
+
+def set_user_whatsapp_phone(user_id: str = "felipe_donato", phone: str = "") -> str:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO user_profiles (user_id, user_name, whatsapp_phone) 
+            VALUES (?, 'Felipe Donato', ?)
+            ON CONFLICT(user_id) DO UPDATE SET 
+                whatsapp_phone = excluded.whatsapp_phone,
+                updated_at = CURRENT_TIMESTAMP
+        """, (user_id, phone))
+        conn.commit()
+    return phone
+
+def update_meeting_title(file_id: str, new_title: str):
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE meetings SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE file_id = ?", (new_title, file_id))
+        conn.commit()
+
 # Bind methods to ExecutiveDatabase class as well
 ExecutiveDatabase.save_whatsapp_inbox_item = lambda self, item: save_whatsapp_inbox_item(item)
-ExecutiveDatabase.get_pending_whatsapp_inbox = lambda self: get_pending_whatsapp_inbox()
+ExecutiveDatabase.get_pending_whatsapp_inbox = lambda self, limit=None: get_pending_whatsapp_inbox(limit)
 ExecutiveDatabase.mark_whatsapp_inbox_status = lambda self, mid, s='PROCESSED': mark_whatsapp_inbox_status(mid, s)
-
-
+ExecutiveDatabase.get_user_whatsapp_phone = lambda self, uid="felipe_donato": get_user_whatsapp_phone(uid)
+ExecutiveDatabase.set_user_whatsapp_phone = lambda self, uid="felipe_donato", p="": set_user_whatsapp_phone(uid, p)
+ExecutiveDatabase.update_meeting_title = lambda self, fid, t: update_meeting_title(fid, t)
 
 # Singleton Database Instance
 db = ExecutiveDatabase()
+
+

@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-09-01T13:47:00",
+  "entities": [
+    {
+      "canonical_name": "Aktie Now",
+      "category": "partner",
+      "aliases": [
+        "Actian Now",
+        "Aktie Now",
+        "Actie Now",
+        "Actian",
+        "Aktienow",
+        "Actienow",
+        "Actie",
+        "Action Now"
+      ],
+      "regex_patterns": [
+        "\\bActi[ea]n\\s+Now\\b",
+        "\\bAktie\\s+Now\\b",
+        "\\bAction\\s+Now\\b",
+        "\\bActi[ea]now\\b",
+        "\\bAktienow\\b",
+        "\\bActian\\b",
+        "\\bActie\\b"
+      ],
+      "context_hints": ["parceiro Zendesk", "implementação", "CRM", "CX"]
+    },
+    {
+      "canonical_name": "Vonage",
+      "category": "partner",
+      "aliases": [
+        "Naga",
+        "Naja",
+        "Vonnage",
+        "Vonaj",
+        "Voneigi",
+        "Vonege"
+      ],
+      "regex_patterns": [
+        "\\bNaj[aá]\\b",
+        "\\bNaga\\b",
+        "\\bVonag[ei]\\b",
+        "\\bVonnage\\b"
+      ],
+      "context_hints": ["telefonia", "telecom", "ZCC", "voz", "integração telefônica"]
+    },
+    {
+      "canonical_name": "BCR",
+      "category": "client",
+      "aliases": [
+        "PCR",
+        "B-C-R",
+        "B C R",
+        "Beceerre"
+      ],
+      "regex_patterns": [
+        "\\bPCR\\b",
+        "\\bB\\s*[-.]?\\s*C\\s*[-.]?\\s*R\\b"
+      ],
+      "context_hints": ["cliente", "proposta", "contrato", "pipeline", "Zendesk"]
+    },
+    {
+      "canonical_name": "Mantiqueira",
+      "category": "client",
+      "aliases": [
+        "Mandiqueira",
+        "Mandique",
+        "Mantique",
+        "Mantiqueira Alimentos",
+        "Ovos Mantiqueira"
+      ],
+      "regex_patterns": [
+        "\\bMandiqu[eê]ira\\b",
+        "\\bMandique\\b",
+        "\\bMantique\\b",
+        "\\bMantiqueira\\s+Alimentos\\b"
+      ],
+      "context_hints": ["cliente", "avícola", "ovos", "indústria"]
+    },
+    {
+      "canonical_name": "Blue3",
+      "category": "partner",
+      "aliases": [
+        "Blue 3",
+        "Blue Três",
+        "Blue Three",
+        "Blue3 Investimentos"
+      ],
+      "regex_patterns": [
+        "\\bBlue\\s*3\\b",
+        "\\bBlue\\s*Tr[eê]s\\b",
+        "\\bBlue\\s*Three\\b"
+      ],
+      "context_hints": ["investimentos", "parceiro", "XP", "assessor"]
+    },
+    {
+      "canonical_name": "ZCC (Zendesk Contact Center)",
+      "category": "product",
+      "aliases": [
+        "ZCC",
+        "Zendesk CC"
+      ],
+      "regex_patterns": [
+        "\\bZCC(?=\\s*\\(\\s*Zendesk Contact Center\\s*\\))\\s*\\(\\s*Zendesk Contact Center\\s*\\)",
+        "\\bZCC(?!\\s*\\(\\s*Zendesk Contact Center\\s*\\))\\b",
+        "\\bZendesk\\s+CC\\b"
+      ],
+      "context_hints": ["produto Zendesk", "telefonia", "atendimento", "contact center"]
+    },
+    {
+      "canonical_name": "ZAMP",
+      "category": "client",
+      "aliases": [
+        "Zamp",
+        "Z AMP",
+        "Burger King Zamp",
+        "Popeyes Zamp"
+      ],
+      "regex_patterns": [
+        "\\bZAMP\\b",
+        "\\bZ\\s*AMP\\b"
+      ],
+      "context_hints": ["cliente enterprise", "varejo", "restaurantes", "BK"]
+    },
+    {
+      "canonical_name": "Britânia",
+      "category": "client",
+      "aliases": [
+        "Britania",
+        "Britannia",
+        "Philco Britânia"
+      ],
+      "regex_patterns": [
+        "\\bBrit[aá]n+ia\\b"
+      ],
+      "context_hints": ["cliente", "eletrodomésticos", "Philco"]
+    },
+    {
+      "canonical_name": "EvoNotes",
+      "category": "product",
+      "aliases": [
+        "Evo Notes",
+        "Evonote",
+        "Evo Note",
+        "EvoOS",
+        "Evo OS"
+      ],
+      "regex_patterns": [
+        "\\bEvo\\s*Notes?\\b",
+        "\\bEvo\\s*OS\\b"
+      ],
+      "context_hints": ["segundo cérebro", "sistema de voz", "inteligência executiva"]
+    },
+    {
+      "canonical_name": "Plaud",
+      "category": "tool",
+      "aliases": [
+        "Plaud Note",
+        "Plaud AI",
+        "Ploud",
+        "Plaude"
+      ],
+      "regex_patterns": [
+        "\\bPloud\\b",
+        "\\bPlaude\\b",
+        "\\bPlaud\\s*Note\\b"
+      ],
+      "context_hints": ["gravador", "hardware", "dispositivo de áudio"]
+    }
+  ]
+}

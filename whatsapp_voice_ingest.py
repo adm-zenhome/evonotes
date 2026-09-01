@@ -303,3 +303,48 @@ status: processado
             self.send_whatsapp_text(phone, reply_msg)
 
         return {"status": "SUCCESS", "file_id": msg_id, "processing_time": duration_s}
+
+def check_zapi_status() -> Dict[str, Any]:
+    """Checks live Z-API connection status."""
+    try:
+        url = f"{ZAPI_BASE_URL}/status"
+        with httpx.Client(timeout=5) as client:
+            r = client.get(url, headers=ZAPI_HEADERS)
+            if r.status_code == 200:
+                data = r.json()
+                return {
+                    "is_connected": bool(data.get("connected", False)),
+                    "phone": data.get("phone", ""),
+                    "status": "CONNECTED" if data.get("connected") else "DISCONNECTED",
+                    "device": data.get("device", {}),
+                    "battery": data.get("battery", 100)
+                }
+    except Exception as e:
+        logger.warning(f"Error querying Z-API status: {e}")
+    return {
+        "is_connected": False,
+        "phone": "",
+        "status": "DISCONNECTED",
+        "message": "Z-API offline ou desconectada"
+    }
+
+def get_zapi_qr_code() -> Dict[str, Any]:
+    """Fetches real QR Code from Z-API for live pairing."""
+    try:
+        url = f"{ZAPI_BASE_URL}/qr-code/image"
+        with httpx.Client(timeout=8) as client:
+            r = client.get(url, headers=ZAPI_HEADERS)
+            if r.status_code == 200:
+                data = r.json()
+                return {
+                    "status": "SUCCESS",
+                    "value": data.get("value", ""),
+                    "image": data.get("value", "")
+                }
+    except Exception as e:
+        logger.warning(f"Error querying Z-API qr-code: {e}")
+    return {
+        "status": "ERROR",
+        "message": "Não foi possível gerar o QR Code no momento"
+    }
+
