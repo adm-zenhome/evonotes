@@ -332,6 +332,14 @@ class ExecutiveDatabase:
                 )
             """)
 
+            # Performance Indexes
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_meetings_category ON meetings(category)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_commitments_meeting_id ON commitments(meeting_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_commitments_status ON commitments(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_accounts_deals_meeting_id ON accounts_deals(meeting_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_meeting_source_links_meeting_id ON meeting_source_links(meeting_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_exclusions_type_name ON inferred_exclusions_feedback(entity_type, entity_name)")
+
             conn.commit()
             logging.info(f"SQLite database initialized at {self.db_path}")
 
@@ -392,10 +400,17 @@ class ExecutiveDatabase:
             except Exception as e:
                 logging.error(f"Error during legacy migration: {e}")
 
-    def get_all_meetings(self) -> List[Dict[str, Any]]:
+    def get_all_meetings(self, channel: Optional[str] = None) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM meetings ORDER BY created_at DESC")
+            if channel:
+                cursor.execute("""
+                    SELECT * FROM meetings 
+                    WHERE channel LIKE ? OR custom_notes LIKE ? OR title LIKE ?
+                    ORDER BY created_at DESC
+                """, (f"%{channel}%", f"%{channel}%", f"%{channel}%"))
+            else:
+                cursor.execute("SELECT * FROM meetings ORDER BY created_at DESC")
             rows = cursor.fetchall()
             meetings = []
             for r in rows:
@@ -409,6 +424,14 @@ class ExecutiveDatabase:
                     m_dict["intelligence"] = {}
                 m_dict["transcription"] = m_dict.get("transcript_full") or ""
                 m_dict["transcript"] = m_dict.get("transcript_full") or ""
+                # Ensure channel is explicitly set
+                c_val = m_dict.get("channel")
+                if not c_val:
+                    if "WhatsApp" in (m_dict.get("custom_notes") or "") or "WhatsApp" in (m_dict.get("title") or ""):
+                        c_val = "WhatsApp Cloud API"
+                    else:
+                        c_val = "Plaud Note Pro"
+                m_dict["channel"] = c_val
                 meetings.append(m_dict)
             return meetings
 
@@ -915,24 +938,17 @@ def delete_deal_by_id(deal_id: int):
 def get_all_persistent_categories() -> list:
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        # Fetch exclusions
-        try:
-            cursor.execute("SELECT entity_name FROM inferred_exclusions_feedback WHERE entity_type = 'category'")
-            excluded = {r["entity_name"].lower() for r in cursor.fetchall()}
-        except Exception:
-            excluded = set()
-        
         cursor.execute("SELECT id, name, icon FROM custom_categories WHERE is_deleted = 0 ORDER BY created_at ASC")
         rows = cursor.fetchall()
-        cats = [dict(r) for r in rows if r["name"].lower() not in excluded]
+        cats = [dict(r) for r in rows]
         
-        # Also include any categories present in meetings that are not deleted or excluded
+        # Also include any categories present in meetings that are not deleted
         cursor.execute("SELECT DISTINCT category FROM meetings WHERE category IS NOT NULL AND category != 'Geral' AND category != ''")
         m_cats = [r["category"] for r in cursor.fetchall()]
         
         existing_names = {c["name"].lower() for c in cats}
         for mc in m_cats:
-            if mc.lower() not in existing_names and mc.lower() not in excluded:
+            if mc.lower() not in existing_names:
                 cats.append({"id": f"cat-{mc.lower().replace(' ', '-')}", "name": mc, "icon": "ph-tag"})
                 existing_names.add(mc.lower())
         return cats
@@ -941,10 +957,6 @@ def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
     cat_id = f"cat-{int(datetime.now().timestamp())}"
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        try:
-            cursor.execute("DELETE FROM inferred_exclusions_feedback WHERE entity_type = 'category' AND entity_name = ? COLLATE NOCASE", (name,))
-        except Exception:
-            pass
         cursor.execute("""
             INSERT INTO custom_categories (id, name, icon, is_deleted)
             VALUES (?, ?, ?, 0)
@@ -956,33 +968,26 @@ def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
 def rename_category(old_name: str, new_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (old_name, old_name))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (old_name, old_name))
         row = cursor.fetchone()
         current_name = row["name"] if row else old_name
-        cursor.execute("UPDATE custom_categories SET name = ? WHERE id = ? OR name = ? COLLATE NOCASE", (new_name, old_name, current_name))
-        cursor.execute("UPDATE meetings SET category = ? WHERE category = ? COLLATE NOCASE", (new_name, current_name))
-        try:
-            cursor.execute("DELETE FROM inferred_exclusions_feedback WHERE entity_type = 'category' AND entity_name = ? COLLATE NOCASE", (new_name,))
-        except Exception:
-            pass
+        cursor.execute("UPDATE custom_categories SET name = ? WHERE id = ? OR name = ?", (new_name, old_name, current_name))
+        cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, current_name))
         conn.commit()
 
 def delete_category(cat_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (cat_name, cat_name))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (cat_name, cat_name))
         row = cursor.fetchone()
         actual_name = row["name"] if row else cat_name
-        cursor.execute("DELETE FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (cat_name, actual_name))
-        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ? COLLATE NOCASE OR category = ?", (actual_name, cat_name))
+        cursor.execute("DELETE FROM custom_categories WHERE id = ? OR name = ?", (cat_name, actual_name))
+        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (actual_name,))
         # Record exclusion feedback
-        try:
-            cursor.execute("""
-                INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
-                VALUES ('category', ?, 'DELETED_BY_USER')
-            """, (actual_name,))
-        except Exception:
-            pass
+        cursor.execute("""
+            INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
+            VALUES ('category', ?, 'DELETED_BY_USER')
+        """, (actual_name,))
         conn.commit()
         logging.info(f"Category '{actual_name}' permanently deleted and recorded in exclusion feedback.")
 
