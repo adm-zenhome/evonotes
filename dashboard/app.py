@@ -45,6 +45,29 @@ STATIC_DIR.mkdir(parents=True, exist_ok=True)
 if (STATIC_DIR / "evonotes").exists():
     app.mount("/evonotes", StaticFiles(directory=str(STATIC_DIR / "evonotes")), name="evonotes")
 
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-180x180.png")
+async def apple_touch_icon():
+    p = STATIC_DIR / "evonotes" / "apple-touch-icon.png"
+    if p.exists():
+        return FileResponse(str(p), media_type="image/png")
+    raise HTTPException(status_code=404)
+
+@app.get("/manifest.json")
+async def manifest_json():
+    p = STATIC_DIR / "evonotes" / "manifest.json"
+    if p.exists():
+        return FileResponse(str(p), media_type="application/json")
+    raise HTTPException(status_code=404)
+
+@app.get("/favicon.ico")
+@app.get("/favicon-32x32.png")
+async def favicon():
+    p = STATIC_DIR / "evonotes" / "favicon-32x32.png"
+    if p.exists():
+        return FileResponse(str(p), media_type="image/png")
+    raise HTTPException(status_code=404)
+
 client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
