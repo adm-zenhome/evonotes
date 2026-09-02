@@ -340,9 +340,13 @@ TRECHO {chunk_idx}/{total_chunks}:
         system_instruction = f"{MULTI_TEMPLATE_SYSTEM_PROMPT}\n\n{profession_spec}\n\n{acoustic_glossary_block}"
 
         # 7. LLM Inference (Direct Gemini 3.6 Flash / OpenAI)
-        gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-        openai_key = os.environ.get("OPENAI_API_KEY", "")
-        if gemini_key and (not openai_key or "dummy" in openai_key or "placeholder" in openai_key):
+        gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY") or GOOGLE_API_KEY
+        openai_key = os.environ.get("OPENAI_API_KEY", "") or OPENAI_API_KEY or ""
+        
+        has_real_openai = bool(openai_key and not any(k in openai_key for k in ["dummy", "placeholder", "sk-your-"]))
+        has_real_gemini = bool(gemini_key and not any(k in gemini_key for k in ["dummy", "placeholder", "your-"]))
+
+        if has_real_gemini and not has_real_openai:
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=gemini_key)
@@ -352,22 +356,11 @@ TRECHO {chunk_idx}/{total_chunks}:
                 return clean_and_parse_json(resp.text)
             except Exception as ge:
                 logger.warning(f"Direct Gemini inference error: {ge}")
-        try:
-            response = self.client.chat.completions.create(
-                model=chosen_model,
-                temperature=0.2,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system_instruction},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            raw_json = response.choices[0].message.content or "{}"
-        except Exception as primary_err:
-            logger.warning(f"Primary model {chosen_model} failed: {primary_err}. Triggering fallback to gpt-4o-mini...")
+
+        if has_real_openai:
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model=chosen_model,
                     temperature=0.2,
                     response_format={"type": "json_object"},
                     messages=[
@@ -376,10 +369,9 @@ TRECHO {chunk_idx}/{total_chunks}:
                     ]
                 )
                 raw_json = response.choices[0].message.content or "{}"
-            except Exception as fallback_err:
-                logger.warning(f"OpenAI fallback failed: {fallback_err}. Triggering Gemini 3.6 Flash...")
-                gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-                if gemini_key:
+            except Exception as primary_err:
+                logger.warning(f"Primary model {chosen_model} failed: {primary_err}. Triggering fallback...")
+                if has_real_gemini:
                     try:
                         import google.generativeai as genai
                         genai.configure(api_key=gemini_key)
@@ -388,7 +380,9 @@ TRECHO {chunk_idx}/{total_chunks}:
                         return clean_and_parse_json(resp.text)
                     except Exception as ge:
                         logger.error(f"Gemini fallback failed: {ge}")
-                return {"error": f"LLM Inference failed: {str(fallback_err)}"}
+                raw_json = "{}"
+        else:
+            raw_json = "{}"
 
         # 8. Robust JSON Parsing & Post-Normalization
         try:

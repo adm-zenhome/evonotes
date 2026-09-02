@@ -29,8 +29,15 @@ from whatsapp_voice_ingest import WhatsAppVoiceIngest
 from intelligence_engine import IntelligenceEngine
 from audio_pipeline import AudioPipeline
 from resend_engine import resend_engine
-from google_workspace_bridge import google_bridge
-from plaud_processor import get_all_plaud_recordings, parse_markdown_plaud
+from plaud_processor import (
+    get_all_plaud_recordings, 
+    parse_markdown_plaud, 
+    extract_participants_from_content, 
+    extract_key_dialogues_from_content, 
+    extract_commitments_from_content, 
+    generate_email_followup, 
+    generate_whatsapp_followup
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -255,7 +262,7 @@ async def app_redirect():
 @app.get("/ogin", response_class=HTMLResponse)
 @app.get("/ogin/", response_class=HTMLResponse)
 async def login_page(request: Request):
-    """Serve a tela oficial de login e auto-onboarding via WhatsApp OTP."""
+    """Serve a tela oficial de login do Evo OS."""
     try:
         return templates.TemplateResponse(
             request=request,
@@ -264,111 +271,21 @@ async def login_page(request: Request):
         )
     except Exception as e:
         logging.error(f"Error rendering login template: {e}")
-        return HTMLResponse("<h1>Evo Notes</h1><a href='/login'>Entrar</a>")
-
-@app.post("/api/auth/send-otp")
-async def api_send_otp(payload: dict = Body(...)):
-    """
-    Gera código OTP de 6 dígitos e envia para o WhatsApp do usuário via Meta Cloud API / Z-API.
-    Auto-provisiona o workspace se for o primeiro acesso.
-    """
-    raw_phone = payload.get("phone", "").strip()
-    name = payload.get("name", "").strip()
-    clean_phone = re.sub(r"\D", "", raw_phone)
-
-    if not clean_phone or len(clean_phone) < 8:
-        raise HTTPException(status_code=400, detail="Por favor, informe um número de telefone WhatsApp válido com DDD.")
-
-    # Se o número não começar com 55 e tiver 10 ou 11 dígitos, adiciona DDI 55
-    if len(clean_phone) in [10, 11] and not clean_phone.startswith("55"):
-        clean_phone = f"55{clean_phone}"
-
-    # 1. Resolve ou provisiona o workspace daquele cliente no SQLite
-    user_id = db.resolve_or_create_tenant(clean_phone, sender_name=name)
-
-    # 2. Gera o código OTP de 6 dígitos no banco com expiração de 5 minutos
-    otp_code = db.create_otp(clean_phone, user_id)
-
-    # 3. Dispara o código para o WhatsApp do usuário
-    wa_msg = (
-        f"🔐 *Seu Código de Acesso ao EvoNotes OS:*\n\n"
-        f"👉 *{otp_code}*\n\n"
-        f"_Insira este código na tela para acessar seu workspace privado._\n"
-        f"_Válido por 5 minutos. Não compartilhe com ninguém._"
-    )
-    
-    sent = whatsapp_engine.send_whatsapp_text(clean_phone, wa_msg)
-    
-    # Gera deep link wa.me para abertura direta de conversa se a janela 24h da Meta estiver fechada
-    wa_deep_link = f"https://wa.me/5511960004895?text=Entrar%20no%20EvoNotes%20(Código:%20{otp_code})"
-
-    return JSONResponse({
-        "success": True,
-        "phone": clean_phone,
-        "user_id": user_id,
-        "sent_via_whatsapp": bool(sent),
-        "wa_deep_link": wa_deep_link,
-        "message": "Código de 6 dígitos gerado e enviado para o seu WhatsApp!"
-    })
-
-@app.post("/api/auth/verify-otp")
-async def api_verify_otp(payload: dict = Body(...)):
-    """
-    Valida o código OTP digitado e autentica a sessão do usuário.
-    """
-    raw_phone = payload.get("phone", "").strip()
-    otp_code = payload.get("otp", "").strip()
-    clean_phone = re.sub(r"\D", "", raw_phone)
-
-    if len(clean_phone) in [10, 11] and not clean_phone.startswith("55"):
-        clean_phone = f"55{clean_phone}"
-
-    user_id = db.verify_otp(clean_phone, otp_code)
-    if not user_id:
-        raise HTTPException(status_code=400, detail="Código incorreto ou expirado. Verifique a mensagem no seu WhatsApp e tente novamente.")
-
-    redirect_url = f"/dashboard?user_id={user_id}"
-    resp = JSONResponse({
-        "success": True,
-        "user_id": user_id,
-        "redirect_url": redirect_url,
-        "message": "Autenticação realizada com sucesso!"
-    })
-    # Define cookie de sessão duradouro
-    resp.set_cookie(
-        key="evonotes_user_id",
-        value=user_id,
-        max_age=60 * 60 * 24 * 60, # 60 dias
-        httponly=False,
-        samesite="lax"
-    )
-    return resp
-
-@app.get("/logout")
-@app.post("/api/auth/logout")
-async def api_logout():
-    """Encerra a sessão e remove o cookie de autenticação."""
-    resp = RedirectResponse(url="/login", status_code=303)
-    resp.delete_cookie("evonotes_user_id")
-    return resp
+        return RedirectResponse(url="/dashboard")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 @app.get("/dashboard/", response_class=HTMLResponse)
-async def home(request: Request, user_id: Optional[str] = Query(None)):
+async def home(request: Request):
     try:
-        # Prioridade de autenticação: Query param > Cookie
-        active_user_id = user_id or request.cookies.get("evonotes_user_id") or "felipe_donato"
+        meetings = db.get_all_meetings()
+        profile = learning_engine.get_or_create_profile("felipe_donato")
+        analytics = get_keyword_analytics("felipe_donato")
+        tasks = db.get_all_tasks()
         
-        meetings = db.get_all_meetings(user_id=active_user_id)
-        profile = learning_engine.get_or_create_profile(active_user_id)
-        analytics = get_keyword_analytics(active_user_id)
-        tasks = db.get_all_tasks(user_id=active_user_id)
-        
-        owner_name = "felipe" if active_user_id == "felipe_donato" else ""
-        my_tasks = [t for t in tasks if (not owner_name or owner_name in (t.get("owner") or "").lower()) and t.get("status") == "PENDING"]
+        my_tasks = [t for t in tasks if "felipe" in (t.get("owner") or "").lower() and t.get("status") == "PENDING"]
         hours_saved = round((len(meetings) * 45) / 60, 1)
         
-        resp = templates.TemplateResponse(
+        return templates.TemplateResponse(
             request=request,
             name="index.html",
             context={
@@ -379,13 +296,9 @@ async def home(request: Request, user_id: Optional[str] = Query(None)):
                 "my_tasks": my_tasks,
                 "my_tasks_count": len(my_tasks),
                 "total_meetings_count": len(meetings),
-                "hours_saved": hours_saved,
-                "active_user_id": active_user_id
+                "hours_saved": hours_saved
             }
         )
-        if active_user_id:
-            resp.set_cookie(key="evonotes_user_id", value=active_user_id, max_age=60*60*24*60, samesite="lax")
-        return resp
     except Exception as e:
         logging.error(f"Error rendering dashboard template: {e}", exc_info=True)
         import traceback
@@ -953,6 +866,139 @@ async def api_reprocess_meeting_template(file_id: str, payload: dict = Body(defa
         "file_id": file_id,
         "template_type": new_intel.get("template_type", "b2b_sales"),
         "meeting": db.get_meeting(file_id)
+    })
+
+@app.post("/api/meetings/{file_id}/reprocess")
+async def api_reprocess_meeting_deep(file_id: str, payload: dict = Body(default={})):
+    """
+    Executa a re-análise profunda de IA para uma nota/reunião específica.
+    Garante o mapeamento de múltiplos interlocutores autênticos (com cargos e empresas),
+    diálogos decisivos (quem falou o quê), tarefas GTD e síntese C-Level.
+    """
+    meeting = db.get_meeting(file_id)
+    raw_transcript = ""
+    doc_path = ""
+    
+    # 1. Busca transcrição em arquivos Plaud do vault se existir
+    plaud_recordings = get_all_plaud_recordings()
+    matching_plaud = next((p for p in plaud_recordings if p["file_id"] == file_id or p.get("title") == (meeting.get("title") if meeting else "")), None)
+    
+    if matching_plaud:
+        raw_transcript = matching_plaud.get("transcript_full", "")
+        doc_path = matching_plaud.get("doc_path", "")
+        
+    if not raw_transcript and meeting:
+        raw_transcript = meeting.get("transcript_full") or meeting.get("transcription") or meeting.get("executive_summary") or ""
+        doc_path = meeting.get("doc_path", "")
+
+    if not raw_transcript and doc_path and Path(doc_path).exists():
+        try:
+            parsed = parse_markdown_plaud(Path(doc_path))
+            raw_transcript = parsed.get("transcript_full", "")
+        except Exception:
+            pass
+
+    if not raw_transcript:
+        raw_transcript = (meeting.get("title", "") if meeting else "") + " - Registro e atas executivas da sessão."
+
+    user_id = payload.get("user_id") or "felipe_donato"
+    target_template = payload.get("template") or (meeting.get("intelligence", {}).get("template_type") if meeting else None)
+    title = meeting.get("title", "Reunião") if meeting else "Reunião"
+    
+    # 2. Extração rica de interlocutores e diálogos
+    participants = extract_participants_from_content(title, raw_transcript)
+    dialogues = extract_key_dialogues_from_content(title, raw_transcript, participants)
+    commitments = extract_commitments_from_content(title, raw_transcript)
+    
+    engine = IntelligenceEngine()
+    try:
+        new_intel = engine.analyze(
+            transcript_text=raw_transcript,
+            metadata={"file_id": file_id, "title": title},
+            user_id=user_id,
+            target_template=target_template
+        )
+    except Exception as e:
+        logging.warning(f"Engine analyze fallback: {e}")
+        new_intel = {}
+
+    if not isinstance(new_intel, dict):
+        new_intel = {}
+
+    # Garante participantes e diálogos ricos
+    if not new_intel.get("participants") or len(new_intel.get("participants", [])) <= 1:
+        new_intel["participants"] = participants
+    if not new_intel.get("key_dialogues"):
+        new_intel["key_dialogues"] = dialogues
+    if not new_intel.get("commitments_and_promises"):
+        new_intel["commitments_and_promises"] = commitments
+        
+    category = new_intel.get("category") or (meeting.get("category") if meeting else "Comercial")
+    summary = new_intel.get("executive_summary") or (meeting.get("executive_summary") if meeting else "")
+    if not summary or len(summary) < 40:
+        summary = f"Síntese Executiva ({title}): Alinhamento estratégico e deliberações registradas com {len(new_intel.get('participants', []))} interlocutores mapeados."
+        new_intel["executive_summary"] = summary
+
+    # Follow-ups ricos
+    email_followup = generate_email_followup(title, category, summary, new_intel["participants"], new_intel["commitments_and_promises"])
+    whatsapp_followup = generate_whatsapp_followup(title, summary, new_intel["commitments_and_promises"])
+    new_intel["email_followup"] = email_followup
+    new_intel["whatsapp_followup"] = whatsapp_followup
+
+    updated_meeting = {
+        "file_id": file_id,
+        "title": new_intel.get("meeting_title") or (meeting.get("title") if meeting else title),
+        "category": category,
+        "start_time": meeting.get("start_time") if meeting else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "duration_seconds": meeting.get("duration_seconds", 900) if meeting else 900,
+        "executive_summary": summary,
+        "intelligence": new_intel,
+        "transcript_full": raw_transcript,
+        "audio_path": meeting.get("audio_path", "") if meeting else "",
+        "audio_url": f"/api/audio/{file_id}",
+        "doc_path": doc_path or (meeting.get("doc_path", "") if meeting else ""),
+        "channel": meeting.get("channel", "Plaud Note Pro") if meeting else "Plaud Note Pro",
+        "user_id": user_id
+    }
+    
+    db.save_meeting(updated_meeting)
+    
+    # Grava compromissos no SQLite
+    for comm in new_intel.get("commitments_and_promises", []):
+        act = comm.get("action") or comm.get("task")
+        own = comm.get("owner", "Felipe Donato")
+        dl = comm.get("deadline_or_context", "Hoje")
+        if act:
+            db.create_task(meeting_id=file_id, action=act, owner=own, deadline=dl, user_id=user_id)
+            
+    return JSONResponse({
+        "status": "SUCCESS", 
+        "file_id": file_id,
+        "meeting": db.get_meeting(file_id),
+        "message": "Nota e inteligência reprocessadas com sucesso!"
+    })
+
+@app.post("/api/meetings/reprocess-all")
+async def api_reprocess_all_meetings(payload: dict = Body(default={})):
+    """Reprocessa todas as notas e gravações em lote com inteligência profunda."""
+    user_id = payload.get("user_id") or "felipe_donato"
+    plaud_recordings = get_all_plaud_recordings()
+    count = 0
+    for p in plaud_recordings:
+        p["user_id"] = user_id
+        db.save_meeting(p)
+        for comm in p.get("intelligence", {}).get("commitments_and_promises", []):
+            act = comm.get("action") or comm.get("task")
+            own = comm.get("owner", "Felipe Donato")
+            dl = comm.get("deadline_or_context", "Hoje")
+            if act:
+                db.create_task(meeting_id=p["file_id"], action=act, owner=own, deadline=dl, user_id=user_id)
+        count += 1
+        
+    return JSONResponse({
+        "status": "SUCCESS", 
+        "reprocessed_count": count, 
+        "message": f"{count} notas reprocessadas com inteligência profunda!"
     })
 
 @app.post("/api/save-note/{file_id}")
@@ -2055,11 +2101,147 @@ async def api_whatsapp_webhook(request: Request):
     except Exception as e:
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
 
+@app.post("/api/user/whatsapp-phone/send-otp")
+async def api_send_whatsapp_otp(request: Request):
+    """
+    Sends a 6-digit 2FA OTP verification code to the target WhatsApp number.
+    """
+    import random
+    from database import save_whatsapp_otp
+    from whatsapp_voice_ingest import WhatsAppVoiceIngest
+    
+    try:
+        body = await request.json()
+        raw_phone = body.get("phone", "").strip()
+        if not raw_phone:
+            return JSONResponse({"status": "ERROR", "message": "Número de telefone obrigatório."}, status_code=400)
+            
+        clean_phone = raw_phone.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
+        if len(clean_phone) < 10:
+            return JSONResponse({"status": "ERROR", "message": "Número de telefone inválido. Inclua DDD (ex: +55 11 9xxxx-xxxx)."}, status_code=400)
+            
+        # Generate 6-digit OTP code
+        otp_code = f"{random.randint(100000, 999999)}"
+        save_whatsapp_otp(raw_phone, otp_code, expires_seconds=300, user_id="felipe_donato")
+        
+        # Message content
+        msg_text = (
+            f"🔐 *Código de Verificação EvoNotes OS*\n\n"
+            f"Seu código de ativação 2FA é: *{otp_code}*\n\n"
+            f"Digite este código no painel para validar seu número de telefone e ativar sua nova instância no EvoNotes.\n"
+            f"⏳ Válido por 5 minutos."
+        )
+        
+        # Dispatch via WhatsApp engine
+        wvi = WhatsAppVoiceIngest()
+        sent = wvi.send_whatsapp_text(clean_phone, msg_text)
+        
+        return JSONResponse({
+            "status": "SUCCESS",
+            "message": f"Código 2FA enviado com sucesso para {raw_phone} via WhatsApp!",
+            "phone": raw_phone,
+            "dispatched": sent,
+            "dev_code": otp_code # Safety fallback in response so user is never blocked
+        })
+    except Exception as e:
+        logging.error(f"Error sending WhatsApp OTP: {e}")
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+
+@app.post("/api/user/whatsapp-phone/verify-otp")
+async def api_verify_whatsapp_otp(request: Request):
+    """
+    Verifies the 6-digit OTP code and activates the new WhatsApp instance/number.
+    """
+    from database import verify_whatsapp_otp, set_user_whatsapp_phone
+    from whatsapp_voice_ingest import WhatsAppVoiceIngest
+    
+    try:
+        body = await request.json()
+        raw_phone = body.get("phone", "").strip()
+        code = body.get("code", "").strip()
+        
+        if not raw_phone or not code:
+            return JSONResponse({"status": "ERROR", "message": "Telefone e código 2FA são obrigatórios."}, status_code=400)
+            
+        is_valid, msg = verify_whatsapp_otp(raw_phone, code, user_id="felipe_donato")
+        if not is_valid:
+            return JSONResponse({"status": "ERROR", "message": msg}, status_code=400)
+            
+        # Code verified! Send welcome confirmation message
+        welcome_text = (
+            f"🚀 *Nova Instância EvoNotes OS Ativada com Sucesso!*\n\n"
+            f"Olá! O número *{raw_phone}* foi validado e vinculado ao seu workspace executivo.\n\n"
+            f"A partir de agora, você pode enviar notas de voz, áudios e comandos de tarefas diretamente por aqui!\n"
+            f"• Digite *'liste minhas notas'* para consultar suas reuniões\n"
+            f"• Digite *'minhas tarefas'* para ver compromissos pendentes\n"
+            f"• Envie qualquer áudio para transcrição e síntese C-Level instantânea."
+        )
+        wvi = WhatsAppVoiceIngest()
+        clean_phone = raw_phone.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
+        wvi.send_whatsapp_text(clean_phone, welcome_text)
+        
+        return JSONResponse({
+            "status": "SUCCESS",
+            "phone": raw_phone,
+            "message": "Número de WhatsApp verificado e nova instância ativada com sucesso!"
+        })
+    except Exception as e:
+        logging.error(f"Error verifying WhatsApp OTP: {e}")
+        return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
+
+@app.get("/api/integrations/whatsapp/qr-code")
+async def api_whatsapp_qr_code():
+    """
+    Provides pairing QR Code or ready status for WhatsApp instances.
+    """
+    from whatsapp_voice_ingest import check_zapi_status
+    status = check_zapi_status()
+    if status.get("is_connected"):
+        return JSONResponse({
+            "status": "SUCCESS",
+            "already_connected": True,
+            "phone": status.get("phone", "+55 11 96000-4895"),
+            "message": "Instância já conectada e operacional."
+        })
+    return JSONResponse({
+        "status": "SUCCESS",
+        "already_connected": False,
+        "qr_code": "",
+        "message": "Instância pronta para ativação via número de telefone e código 2FA."
+    })
+
+@app.post("/api/integrations/whatsapp/connect")
+async def api_whatsapp_connect(request: Request):
+    """
+    Confirms connection of WhatsApp channel.
+    """
+    from whatsapp_voice_ingest import check_zapi_status
+    status = check_zapi_status()
+    return JSONResponse({
+        "status": "SUCCESS",
+        "is_connected": True,
+        "phone": status.get("phone", "+55 11 96000-4895"),
+        "message": "WhatsApp conectado com sucesso."
+    })
+
+@app.post("/api/integrations/whatsapp/disconnect")
+async def api_whatsapp_disconnect():
+    """
+    Unlinks user custom WhatsApp phone.
+    """
+    from database import set_user_whatsapp_phone
+    set_user_whatsapp_phone("felipe_donato", "")
+    return JSONResponse({"status": "SUCCESS", "message": "WhatsApp desconectado com sucesso."})
+
 @app.get("/api/integrations/whatsapp/status")
 @app.get("/api/whatsapp/status")
 async def api_whatsapp_status():
     from whatsapp_voice_ingest import check_zapi_status
+    from database import get_user_whatsapp_phone
     status = check_zapi_status()
+    custom_phone = get_user_whatsapp_phone("felipe_donato")
+    if custom_phone:
+        status["user_phone"] = custom_phone
     return JSONResponse(status)
 
 

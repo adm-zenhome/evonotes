@@ -1420,30 +1420,72 @@
                                     </a>
                                 </div>
 
-                                <!-- Passo 2: Confirmar Meu Número -->
+                                <!-- Passo 2: Vincular Telefone & Iniciar Nova Instância (2FA) -->
                                 <div class="p-4 sm:p-5 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-3.5 flex flex-col justify-between">
                                     <div class="space-y-2">
-                                        <div class="flex items-center gap-2 text-xs font-bold text-gray-900">
-                                            <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold flex items-center justify-center">2</span>
-                                            <span>Seu Telefone Cadastrado</span>
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2 text-xs font-bold text-gray-900">
+                                                <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold flex items-center justify-center">2</span>
+                                                <span>Vincular Telefone & Instância (2FA)</span>
+                                            </div>
+                                            <span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">Verificação Segura</span>
                                         </div>
                                         <p class="text-xs text-gray-600 leading-relaxed">
-                                            Digite seu número com DDD para que o EvoNotes identifique seus áudios e responda na hora.
+                                            Digite seu número para receber o código 2FA de validação no WhatsApp e iniciar sua nova instância.
                                         </p>
-                                        <div class="flex items-center gap-2">
-                                            <input type="text" id="user-wa-phone-input" 
-                                                   placeholder="+55 11 97430-7292" 
-                                                   value="+55 11 97430-7292"
-                                                   class="flex-1 min-w-0 bg-white px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-900 focus:outline-none focus:border-black font-mono">
-                                            <button onclick="saveUserWhatsAppPhone()" id="btn-save-wa-phone"
-                                                    class="w-9 h-9 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-sm shadow-xs transition active:scale-95 cursor-pointer flex items-center justify-center flex-shrink-0" title="Salvar Telefone">
-                                                <i class="ph-bold ph-floppy-disk text-sm"></i>
-                                            </button>
+                                        
+                                        <!-- Step 2A: Phone Input + Send Code Button -->
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-2">
+                                                <div class="relative flex-1">
+                                                    <i class="ph-bold ph-phone absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                                    <input type="text" id="user-wa-phone-input" 
+                                                           placeholder="+55 11 97430-7292" 
+                                                           value="+55 11 97430-7292"
+                                                           class="w-full bg-white pl-8 pr-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-900 focus:outline-none focus:border-black font-mono">
+                                                </div>
+                                                <button onclick="sendWhatsApp2FACode()" id="btn-send-wa-otp"
+                                                        class="px-3 py-2 rounded-xl bg-zinc-950 hover:bg-black text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5 flex-shrink-0">
+                                                    <i class="ph-bold ph-paper-plane-tilt text-xs text-emerald-400"></i>
+                                                    <span>Enviar 2FA</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Step 2B: 2FA OTP Verification Box (Collapsible) -->
+                                        <div id="wa-otp-box" class="hidden p-3 rounded-xl bg-white border border-emerald-200/90 shadow-2xs space-y-2.5 animate-fade-in">
+                                            <div class="flex items-center justify-between text-[11px]">
+                                                <span class="font-bold text-gray-800 flex items-center gap-1">
+                                                    <i class="ph-bold ph-shield-check text-emerald-600"></i>
+                                                    <span>Digite o Código 2FA recebido:</span>
+                                                </span>
+                                                <span id="wa-otp-timer" class="font-mono text-emerald-700 font-bold">05:00</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <input type="text" id="wa-otp-code-input" 
+                                                       placeholder="123456" 
+                                                       maxlength="6"
+                                                       class="w-32 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-300 text-center font-mono font-extrabold text-sm tracking-widest text-gray-900 focus:outline-none focus:border-emerald-600 focus:bg-white">
+                                                <button onclick="verifyWhatsApp2FACode()" id="btn-verify-wa-otp"
+                                                        class="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer flex items-center justify-center gap-1">
+                                                    <i class="ph-bold ph-check"></i>
+                                                    <span>Validar & Ativar</span>
+                                                </button>
+                                            </div>
+                                            <div class="flex items-center justify-between text-[10px] text-gray-500">
+                                                <span>Não recebeu no WhatsApp?</span>
+                                                <button onclick="sendWhatsApp2FACode()" class="text-emerald-700 font-bold hover:underline cursor-pointer">Reenviar Código</button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="text-[11px] text-emerald-700 bg-emerald-50/70 p-2 rounded-xl border border-emerald-100 font-medium flex items-center gap-1.5">
-                                        <i class="ph-bold ph-check-circle text-xs"></i>
-                                        <span id="wa-phone-status-badge">Identificação ativa para este número.</span>
+
+                                    <!-- Status Badge -->
+                                    <div class="text-[11px] text-emerald-700 bg-emerald-50/70 p-2 rounded-xl border border-emerald-100 font-medium flex items-center justify-between">
+                                        <div class="flex items-center gap-1.5 truncate">
+                                            <i class="ph-bold ph-check-circle text-xs text-emerald-600 flex-shrink-0"></i>
+                                            <span id="wa-phone-status-badge" class="truncate">Identificação ativa para +55 11 97430-7292</span>
+                                        </div>
+                                        <button onclick="disconnectWhatsAppIntegration()" class="text-[10px] text-gray-400 hover:text-red-600 font-bold underline cursor-pointer ml-1 flex-shrink-0">Desvincular</button>
                                     </div>
                                 </div>
                             </div>
@@ -4445,34 +4487,120 @@
             }
         }
 
-        async function saveUserWhatsAppPhone() {
+        let waOtpTimerInterval = null;
+
+        async function sendWhatsApp2FACode() {
             const input = document.getElementById('user-wa-phone-input');
+            const btn = document.getElementById('btn-send-wa-otp');
+            const otpBox = document.getElementById('wa-otp-box');
+            const timerEl = document.getElementById('wa-otp-timer');
+            const codeInput = document.getElementById('wa-otp-code-input');
+            
             if (!input) return;
             const phone = input.value.trim();
-            if (!phone) {
-                showInAppToast('Digite um número de telefone válido.', 'error');
+            if (!phone || phone.length < 10) {
+                showInAppToast('Digite um número de telefone válido com DDD (ex: +55 11 9xxxx-xxxx).', 'error');
                 return;
             }
 
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-xs"></i> <span>Enviando...</span>`;
+            }
+
             try {
-                const res = await fetch('/api/user/whatsapp-phone', {
+                const res = await fetch('/api/user/whatsapp-phone/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: phone })
                 });
                 const data = await res.json();
+                
                 if (data.status === 'SUCCESS') {
-                    showInAppToast('✅ Telefone salvo com sucesso para identificação no WhatsApp!', 'success');
-                    const badge = document.getElementById('wa-phone-status-badge');
-                    if (badge) badge.innerText = `Identificação ativa para ${data.phone}.`;
+                    showInAppToast(`📲 Código 2FA enviado com sucesso para ${phone}! Verifique seu WhatsApp.`, 'success');
+                    if (otpBox) otpBox.classList.remove('hidden');
+                    if (codeInput) {
+                        codeInput.value = '';
+                        codeInput.focus();
+                    }
+                    
+                    // Start 5-min timer
+                    let timeLeft = 300;
+                    if (waOtpTimerInterval) clearInterval(waOtpTimerInterval);
+                    waOtpTimerInterval = setInterval(() => {
+                        timeLeft--;
+                        if (timeLeft <= 0) {
+                            clearInterval(waOtpTimerInterval);
+                            if (timerEl) timerEl.innerText = 'Expirado';
+                        } else {
+                            const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+                            const s = String(timeLeft % 60).padStart(2, '0');
+                            if (timerEl) timerEl.innerText = `${m}:${s}`;
+                        }
+                    }, 1000);
                 } else {
-                    showInAppToast('Erro ao salvar telefone: ' + data.message, 'error');
+                    showInAppToast('Erro ao enviar 2FA: ' + (data.message || 'Erro desconhecido'), 'error');
                 }
             } catch (e) {
                 showInAppToast('Erro ao conectar ao servidor: ' + e.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-paper-plane-tilt text-xs text-emerald-400"></i> <span>Reenviar 2FA</span>`;
+                }
             }
         }
 
+        async function verifyWhatsApp2FACode() {
+            const phoneInput = document.getElementById('user-wa-phone-input');
+            const codeInput = document.getElementById('wa-otp-code-input');
+            const btn = document.getElementById('btn-verify-wa-otp');
+            const otpBox = document.getElementById('wa-otp-box');
+            const badge = document.getElementById('wa-phone-status-badge');
+
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+            const code = codeInput ? codeInput.value.trim() : '';
+
+            if (!code || code.length < 4) {
+                showInAppToast('Digite o código 2FA de 6 dígitos recebido no seu WhatsApp.', 'error');
+                if (codeInput) codeInput.focus();
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Validando...`;
+            }
+
+            try {
+                const res = await fetch('/api/user/whatsapp-phone/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, code: code })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    showInAppToast('🎉 Nova instância do WhatsApp ativada e vinculada com sucesso!', 'success');
+                    if (waOtpTimerInterval) clearInterval(waOtpTimerInterval);
+                    if (otpBox) otpBox.classList.add('hidden');
+                    if (badge) badge.innerText = `Identificação ativa para ${data.phone}`;
+                    await checkWhatsAppConnectionState();
+                } else {
+                    showInAppToast('❌ ' + (data.message || 'Código inválido.'), 'error');
+                }
+            } catch (e) {
+                showInAppToast('Erro ao validar código: ' + e.message, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="ph-bold ph-check"></i> <span>Validar & Ativar</span>`;
+                }
+            }
+        }
+
+        window.sendWhatsApp2FACode = sendWhatsApp2FACode;
+        window.verifyWhatsApp2FACode = verifyWhatsApp2FACode;
         window.loadUserWhatsAppPhone = loadUserWhatsAppPhone;
         window.saveUserWhatsAppPhone = saveUserWhatsAppPhone;
 
