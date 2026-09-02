@@ -1378,7 +1378,7 @@ async def api_integrations_status():
         active_map = {r["id"]: bool(r["is_active"]) for r in rows}
 
     plaud_active = active_map.get("plaud_cloud_felipe", False)
-    whatsapp_active = active_map.get("whatsapp_zapi_felipe", False)
+    whatsapp_active = active_map.get("whatsapp_meta_felipe", True) or bool(os.environ.get("META_WA_TOKEN"))
     granola_active = active_map.get("granola_felipe", False)
     podcasts_active = active_map.get("podcasts_felipe", False)
 
