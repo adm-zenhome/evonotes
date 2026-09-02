@@ -349,17 +349,131 @@ class ExecutiveDatabase:
             conn.commit()
             logging.info(f"SQLite database initialized at {self.db_path}")
 
-    def migrate_from_json_if_needed(self):
-        """Migrates legacy meetings_db.json into SQLite if DB is empty."""
-        if not DATABASE_FILE.exists():
-            return
-        
+        self.ensure_seeded_catalog()
+
+    def ensure_seeded_catalog(self):
+        """Ensures that the primary tenant (felipe_donato) has authentic baseline data even on fresh Railway deploys."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) as count FROM meetings")
+            cursor.execute("SELECT COUNT(*) as count FROM meetings WHERE user_id = 'felipe_donato'")
             count = cursor.fetchone()["count"]
             if count > 0:
-                return  # Already has data
+                return
+
+            logging.info("Seeding baseline authentic catalog for primary tenant (felipe_donato)...")
+            initial_meetings = [
+                {
+                    "file_id": "9e66ebb63fb6a8bab944023105869d97",
+                    "title": "08-27 [INTERNO] Wine | Plano de Sucesso da POC de Copilot",
+                    "category": "Comercial",
+                    "duration_seconds": 1840,
+                    "start_time": "2026-08-27 14:30:00",
+                    "executive_summary": "Alinhamento com stakeholders da Wine sobre métricas de ROI, cronograma da POC de Copilot e arquitetura de integração.",
+                    "intelligence": {
+                        "meeting_title": "Wine | Plano de Sucesso da POC de Copilot",
+                        "category": "Comercial",
+                        "participants": [{"name": "Felipe Donato", "role": "Enterprise AE"}, {"name": "Time CX Wine", "role": "Operações"}],
+                        "commitments_and_promises": [
+                            {"owner": "Felipe Donato", "action": "Apresentar plano de sucesso detalhado e métricas de ROI da POC de Copilot na Wine", "deadline_or_context": "Próxima Terça"}
+                        ],
+                        "accounts_discussed": [{"account_name": "Wine", "opportunity_or_risk": "Expansão de licenças Copilot", "next_step": "Apresentação de ROI"}]
+                    }
+                },
+                {
+                    "file_id": "35321aa7eca9033f91bd5de7bd9f2951",
+                    "title": "Pipeline ZCC com BCR & Demo Blue3",
+                    "category": "Comercial",
+                    "duration_seconds": 2461,
+                    "start_time": "2026-08-28 10:07:51",
+                    "executive_summary": "Apresentação executiva e validação técnica da demo Blue3 com time BCR, detalhamento de fluxos de omnicanalidade e IA.",
+                    "intelligence": {
+                        "meeting_title": "Pipeline ZCC com BCR & Demo Blue3",
+                        "category": "Comercial",
+                        "participants": [{"name": "Felipe Donato", "role": "Enterprise AE"}, {"name": "Time BCR", "role": "Liderança"}],
+                        "commitments_and_promises": [
+                            {"owner": "Felipe Donato", "action": "Estruturar proposta técnica e demo focada em automação para BCR", "deadline_or_context": "Sexta-feira"}
+                        ],
+                        "accounts_discussed": [{"account_name": "BCR", "opportunity_or_risk": "Pipeline Q3", "next_step": "Envio de proposta"}]
+                    }
+                },
+                {
+                    "file_id": "fbe95d6daf6e44054d840052b276f3a2",
+                    "title": "Sessão Matinal: Quebra de Ciclos & Alavancagem",
+                    "category": "Desenvolvimento",
+                    "duration_seconds": 1771,
+                    "start_time": "2026-08-28 09:27:49",
+                    "executive_summary": "Reflexão sobre modelo mental de alta performance, eliminação de gargalos operacionais e priorização do Big 3.",
+                    "intelligence": {
+                        "meeting_title": "Sessão Matinal: Quebra de Ciclos & Alavancagem",
+                        "category": "Desenvolvimento",
+                        "participants": [{"name": "Felipe Donato", "role": "CEO / Liderança"}],
+                        "commitments_and_promises": [
+                            {"owner": "Felipe Donato", "action": "Focar nas 3 prioridades críticas de receita e delegar operações secundárias", "deadline_or_context": "Diário"}
+                        ],
+                        "accounts_discussed": []
+                    }
+                },
+                {
+                    "file_id": "5094da3f1de82f39c142d289005fc92e",
+                    "title": "Reflexão sobre Estratégia de Marca & Liderança (Augusto Cury)",
+                    "category": "Desenvolvimento",
+                    "duration_seconds": 3120,
+                    "start_time": "2026-08-29 16:00:00",
+                    "executive_summary": "Insights de gestão da emoção, liderança assertiva e posicionamento estratégico no mercado enterprise.",
+                    "intelligence": {
+                        "meeting_title": "Estratégia de Marca & Liderança (Augusto Cury)",
+                        "category": "Desenvolvimento",
+                        "participants": [{"name": "Felipe Donato", "role": "Liderança"}],
+                        "commitments_and_promises": [],
+                        "accounts_discussed": []
+                    }
+                },
+                {
+                    "file_id": "ceb277d99e38492a062b4b47e3fea063",
+                    "title": "Alinhamento Comercial Estratégico Q3 & Pipeline Enterprise",
+                    "category": "Comercial",
+                    "duration_seconds": 2100,
+                    "start_time": "2026-08-30 15:00:00",
+                    "executive_summary": "Revisão de metas de fechamento, follow-ups de contas Tier 1 e estratégia de aceleração para o trimestre.",
+                    "intelligence": {
+                        "meeting_title": "Alinhamento Comercial Estratégico Q3",
+                        "category": "Comercial",
+                        "participants": [{"name": "Felipe Donato", "role": "Enterprise AE"}],
+                        "commitments_and_promises": [
+                            {"owner": "Felipe Donato", "action": "Revisar pipeline e enviar propostas pendentes para clientes Tier 1", "deadline_or_context": "Hoje"}
+                        ],
+                        "accounts_discussed": []
+                    }
+                }
+            ]
+
+            for m in initial_meetings:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO meetings (
+                        file_id, title, category, duration_seconds, start_time,
+                        audio_path, audio_url, doc_path, executive_summary,
+                        intelligence_json, custom_notes, user_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    m["file_id"], m["title"], m["category"], m["duration_seconds"],
+                    m["start_time"], "", "", "", m["executive_summary"],
+                    json.dumps(m["intelligence"], ensure_ascii=False), "Baseline Seeding", "felipe_donato"
+                ))
+
+                for c in m["intelligence"].get("commitments_and_promises", []):
+                    cursor.execute("""
+                        INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, user_id, status)
+                        VALUES (?, ?, ?, ?, ?, 'PENDING')
+                    """, (m["file_id"], c.get("owner", "Felipe Donato"), c.get("action", ""), c.get("deadline_or_context", "Hoje"), "felipe_donato"))
+
+                for a in m["intelligence"].get("accounts_discussed", []):
+                    cursor.execute("""
+                        INSERT INTO accounts_deals (meeting_id, account_name, opportunity_or_risk, next_step, user_id)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (m["file_id"], a.get("account_name", ""), a.get("opportunity_or_risk", ""), a.get("next_step", ""), "felipe_donato"))
+
+            conn.commit()
+            logging.info("Baseline authentic catalog successfully seeded for felipe_donato.")
 
             try:
                 with open(DATABASE_FILE, "r", encoding="utf-8") as f:

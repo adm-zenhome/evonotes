@@ -201,11 +201,12 @@ MCP_TOOLS = [
 # ⚙️ TOOL IMPLEMENTATIONS
 # =========================================================================
 
-def execute_search_notes(arguments: Dict[str, Any]) -> str:
+def execute_search_notes(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     query = arguments.get("query", "").strip().lower()
     limit = int(arguments.get("limit", 5))
     
-    meetings = db.get_all_meetings()
+    meetings = db.get_all_meetings(user_id=active_user_id)
     matches = []
     
     for m in meetings:
@@ -226,7 +227,7 @@ def execute_search_notes(arguments: Dict[str, Any]) -> str:
                 break
                 
     if not matches:
-        return f"Nenhuma nota encontrada para o termo '{query}' no EvoNotes."
+        return f"🔍 Nenhuma nota encontrada para o termo '{query}' no seu workspace."
         
     res = f"🔍 **Resultados encontrados no EvoNotes ({len(matches)}):**\n\n"
     for idx, item in enumerate(matches, 1):
@@ -235,16 +236,17 @@ def execute_search_notes(arguments: Dict[str, Any]) -> str:
         res += f"   - *Síntese:* {item['summary_excerpt']}\n\n"
     return res
 
-def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
+def execute_get_recent_notes(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     category_filter = arguments.get("category")
     sort_by = arguments.get("sort_by", "").lower()
     
-    meetings = db.get_all_meetings()
+    meetings = db.get_all_meetings(user_id=active_user_id)
     if category_filter:
         meetings = [m for m in meetings if (m.get("category") or "").lower() == category_filter.lower()]
         
     if not meetings:
-        return "📋 Nenhuma nota encontrada no seu workspace do EvoNotes."
+        return "📋 Nenhuma nota encontrada no seu workspace do EvoNotes. Envie um áudio de voz ou sincronize o Plaud para registrar a primeira nota!"
         
     if "cliente" in sort_by or "empresa" in sort_by:
         grouped = {}
@@ -253,6 +255,7 @@ def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
             c = "Outros / Geral"
             if "Britânia" in t: c = "🏢 Britânia"
             elif "Wine" in t: c = "🍷 Wine"
+            elif "BCR" in t: c = "🏢 BCR / Blue3"
             elif "Augusto Cury" in t or "Cury" in t: c = "🧠 Desenvolvimento / Cury"
             elif "WhatsApp" in t: c = "📱 WhatsApp Oficial"
             grouped.setdefault(c, []).append(m)
@@ -269,7 +272,7 @@ def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
         return "\n".join(lines).strip()
 
     # Default list of all notes
-    lines = [f"📋 *Todas as suas Notas Registradas no EvoNotes ({len(meetings)} no total):*\n"]
+    lines = [f"📋 *Todas as suas Notas Registradas ({len(meetings)} no total):*\n"]
     for idx, m in enumerate(meetings, 1):
         m_date = (m.get("start_time") or "")[:10]
         m_title = (m.get("title") or "").replace("🎙️", "").strip()
@@ -282,21 +285,21 @@ def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
             lines.append(f"   • _Síntese:_ {m_sum}...")
         lines.append("")
         
-    lines.append("💡 *Personalização de Visualização:*")
-    lines.append("_Chefe, deseja que eu reordene esta lista por: 1. Data mais recente, 2. Cliente / Empresa (Britânia, Wine, etc.), ou 3. Categoria?_")
+    lines.append("💡 *Dica:* Peça para ordenar por _data mais recente_ ou por _cliente_ a qualquer momento!")
     return "\n".join(lines).strip()
 
-def execute_get_note_details(arguments: Dict[str, Any]) -> str:
+def execute_get_note_details(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     file_id = arguments.get("file_id")
-    meeting = db.get_meeting(file_id)
+    meeting = db.get_meeting(file_id, user_id=active_user_id)
     if not meeting:
-        return f"Nota com ID `{file_id}` não foi encontrada no EvoNotes."
+        return f"Nota com ID `{file_id}` não foi encontrada no seu workspace."
         
     intel = meeting.get("intelligence") or {}
     
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM commitments WHERE meeting_id = ?", (file_id,))
+        cursor.execute("SELECT * FROM commitments WHERE meeting_id = ? AND (user_id = ? OR user_id IS NULL)", (file_id, active_user_id))
         tasks = [dict(r) for r in cursor.fetchall()]
     
     res = f"# 📄 {meeting.get('title')}\n\n"
@@ -329,59 +332,67 @@ def execute_get_note_details(arguments: Dict[str, Any]) -> str:
             
     return res
 
-def execute_get_tasks(arguments: Dict[str, Any]) -> str:
+def execute_get_tasks(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     status = arguments.get("status", "PENDING")
     owner_filter = arguments.get("owner", "").lower().strip()
     
-    tasks = db.get_all_tasks(status=status if status != "ALL" else None)
+    tasks = db.get_all_tasks(user_id=active_user_id, status=status if status != "ALL" else None)
         
     if owner_filter:
         tasks = [t for t in tasks if owner_filter in (t.get("owner") or "").lower()]
         
     if not tasks:
-        return f"Nenhuma tarefa encontrada com o status '{status}'."
+        return f"🎉 Nenhuma tarefa pendente no momento! Todas as ações anteriores foram concluídas."
         
-    res = f"📋 **Central de Tarefas EvoNotes ({len(tasks)} itens):**\n\n"
+    res = f"📋 *Central de Tarefas ({len(tasks)} itens pendentes):*\n\n"
     for t in tasks:
-        status_icon = "✅ [Concluída]" if t.get("status") == "DONE" else "⏳ [Pendente]"
-        res += f"- **ID #{t.get('id')}:** {status_icon} **{t.get('action')}**\n"
-        res += f"   - *Responsável:* {t.get('owner', 'Você')} | *Prazo:* {t.get('deadline_or_context', 'Hoje')}\n"
-        if t.get("meeting_title"):
-            res += f"   - *Origem:* {t.get('meeting_title')}\n"
-        res += "\n"
-    return res
+        status_icon = "✅" if t.get("status") == "DONE" else "⏳"
+        res += f"• *#{t.get('id')}* {status_icon} *{t.get('action')}*\n"
+        res += f"  > 👤 _{t.get('owner', 'Você')}_ | ⏱️ _{t.get('deadline_or_context', 'Hoje')}_\n"
+    return res.strip()
 
-def execute_create_task(arguments: Dict[str, Any]) -> str:
+def execute_create_task(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     action = arguments.get("action")
     owner = arguments.get("owner", "Você")
     deadline = arguments.get("deadline", "Hoje")
-    meeting_id = arguments.get("meeting_id", "general")
+    meeting_id = arguments.get("meeting_id")
     
-    with db.get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, status, created_at)
-            VALUES (?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)
-        """, (meeting_id, owner, action, deadline))
-        task_id = cursor.lastrowid
-        conn.commit()
+    # If no meeting_id or standalone quick task, ensure a memo meeting exists for that user
+    if not meeting_id or meeting_id == "general":
+        memo_id = f"mcp_{active_user_id}_memo"
+        db.save_meeting({
+            "file_id": memo_id,
+            "title": "⚡ Ações e Tarefas Rápidas WhatsApp",
+            "category": "Geral",
+            "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "duration_seconds": 60,
+            "executive_summary": "Atas e ações registradas diretamente via comandos rápidos de chat e MCP.",
+            "intelligence": {"meeting_title": "Ações Rápidas", "category": "Geral"},
+            "user_id": active_user_id
+        })
+        meeting_id = memo_id
         
-    return f"✅ **Tarefa criada com sucesso no EvoNotes!**\n- **ID:** #{task_id}\n- **Ação:** {action}\n- **Responsável:** {owner}\n- **Prazo:** {deadline}"
+    task_id = db.create_task(meeting_id=meeting_id, action=action, owner=owner, deadline=deadline, user_id=active_user_id)
+    return f"✅ *Tarefa Registrada com Sucesso!*\n• *ID:* #{task_id}\n• *Ação:* {action}\n• *Responsável:* {owner}\n• *Prazo:* {deadline}"
 
-def execute_complete_task(arguments: Dict[str, Any]) -> str:
+def execute_complete_task(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     task_id = arguments.get("task_id")
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE commitments SET status = 'DONE', completed_at = CURRENT_TIMESTAMP WHERE id = ?", (task_id,))
+        cursor.execute("UPDATE commitments SET status = 'DONE', completed_at = CURRENT_TIMESTAMP WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (task_id, active_user_id))
         rows = cursor.rowcount
         conn.commit()
         
     if rows > 0:
-        return f"✅ Tarefa #{task_id} marcada como CONCLUÍDA no EvoNotes!"
+        return f"✅ *Tarefa #{task_id} marcada como CONCLUÍDA com sucesso!* 🎉"
     else:
-        return f"❌ Tarefa com ID #{task_id} não foi encontrada no banco."
+        return f"❌ Tarefa com ID #{task_id} não foi encontrada no seu workspace."
 
-def execute_create_note(arguments: Dict[str, Any]) -> str:
+def execute_create_note(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
     title = arguments.get("title")
     content = arguments.get("content")
     category = arguments.get("category", "Geral")
@@ -406,14 +417,16 @@ def execute_create_note(arguments: Dict[str, Any]) -> str:
         "executive_summary": content,
         "intelligence": intel,
         "transcript_full": content,
-        "custom_notes": "Criada via integração MCP externa (ChatGPT / Claude)"
+        "custom_notes": "Criada via integração MCP externa",
+        "user_id": active_user_id
     })
     
-    return f"🚀 **Nota criada com sucesso no EvoNotes!**\n- **ID:** `{file_id}`\n- **Título:** {title}\n- **Categoria:** {category}\n- **Tarefas vinculadas:** {len(tasks_to_create)}"
+    return f"🚀 *Nota criada com sucesso no EvoNotes!*\n- *ID:* `{file_id}`\n- *Título:* {title}\n- *Categoria:* {category}\n- *Tarefas vinculadas:* {len(tasks_to_create)}"
 
-def execute_get_executive_briefing(arguments: Dict[str, Any]) -> str:
-    meetings = db.get_all_meetings()
-    tasks = db.get_all_tasks(status="ALL")
+def execute_get_executive_briefing(arguments: Dict[str, Any], user_id: Optional[str] = None) -> str:
+    active_user_id = user_id or arguments.get("user_id") or "felipe_donato"
+    meetings = db.get_all_meetings(user_id=active_user_id)
+    tasks = db.get_all_tasks(user_id=active_user_id, status="ALL")
     pending_tasks = [t for t in tasks if t.get("status") == "PENDING"]
     
     hours_saved = round(max(0.8, len(meetings) * 0.4), 1)
