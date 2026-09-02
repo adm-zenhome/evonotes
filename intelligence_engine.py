@@ -485,56 +485,109 @@ Retorne um JSON ESTRITO com o formato:
                 except Exception as oe:
                     logger.warning(f"OpenAI fallback error: {oe}")
 
-            # 3. Deterministic 100x Chief of Staff Engine (Zero Quota / Zero Timeout Guaranteed)
+            # =========================================================================
+            # 🚀 3. DIRECT MCP TOOL ROUTER & INSTANCE EXECUTION (Zero Quota / Real DB)
+            # =========================================================================
+            import mcp_server
             lower_text = text.lower().strip()
-            
-            # Detect Task Creation Command
-            if any(k in lower_text for k in ["anota aí", "anota ai", "lembrar de", "criar tarefa", "adicionar tarefa", "tarefa:"]):
-                clean_action = re.sub(r"^(anota aí|anota ai|lembrar de|criar tarefa|adicionar tarefa|tarefa:)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
-                if not clean_action: clean_action = text
-                return {
-                    "intent": "COMMAND_TASK",
-                    "reply_msg": f"✅ **Tarefa Registrada:** '{clean_action}'\n📌 **Responsável:** Felipe Donato\n⏱️ **Prazo:** Hoje / Próximos Passos\n\n*Ação cadastrada na Central de Tarefas do EvoNotes OS.*",
-                    "tasks_to_create": [{"action": clean_action, "owner": "Felipe Donato", "deadline": "Hoje"}],
-                    "is_memo": False
-                }
 
-            # Detect Pending Tasks Query
-            if any(k in lower_text for k in ["minhas tarefas", "quais tarefas", "tarefas pendentes", "o que tenho pra fazer", "o que eu tenho"]):
-                if tasks:
-                    task_lines = "\n".join([f"• **{t.get('action')}** (Prazo: {t.get('deadline_or_context') or 'A definir'})" for t in tasks[:5]])
-                    return {
-                        "intent": "QUESTION",
-                        "reply_msg": f"📋 **Suas Principais Tarefas Pendentes ({len(tasks)} no total):**\n\n{task_lines}\n\n*Gerenciadas em tempo real pelo EvoNotes Chief of Staff.*",
-                        "tasks_to_create": [],
-                        "is_memo": False
-                    }
-                else:
-                    return {
-                        "intent": "QUESTION",
-                        "reply_msg": "🎉 **Você não tem nenhuma tarefa pendente no momento!** Todas as deliberações anteriores foram concluídas.",
-                        "tasks_to_create": [],
-                        "is_memo": False
-                    }
-
-            # Detect Database / Storage Query
-            if any(k in lower_text for k in ["banco de dados", "qual banco", "database", "banco consultado", "qual eh meu banco", "qual é o meu banco"]):
+            # 1. LIST NOTES / RECENT MEETINGS (execute_get_recent_notes)
+            if any(k in lower_text for k in ["lista as notas", "liste as notas", "listar notas", "lista notas", "liste notas", "quais notas", "minhas notas", "ultimas notas", "últimas notas", "ver notas", "mostrar notas", "listar reunioes", "reunioes gravadas", "reuniões", "historico", "todas as notas"]):
+                mcp_res = mcp_server.execute_get_recent_notes({"limit": 5})
                 return {
-                    "intent": "QUESTION",
-                    "reply_msg": "🗄️ **Banco de Dados Oficial do EvoNotes OS:**\n\n• **Motor:** SQLite 3 Persistente (`data/executive_voice.db`)\n• **Tabelas Conectadas:**\n  - `meetings` (14 notas e reuniões gravadas)\n  - `commitments` (Central de tarefas e to-dos executivos)\n  - `custom_categories` (Categorias e filtros)\n  - `user_profiles` (Calibração de tom de voz do Felipe)\n  - `accounts_deals` (Pipeline comercial B2B)\n• **Sincronização:** Local no MacBook + Cloud Sync em tempo real via Railway.",
+                    "intent": "KNOWLEDGE_SEARCH",
+                    "reply_msg": mcp_res,
                     "tasks_to_create": [],
                     "is_memo": False
                 }
 
-            # Detect Numeric Menu Selection (1, 2, 3, 4)
+            # 2. EXECUTIVE BRIEFING / METRICS (execute_get_executive_briefing)
+            if any(k in lower_text for k in ["briefing", "resumo geral", "status geral", "metricas", "métricas", "como está meu dia", "como esta meu dia", "visão geral", "dashboard"]):
+                mcp_res = mcp_server.execute_get_executive_briefing({})
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": mcp_res,
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # 3. LIST TASKS / PENDING TO-DOS (execute_get_tasks)
+            if any(k in lower_text for k in ["minhas tarefas", "quais tarefas", "tarefas pendentes", "o que tenho pra fazer", "o que eu tenho", "listar tarefas", "to-dos", "to dos", "pendencias", "pendências", "minha lista", "tarefas"]):
+                mcp_res = mcp_server.execute_get_tasks({"status": "PENDING"})
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": mcp_res,
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # 4. COMPLETE TASK (execute_complete_task)
+            if any(k in lower_text for k in ["concluir tarefa", "finalizar tarefa", "tarefa feita", "conclui a tarefa", "conclui tarefa", "concluído #", "concluido #", "feita #", "concluir #"]):
+                match_id = re.search(r"(\d+)", text)
+                if match_id:
+                    t_id = int(match_id.group(1))
+                    mcp_res = mcp_server.execute_complete_task({"task_id": t_id})
+                    return {
+                        "intent": "COMMAND_TASK",
+                        "reply_msg": mcp_res,
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+            # 5. CREATE TASK (execute_create_task)
+            if any(k in lower_text for k in ["anota aí", "anota ai", "lembrar de", "criar tarefa", "adicionar tarefa", "tarefa:", "nova tarefa"]):
+                clean_action = re.sub(r"^(anota aí|anota ai|lembrar de|criar tarefa|adicionar tarefa|nova tarefa|tarefa:)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
+                if not clean_action: clean_action = text
+                mcp_res = mcp_server.execute_create_task({"action": clean_action, "owner": "Felipe Donato", "deadline": "Hoje"})
+                return {
+                    "intent": "COMMAND_TASK",
+                    "reply_msg": mcp_res,
+                    "tasks_to_create": [{"action": clean_action, "owner": "Felipe Donato", "deadline": "Hoje"}],
+                    "is_memo": False
+                }
+
+            # 6. SEARCH NOTES BY KEYWORD / CLIENT (execute_search_notes)
+            if any(k in lower_text for k in ["busca nota", "buscar nota", "pesquisar", "pesquisa", "procurar", "o que conversamos sobre", "o que foi falado sobre", "o que foi decidido em", "reuniao com", "reunião com", "reuniao da", "reunião da", "nota sobre", "notas sobre", "wine", "britânia", "britania", "zamp", "bcr", "cury", "podcast"]):
+                clean_query = re.sub(r"^(busca nota|buscar nota|pesquisar|pesquisa|procurar|o que conversamos sobre|o que foi falado sobre|o que foi decidido em|reuniao com|reunião com|reuniao da|reunião da|nota sobre|notas sobre)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
+                if not clean_query: clean_query = text
+                mcp_res = mcp_server.execute_search_notes({"query": clean_query})
+                return {
+                    "intent": "KNOWLEDGE_SEARCH",
+                    "reply_msg": mcp_res,
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # 7. NOTE DETAILS (execute_get_note_details)
+            if any(k in lower_text for k in ["detalhes da nota", "detalhes de", "abrir nota", "resumo da nota", "nota id"]):
+                match_id = re.search(r"([a-f0-9]{20,40}|wa_\w+|rec_\w+|mcp_\w+)", text)
+                target_id = match_id.group(1) if match_id else text
+                mcp_res = mcp_server.execute_get_note_details({"file_id": target_id})
+                return {
+                    "intent": "KNOWLEDGE_SEARCH",
+                    "reply_msg": mcp_res,
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # 8. Database / Storage Query
+            if any(k in lower_text for k in ["banco de dados", "qual banco", "database", "banco consultado", "qual eh meu banco", "qual é o meu banco"]):
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": "🗄️ *Banco de Dados Oficial do EvoNotes OS:*\n\n• *Motor:* SQLite 3 Persistente (`data/executive_voice.db`)\n• *MCP Server:* Conectado aos endpoints `/mcp` e ferramentas nativas (`search_notes`, `get_tasks`, `get_recent_notes`, `create_task`)\n• *Tabelas Conectadas:*\n  - `meetings` (14 notas e reuniões gravadas)\n  - `commitments` (Central de tarefas e to-dos executivos)\n  - `custom_categories` (Categorias e filtros)\n  - `user_profiles` (Calibração de tom de voz do Felipe)\n  - `accounts_deals` (Pipeline comercial B2B)\n• *Sincronização:* Local no MacBook + Cloud Sync em tempo real via Railway.",
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # 9. Numeric Menu Selection (1, 2, 3, 4)
             if lower_text in ["1", "2", "3", "4", "5", "menu", "ajuda"]:
                 opt_map = {
-                    "1": "❓ **Perguntas Diretas:** Você pode me perguntar sobre o status da sua conta, consultar suas reuniões ou ver suas tarefas pendentes. Experimente: *'Quais são minhas tarefas de hoje?'*",
-                    "2": "📝 **Criar Tarefas por Voz/Texto:** Experimente mandar: *'Anota aí: ligar para o parceiro amanhã às 14h'*",
-                    "3": "🔍 **Consultar Reuniões:** Experimente perguntar: *'O que foi conversado na última reunião?'*",
-                    "4": "🎙️ **Áudios e Memos:** Basta encaminhar ou gravar uma mensagem de voz aqui no WhatsApp que eu transcrevo com Whisper e gero a ata executiva em segundos!",
-                    "menu": "✨ **EvoNotes Copilot:** Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas ou pergunte sobre suas tarefas pendentes!",
-                    "ajuda": "✨ **EvoNotes Copilot:** Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas ou pergunte sobre suas tarefas pendentes!"
+                    "1": "❓ *Perguntas Diretas:* Você pode me perguntar sobre o status da sua conta, consultar suas reuniões ou ver suas tarefas pendentes. Experimente: *'Quais são minhas tarefas de hoje?'*",
+                    "2": "📝 *Criar Tarefas por Voz/Texto:* Experimente mandar: *'Anota aí: ligar para o parceiro amanhã às 14h'*",
+                    "3": "🔍 *Consultar Reuniões:* Experimente perguntar: *'lista as notas'* ou *'o que conversamos sobre Britânia?'*",
+                    "4": "🎙️ *Áudios e Memos:* Basta encaminhar ou gravar uma mensagem de voz aqui no WhatsApp que eu transcrevo com Whisper e gero a ata executiva em segundos!",
+                    "menu": "✨ *EvoNotes Copilot:* Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas (*'lista as notas'*) ou pergunte sobre suas tarefas pendentes!",
+                    "ajuda": "✨ *EvoNotes Copilot:* Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas (*'lista as notas'*) ou pergunte sobre suas tarefas pendentes!"
                 }
                 return {
                     "intent": "QUESTION",
@@ -543,19 +596,19 @@ Retorne um JSON ESTRITO com o formato:
                     "is_memo": False
                 }
 
-            # Detect Status / Connection Query
+            # 10. Status / Connection Query
             if any(k in lower_text for k in ["conta ta ativa", "conta está ativa", "status", "conectado", "ta funcionando", "está funcionando", "qual conta"]):
                 return {
                     "intent": "QUESTION",
-                    "reply_msg": "⚡ **Conta 100% Ativa e Operacional!**\n\n• **Usuário:** Felipe Donato (`felipe_donato`)\n• **EvoNotes OS:** Nuvem Conectada (Railway)\n• **WhatsApp Oficial:** +55 (11) 96000-4895 (Meta Cloud API)\n• **Plaud Note Pro:** Hardware sincronizado\n• **Base:** 14 notas registradas e tarefas ativas.",
+                    "reply_msg": "⚡ *Conta 100% Ativa e Operacional!*\n\n• *Usuário:* Felipe Donato (`felipe_donato`)\n• *EvoNotes OS:* Nuvem Conectada (Railway)\n• *WhatsApp Oficial:* +55 (11) 96000-4895 (Meta Cloud API)\n• *MCP Server:* Ativo com 8 ferramentas executivas\n• *Base:* 14 notas registradas e tarefas ativas.",
                     "tasks_to_create": [],
                     "is_memo": False
                 }
 
-            # General Executive Question / Knowledge
+            # General Fallback with Contextual MCP Actions
             return {
                 "intent": "QUESTION", 
-                "reply_msg": f"⚡ **Chief of Staff EvoNotes:** Entendido, Felipe! Estou com sua base de inteligência conectada (14 notas e {len(tasks)} tarefas ativas). Como deseja avançar com '{text}'?", 
+                "reply_msg": f"⚡ *Chief of Staff EvoNotes:*\n\nEntendido, Felipe! Estou com sua base conectada via MCP (14 notas e {len(tasks)} tarefas ativas).\n\n💡 *Experimente:*\n• *'lista as notas'* — Ver suas últimas reuniões\n• *'minhas tarefas'* — Consultar to-dos pendentes\n• *'briefing'* — Ver resumo geral do dia\n• *'Anota aí: [tarefa]'* — Criar nova ação\n• Ou mande um áudio de voz para transcrição imediata!", 
                 "tasks_to_create": [],
                 "is_memo": False
             }

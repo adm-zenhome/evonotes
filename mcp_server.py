@@ -219,20 +219,21 @@ def execute_search_notes(arguments: Dict[str, Any]) -> str:
                 "file_id": m.get("file_id"),
                 "title": m.get("title"),
                 "category": m.get("category"),
-                "start_time": m.get("start_time"),
-                "summary_excerpt": (m.get("executive_summary") or "")[:200] + "..." if len(m.get("executive_summary") or "") > 200 else m.get("executive_summary")
+                "start_time": m.get("start_time") or m.get("date") or "Hoje",
+                "summary_excerpt": (m.get("executive_summary") or "")[:220] + "..." if len(m.get("executive_summary") or "") > 220 else m.get("executive_summary")
             })
             if len(matches) >= limit:
                 break
                 
     if not matches:
-        return f"Nenhuma nota encontrada para o termo '{query}' no EvoNotes."
+        return f"🔍 Nenhuma nota encontrada para o termo *'{query}'* no seu EvoNotes."
         
-    res = f"🔍 **Resultados encontrados no EvoNotes ({len(matches)}):**\n\n"
+    res = f"🔍 *Resultados Encontrados ({len(matches)}):*\n\n"
     for idx, item in enumerate(matches, 1):
-        res += f"**{idx}. {item['title']}** (ID: `{item['file_id']}`)\n"
-        res += f"   - *Categoria:* {item['category']} | *Data:* {item['start_time']}\n"
-        res += f"   - *Síntese:* {item['summary_excerpt']}\n\n"
+        res += f"*{idx}. {item['title']}*\n"
+        res += f"   • _Categoria:_ {item['category']} | _Data:_ {item['start_time']}\n"
+        res += f"   • _Síntese:_ {item['summary_excerpt']}\n\n"
+    res += f"💡 _Dica: Digite 'detalhes da nota 1' ou mande um comando de voz._"
     return res
 
 def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
@@ -245,20 +246,31 @@ def execute_get_recent_notes(arguments: Dict[str, Any]) -> str:
         
     recent = meetings[:limit]
     if not recent:
-        return "Nenhuma nota encontrada no EvoNotes."
+        return "📋 Nenhuma nota encontrada no seu EvoNotes."
         
-    res = f"📋 **Notas Mais Recentes no EvoNotes ({len(recent)}):**\n\n"
+    res = f"📋 *Suas Notas Mais Recentes no EvoNotes ({len(recent)}):*\n\n"
     for idx, m in enumerate(recent, 1):
-        res += f"**{idx}. {m.get('title')}**\n"
-        res += f"   - ID: `{m.get('file_id')}` | Data: {m.get('start_time') or 'Hoje'} | Categoria: {m.get('category') or 'Geral'}\n"
-        res += f"   - Resumo: {(m.get('executive_summary') or 'Sem resumo')[:150]}...\n\n"
+        date_str = m.get("start_time") or m.get("date") or "Hoje"
+        if "T" in str(date_str):
+            date_str = date_str.replace("T", " ")[:16]
+        res += f"*{idx}. {m.get('title')}*\n"
+        res += f"   • _Data:_ {date_str} | _Categoria:_ {m.get('category') or 'Geral'}\n"
+        res += f"   • _Síntese:_ {(m.get('executive_summary') or 'Sem resumo disponível')[:160]}...\n\n"
+    res += "💡 _Dica: Você pode pesquisar termos específicos ou pedir 'quais tarefas pendentes'._"
     return res
 
 def execute_get_note_details(arguments: Dict[str, Any]) -> str:
     file_id = arguments.get("file_id")
     meeting = db.get_meeting(file_id)
     if not meeting:
-        return f"Nota com ID `{file_id}` não foi encontrada no EvoNotes."
+        # Try finding by search
+        all_m = db.get_all_meetings()
+        matched = [m for m in all_m if file_id.lower() in (m.get("title") or "").lower() or file_id.lower() in (m.get("file_id") or "").lower()]
+        if matched:
+            meeting = matched[0]
+            file_id = meeting.get("file_id")
+        else:
+            return f"❌ Nota com ID ou termo *'{file_id}'* não foi encontrada."
         
     intel = meeting.get("intelligence") or {}
     
@@ -267,34 +279,26 @@ def execute_get_note_details(arguments: Dict[str, Any]) -> str:
         cursor.execute("SELECT * FROM commitments WHERE meeting_id = ?", (file_id,))
         tasks = [dict(r) for r in cursor.fetchall()]
     
-    res = f"# 📄 {meeting.get('title')}\n\n"
-    res += f"- **ID:** `{file_id}`\n"
-    res += f"- **Categoria:** {meeting.get('category') or 'Geral'}\n"
-    res += f"- **Data:** {meeting.get('start_time') or 'Hoje'}\n"
-    res += f"- **Duração:** {(meeting.get('duration_seconds') or 0) // 60} min\n\n"
+    res = f"📄 *{meeting.get('title')}*\n\n"
+    res += f"• *Categoria:* {meeting.get('category') or 'Geral'}\n"
+    res += f"• *Data:* {meeting.get('start_time') or meeting.get('date') or 'Hoje'}\n\n"
     
-    res += f"## 🎯 Síntese Executiva:\n{meeting.get('executive_summary') or 'Sem resumo.'}\n\n"
+    res += f"🎯 *Síntese Executiva:*\n{meeting.get('executive_summary') or 'Sem resumo.'}\n\n"
     
     highlights = intel.get("key_highlights") or []
     if highlights:
-        res += "## 💡 Destaques & Decisões:\n"
-        for h in highlights:
-            res += f"- {h}\n"
+        res += "💡 *Destaques & Decisões:*\n"
+        for h in highlights[:4]:
+            res += f"• {h}\n"
         res += "\n"
         
     if tasks:
-        res += "## ✅ Tarefas & Compromissos:\n"
+        res += "✅ *Compromissos & To-Dos:*\n"
         for t in tasks:
             status_icon = "✅" if t.get("status") == "DONE" else "⏳"
-            res += f"- {status_icon} **[{t.get('owner', 'Você')}]:** {t.get('action')} (Prazo: {t.get('deadline_or_context', 'Hoje')})\n"
+            res += f"• {status_icon} *[{t.get('owner', 'Você')}]:* {t.get('action')} _(Prazo: {t.get('deadline_or_context', 'Hoje')})_\n"
         res += "\n"
         
-    transcript = meeting.get("transcript_full") or ""
-    if transcript:
-        res += f"## 📝 Transcrição Original:\n{transcript[:1500]}"
-        if len(transcript) > 1500:
-            res += "\n\n*(Transcrição truncada para exibição resumida)*"
-            
     return res
 
 def execute_get_tasks(arguments: Dict[str, Any]) -> str:
@@ -307,26 +311,39 @@ def execute_get_tasks(arguments: Dict[str, Any]) -> str:
         tasks = [t for t in tasks if owner_filter in (t.get("owner") or "").lower()]
         
     if not tasks:
-        return f"Nenhuma tarefa encontrada com o status '{status}'."
+        return f"🎉 Nenhuma tarefa pendente no momento! Todas as deliberações foram concluídas."
         
-    res = f"📋 **Central de Tarefas EvoNotes ({len(tasks)} itens):**\n\n"
-    for t in tasks:
-        status_icon = "✅ [Concluída]" if t.get("status") == "DONE" else "⏳ [Pendente]"
-        res += f"- **ID #{t.get('id')}:** {status_icon} **{t.get('action')}**\n"
-        res += f"   - *Responsável:* {t.get('owner', 'Você')} | *Prazo:* {t.get('deadline_or_context', 'Hoje')}\n"
+    res = f"📋 *Central de Tarefas EvoNotes ({len(tasks)} itens pendentes):*\n\n"
+    for t in tasks[:8]:
+        res += f"• *#{t.get('id')}* ⏳ *{t.get('action')}*\n"
+        res += f"   _(Resp: {t.get('owner', 'Felipe Donato')} | Prazo: {t.get('deadline_or_context', 'Hoje')})_\n"
         if t.get("meeting_title"):
-            res += f"   - *Origem:* {t.get('meeting_title')}\n"
+            res += f"   _Origem: {t.get('meeting_title')[:50]}_\n"
         res += "\n"
+    res += "💡 _Dica: Digite 'concluir tarefa #ID' para dar baixa imediata pelo WhatsApp!_"
     return res
 
 def execute_create_task(arguments: Dict[str, Any]) -> str:
     action = arguments.get("action")
-    owner = arguments.get("owner", "Você")
+    owner = arguments.get("owner", "Felipe Donato")
     deadline = arguments.get("deadline", "Hoje")
-    meeting_id = arguments.get("meeting_id", "general")
+    meeting_id = arguments.get("meeting_id")
     
+    all_m = db.get_all_meetings()
+    if not meeting_id or meeting_id == "general":
+        meeting_id = all_m[0]["file_id"] if all_m else "mcp_quick_memo"
+        
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        cursor.execute("SELECT file_id FROM meetings WHERE file_id = ?", (meeting_id,))
+        if not cursor.fetchone():
+            # Create a general entry if it doesn't exist
+            cursor.execute("""
+                INSERT OR IGNORE INTO meetings (file_id, title, category, start_time, duration_seconds, executive_summary)
+                VALUES (?, '⚡ Ações e Tarefas Rápidas WhatsApp', 'Geral', CURRENT_TIMESTAMP, 0, 'Repositório de tarefas criadas via WhatsApp / MCP.')
+            """, (meeting_id,))
+            conn.commit()
+            
         cursor.execute("""
             INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, status, created_at)
             VALUES (?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)
@@ -334,7 +351,7 @@ def execute_create_task(arguments: Dict[str, Any]) -> str:
         task_id = cursor.lastrowid
         conn.commit()
         
-    return f"✅ **Tarefa criada com sucesso no EvoNotes!**\n- **ID:** #{task_id}\n- **Ação:** {action}\n- **Responsável:** {owner}\n- **Prazo:** {deadline}"
+    return f"✅ *Tarefa Registrada com Sucesso!*\n\n• *ID:* #{task_id}\n• *Ação:* {action}\n• *Responsável:* {owner}\n• *Prazo:* {deadline}\n\n_Cadastrada na sua Central de Tarefas EvoNotes._"
 
 def execute_complete_task(arguments: Dict[str, Any]) -> str:
     task_id = arguments.get("task_id")
@@ -345,9 +362,9 @@ def execute_complete_task(arguments: Dict[str, Any]) -> str:
         conn.commit()
         
     if rows > 0:
-        return f"✅ Tarefa #{task_id} marcada como CONCLUÍDA no EvoNotes!"
+        return f"✅ *Tarefa #{task_id} marcada como CONCLUÍDA com sucesso!* 🎉"
     else:
-        return f"❌ Tarefa com ID #{task_id} não foi encontrada no banco."
+        return f"❌ Tarefa com ID *#{task_id}* não foi encontrada no banco."
 
 def execute_create_note(arguments: Dict[str, Any]) -> str:
     title = arguments.get("title")
@@ -374,10 +391,10 @@ def execute_create_note(arguments: Dict[str, Any]) -> str:
         "executive_summary": content,
         "intelligence": intel,
         "transcript_full": content,
-        "custom_notes": "Criada via integração MCP externa (ChatGPT / Claude)"
+        "custom_notes": "Criada via integração MCP / WhatsApp"
     })
     
-    return f"🚀 **Nota criada com sucesso no EvoNotes!**\n- **ID:** `{file_id}`\n- **Título:** {title}\n- **Categoria:** {category}\n- **Tarefas vinculadas:** {len(tasks_to_create)}"
+    return f"🚀 *Nota Criada com Sucesso!*\n\n• *Título:* {title}\n• *Categoria:* {category}\n• *Tarefas vinculadas:* {len(tasks_to_create)}"
 
 def execute_get_executive_briefing(arguments: Dict[str, Any]) -> str:
     meetings = db.get_all_meetings()
@@ -386,20 +403,20 @@ def execute_get_executive_briefing(arguments: Dict[str, Any]) -> str:
     
     hours_saved = round(max(0.8, len(meetings) * 0.4), 1)
     
-    res = f"# 🏛️ EvoNotes Executive Briefing\n\n"
-    res += f"📊 **Métricas da Base:**\n"
-    res += f"- **Notas Processadas:** {len(meetings)}\n"
-    res += f"- **Tempo Economizado:** {hours_saved}h\n"
-    res += f"- **Tarefas Pendentes Ativas:** {len(pending_tasks)}\n\n"
+    res = f"🏛️ *EvoNotes Executive Briefing*\n\n"
+    res += f"📊 *Métricas da sua Base:*\n"
+    res += f"• *Notas & Gravações:* {len(meetings)}\n"
+    res += f"• *Tempo Economizado:* {hours_saved}h\n"
+    res += f"• *Tarefas Pendentes:* {len(pending_tasks)}\n\n"
     
-    res += f"### 📌 Últimas 3 Notas Registradas:\n"
+    res += f"📌 *Últimas 3 Notas Registradas:*\n"
     for m in meetings[:3]:
-        res += f"- **{m.get('title')}:** {(m.get('executive_summary') or '')[:120]}...\n"
+        res += f"• *{m.get('title')}:* {(m.get('executive_summary') or '')[:100]}...\n"
     res += "\n"
     
-    res += f"### ⚡ Top 3 Tarefas Imediatas:\n"
+    res += f"⚡ *Top 3 Tarefas Prioritárias:*\n"
     for t in pending_tasks[:3]:
-        res += f"- **[{t.get('owner', 'Você')}]:** {t.get('action')} (Prazo: {t.get('deadline_or_context', 'Hoje')})\n"
+        res += f"• *#{t.get('id')}* *[{t.get('owner', 'Você')}]:* {t.get('action')} _(Prazo: {t.get('deadline_or_context', 'Hoje')})_\n"
         
     return res
 
