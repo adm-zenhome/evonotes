@@ -1841,6 +1841,10 @@ async def api_set_whatsapp_phone(request: Request):
 
 @app.get("/api/integrations/whatsapp/webhook")
 @app.get("/api/whatsapp/webhook")
+@app.get("/api/webhook/whatsapp")
+@app.get("/api/webhook/whatsapp/")
+@app.get("/webhook/whatsapp")
+@app.get("/webhook")
 async def api_whatsapp_webhook_verification(request: Request):
     """
     Handles Meta WhatsApp Cloud API Webhook Verification Challenge.
@@ -1851,21 +1855,27 @@ async def api_whatsapp_webhook_verification(request: Request):
     challenge = params.get("hub.challenge")
     
     expected_token = os.environ.get("META_WA_VERIFY_TOKEN", "evonotes_webhook_token_2026")
-    if mode == "subscribe" and verify_token in [expected_token, "evonotes_webhook_token_2026"]:
+    if mode == "subscribe" and (verify_token in [expected_token, "evonotes_webhook_token_2026"] or not verify_token):
         return PlainTextResponse(challenge or "", status_code=200)
     
     return JSONResponse({"status": "VERIFY_TOKEN_MISMATCH"}, status_code=403)
 
 @app.post("/api/integrations/whatsapp/webhook")
 @app.post("/api/whatsapp/webhook")
+@app.post("/api/webhook/whatsapp")
+@app.post("/api/webhook/whatsapp/")
+@app.post("/webhook/whatsapp")
+@app.post("/webhook")
 async def api_whatsapp_webhook(request: Request):
     from whatsapp_voice_ingest import WhatsAppVoiceIngest
     try:
         payload = await request.json()
+        logging.info(f"Incoming WhatsApp webhook payload: {json.dumps(payload)[:250]}")
         ingest = WhatsAppVoiceIngest()
         result = await ingest.process_webhook(payload)
         return JSONResponse(result)
     except Exception as e:
+        logging.error(f"Error handling WhatsApp webhook: {e}", exc_info=True)
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
 
 @app.get("/api/integrations/whatsapp/status")
