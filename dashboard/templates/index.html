@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>Executive Voice OS — Second Brain</title>
+    <title>Evo Notes — Second Brain</title>
+    <meta name="application-name" content="Evo Notes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Evo Notes">
+    <link rel="apple-touch-icon" sizes="180x180" href="/evonotes/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/evonotes/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/evonotes/favicon-16x16.png">
+    <link rel="manifest" href="/evonotes/manifest.json">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -43,10 +51,16 @@
             <!-- Sidebar Header -->
             <div class="p-3 flex items-center justify-between relative z-50">
                 <button onclick="showHomeDashboard()" class="flex items-center gap-2 text-sm font-bold text-[#0d0d0d] hover:bg-[#ececec] px-2.5 py-1.5 rounded-xl transition cursor-pointer">
-                    <div class="w-6 h-6 rounded-lg bg-zinc-950 text-white flex items-center justify-center text-xs font-black">
-                        <i class="ph-bold ph-waveform"></i>
+                    <div class="w-7 h-7 rounded-[8px] bg-black text-white flex items-center justify-center p-1.5 shadow-xs">
+                        <svg class="w-full h-full text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3.5" y="8.5" width="2" height="7" rx="1" fill="currentColor"/>
+                            <rect x="7.5" y="5" width="2" height="14" rx="1" fill="currentColor"/>
+                            <rect x="11" y="2.5" width="2" height="19" rx="1" fill="currentColor"/>
+                            <rect x="14.5" y="5" width="2" height="14" rx="1" fill="currentColor"/>
+                            <rect x="18.5" y="8.5" width="2" height="7" rx="1" fill="currentColor"/>
+                        </svg>
                     </div>
-                    <span>EvoNotes</span>
+                    <span class="font-extrabold tracking-tight">EvoNotes</span>
                 </button>
                 <div class="flex items-center gap-1">
                     <button onclick="openSettingsModal()" class="p-1.5 text-gray-400 hover:text-black rounded-lg hover:bg-[#ececec] transition cursor-pointer" title="Configurações e Conexões">
