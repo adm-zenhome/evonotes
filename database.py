@@ -915,17 +915,24 @@ def delete_deal_by_id(deal_id: int):
 def get_all_persistent_categories() -> list:
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        # Fetch exclusions
+        try:
+            cursor.execute("SELECT entity_name FROM inferred_exclusions_feedback WHERE entity_type = 'category'")
+            excluded = {r["entity_name"].lower() for r in cursor.fetchall()}
+        except Exception:
+            excluded = set()
+        
         cursor.execute("SELECT id, name, icon FROM custom_categories WHERE is_deleted = 0 ORDER BY created_at ASC")
         rows = cursor.fetchall()
-        cats = [dict(r) for r in rows]
+        cats = [dict(r) for r in rows if r["name"].lower() not in excluded]
         
-        # Also include any categories present in meetings that are not deleted
+        # Also include any categories present in meetings that are not deleted or excluded
         cursor.execute("SELECT DISTINCT category FROM meetings WHERE category IS NOT NULL AND category != 'Geral' AND category != ''")
         m_cats = [r["category"] for r in cursor.fetchall()]
         
         existing_names = {c["name"].lower() for c in cats}
         for mc in m_cats:
-            if mc.lower() not in existing_names:
+            if mc.lower() not in existing_names and mc.lower() not in excluded:
                 cats.append({"id": f"cat-{mc.lower().replace(' ', '-')}", "name": mc, "icon": "ph-tag"})
                 existing_names.add(mc.lower())
         return cats
@@ -934,6 +941,10 @@ def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
     cat_id = f"cat-{int(datetime.now().timestamp())}"
     with db.get_connection() as conn:
         cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM inferred_exclusions_feedback WHERE entity_type = 'category' AND entity_name = ? COLLATE NOCASE", (name,))
+        except Exception:
+            pass
         cursor.execute("""
             INSERT INTO custom_categories (id, name, icon, is_deleted)
             VALUES (?, ?, ?, 0)
@@ -945,26 +956,33 @@ def create_persistent_category(name: str, icon: str = "ph-tag") -> dict:
 def rename_category(old_name: str, new_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (old_name, old_name))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (old_name, old_name))
         row = cursor.fetchone()
         current_name = row["name"] if row else old_name
-        cursor.execute("UPDATE custom_categories SET name = ? WHERE id = ? OR name = ?", (new_name, old_name, current_name))
-        cursor.execute("UPDATE meetings SET category = ? WHERE category = ?", (new_name, current_name))
+        cursor.execute("UPDATE custom_categories SET name = ? WHERE id = ? OR name = ? COLLATE NOCASE", (new_name, old_name, current_name))
+        cursor.execute("UPDATE meetings SET category = ? WHERE category = ? COLLATE NOCASE", (new_name, current_name))
+        try:
+            cursor.execute("DELETE FROM inferred_exclusions_feedback WHERE entity_type = 'category' AND entity_name = ? COLLATE NOCASE", (new_name,))
+        except Exception:
+            pass
         conn.commit()
 
 def delete_category(cat_name: str):
     with db.get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ?", (cat_name, cat_name))
+        cursor.execute("SELECT name FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (cat_name, cat_name))
         row = cursor.fetchone()
         actual_name = row["name"] if row else cat_name
-        cursor.execute("DELETE FROM custom_categories WHERE id = ? OR name = ?", (cat_name, actual_name))
-        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ?", (actual_name,))
+        cursor.execute("DELETE FROM custom_categories WHERE id = ? OR name = ? COLLATE NOCASE", (cat_name, actual_name))
+        cursor.execute("UPDATE meetings SET category = 'Geral' WHERE category = ? COLLATE NOCASE OR category = ?", (actual_name, cat_name))
         # Record exclusion feedback
-        cursor.execute("""
-            INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
-            VALUES ('category', ?, 'DELETED_BY_USER')
-        """, (actual_name,))
+        try:
+            cursor.execute("""
+                INSERT INTO inferred_exclusions_feedback (entity_type, entity_name, reason)
+                VALUES ('category', ?, 'DELETED_BY_USER')
+            """, (actual_name,))
+        except Exception:
+            pass
         conn.commit()
         logging.info(f"Category '{actual_name}' permanently deleted and recorded in exclusion feedback.")
 

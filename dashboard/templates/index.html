@@ -2737,25 +2737,71 @@
             setTimeout(() => document.getElementById('cat-name-input').focus(), 100);
         }
 
-        async function triggerDeleteCategory() {
-            if (!contextMenuCategory) return;
-            if (!confirm(`Deseja excluir a categoria '${contextMenuCategory}'? As reuniões associadas serão mantidas.`)) return;
+        async function triggerDeleteCategory(catNameToDelete = null) {
+            const targetName = catNameToDelete || contextMenuCategory;
+            if (!targetName) return;
+            if (!confirm(`Deseja excluir a categoria '${targetName}'? As reuniões associadas serão mantidas em 'Geral'.`)) return;
 
             try {
                 const res = await fetch('/api/categories/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: contextMenuCategory })
+                    body: JSON.stringify({ name: targetName, category: targetName, id: targetName })
                 });
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
-                    categoriesState = categoriesState.filter(c => c.name !== contextMenuCategory && c.filter !== contextMenuCategory);
-                    if (activeFilterCategory === contextMenuCategory) activeFilterCategory = null;
+                    // Filter out deleted category locally
+                    categoriesState = categoriesState.filter(c => 
+                        (c.name || '').toLowerCase() !== targetName.toLowerCase() && 
+                        (c.filter || '').toLowerCase() !== targetName.toLowerCase()
+                    );
+                    
+                    if (activeFilterCategory && activeFilterCategory.toLowerCase() === targetName.toLowerCase()) {
+                        activeFilterCategory = null;
+                    }
+                    if (selectedCategoryForManager && selectedCategoryForManager.toLowerCase() === targetName.toLowerCase()) {
+                        selectedCategoryForManager = categoriesState.length > 0 ? categoriesState[0].name : null;
+                    }
+
+                    // Update meetings in local state
+                    if (Array.isArray(meetingsData)) {
+                        meetingsData.forEach(m => {
+                            if ((m.category || '').toLowerCase() === targetName.toLowerCase()) {
+                                m.category = 'Geral';
+                            }
+                            if (m.intelligence && (m.intelligence.category || '').toLowerCase() === targetName.toLowerCase()) {
+                                m.intelligence.category = 'Geral';
+                            }
+                        });
+                    }
+
+                    // Re-render UI everywhere immediately
                     renderSidebarCategories();
-            renderSidebarMeetings();
-                    showInAppToast(`🗑️ Categoria '${contextMenuCategory}' excluída!`, 'info');
+                    renderSidebarMeetings();
+                    renderSettingsCategoriesManager();
+                    if (typeof renderOfficialNotesFeed === 'function') {
+                        renderOfficialNotesFeed();
+                    }
+
+                    // Re-fetch categories from SQLite backend to guarantee 100% synchronization
+                    try {
+                        const refreshRes = await fetch('/api/categories');
+                        const freshCats = await refreshRes.json();
+                        if (Array.isArray(freshCats)) {
+                            categoriesState = freshCats;
+                            renderSidebarCategories();
+                            renderSettingsCategoriesManager();
+                        }
+                    } catch (err) {
+                        console.warn('Silent refresh of categories failed:', err);
+                    }
+
+                    showInAppToast(`🗑️ Categoria '${targetName}' excluída com sucesso!`, 'info');
+                } else {
+                    showInAppToast('Erro ao excluir categoria: ' + (data.message || 'Falha no servidor'), 'error');
                 }
             } catch (e) {
+                console.error('Erro ao excluir categoria:', e);
                 showInAppToast('Erro ao excluir categoria: ' + e.message, 'error');
             }
         }
@@ -8013,7 +8059,7 @@ _Enviado via EvoNotes OS_`);
                             <button onclick="contextMenuCategory='${cat.name}'; triggerRenameCategory()" class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition cursor-pointer" title="Renomear">
                                 <i class="ph-bold ph-pencil-simple text-xs"></i>
                             </button>
-                            <button onclick="contextMenuCategory='${cat.name}'; triggerDeleteCategory()" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-white transition cursor-pointer" title="Excluir">
+                            <button onclick="triggerDeleteCategory('${cat.name}')" class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-white transition cursor-pointer" title="Excluir Categoria">
                                 <i class="ph-bold ph-trash text-xs"></i>
                             </button>
                         </div>

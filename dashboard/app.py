@@ -1840,15 +1840,28 @@ async def api_rename_category(request: Request):
     return JSONResponse({"status": "SUCCESS", "message": f"Renomeado para {new_name}"})
 
 @app.post("/api/categories/delete")
+@app.delete("/api/categories/delete")
 async def api_delete_category(request: Request):
     from database import delete_category
-    body = await request.json()
-    name = body.get("name") or body.get("id") or ""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    name = body.get("category") or body.get("name") or body.get("id") or ""
     name = str(name).strip()
     if not name:
-        return JSONResponse({"status": "ERROR", "message": "Nome obrigatório"}, status_code=400)
+        return JSONResponse({"status": "ERROR", "message": "Nome da categoria obrigatório"}, status_code=400)
     delete_category(name)
-    return JSONResponse({"status": "SUCCESS", "message": f"Categoria removida"})
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria '{name}' removida permanentemente"})
+
+@app.delete("/api/categories/{category_name}")
+async def api_delete_category_by_path(category_name: str):
+    from database import delete_category
+    name = str(category_name).strip()
+    if not name:
+        return JSONResponse({"status": "ERROR", "message": "Nome da categoria obrigatório"}, status_code=400)
+    delete_category(name)
+    return JSONResponse({"status": "SUCCESS", "message": f"Categoria '{name}' removida permanentemente"})
 
 @app.get("/api/custom-channels")
 async def api_get_custom_channels():
