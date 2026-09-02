@@ -1061,50 +1061,6 @@ async def api_copilot_chat(payload: dict = Body(...)):
         "model": model
     })
 
-whatsapp_engine = WhatsAppVoiceIngest()
-
-@app.post("/api/webhook/whatsapp")
-async def api_webhook_whatsapp(request: Request):
-    """Webhook endpoint: Enqueues incoming WhatsApp audio into the Triagem Queue without automatic conversion."""
-    import time
-    try:
-        payload = await request.json()
-    except Exception as e:
-        logging.error(f"Invalid webhook JSON: {e}")
-        payload = {}
-    
-    if payload.get("fromMe", False):
-        return JSONResponse({"status": "SKIPPED", "reason": "FROM_ME"})
-
-    msg_id = payload.get("messageId") or payload.get("id") or f"wa_{int(time.time())}"
-    phone = payload.get("phone") or payload.get("senderPhone", "")
-    sender_name = payload.get("senderName") or payload.get("chatName") or phone
-    
-    audio_url = ""
-    if "audio" in payload and isinstance(payload["audio"], dict):
-        audio_url = payload["audio"].get("audioUrl") or payload["audio"].get("url", "")
-    elif "audioUrl" in payload:
-        audio_url = payload.get("audioUrl")
-    elif "url" in payload:
-        audio_url = payload.get("url")
-        
-    if audio_url and phone:
-        db.save_whatsapp_inbox_item({
-            "message_id": msg_id,
-            "phone": phone,
-            "sender_name": sender_name,
-            "chat_name": payload.get("chatName", sender_name),
-            "is_group": payload.get("isGroup", False),
-            "audio_url": audio_url,
-            "duration_seconds": payload.get("duration", 0),
-            "status": "PENDING"
-        })
-        logging.info(f"Enqueued real WhatsApp audio {msg_id} from {phone} into Triagem Queue.")
-        return JSONResponse({"status": "ENQUEUED", "message_id": msg_id})
-
-    return JSONResponse({"status": "SKIPPED", "reason": "NO_AUDIO"})
-
-
 # ========== PLAUD DEVICE & ACCOUNT MANAGEMENT ==========
 
 @app.get("/api/plaud/status")
