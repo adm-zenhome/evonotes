@@ -830,17 +830,20 @@
                         <!-- Seamless Ultra-Compact Responsive Tab Bar -->
                         <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto scrollbar-none justify-between sm:justify-start py-0.5">
                             <div class="inline-flex rounded-xl bg-gray-100 p-1 border-0 text-xs font-semibold overflow-x-auto whitespace-nowrap scrollbar-none flex-1 sm:flex-initial gap-0.5" id="meeting-segmented-tabs">
-                                <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg bg-white text-gray-900 font-bold shadow-2xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                                    <i class="ph-bold ph-article text-emerald-600 text-xs"></i> <span>Resumo da Nota</span>
+                                <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg text-gray-900 bg-white font-bold shadow-2xs transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-article text-emerald-600 text-xs"></i> <span>Síntese</span>
+                                </button>
+                                <button onclick="switchMeetingTab('participants')" id="btn-tab-participants" class="px-3 py-1.5 rounded-lg text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-users text-indigo-600 text-xs"></i> <span>Participantes</span>
                                 </button>
                                 <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                                     <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
                                 </button>
                                 <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1.5 rounded-lg text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                                    <i class="ph-bold ph-paper-plane-tilt text-red-500 text-xs"></i> <span>Follow-up / E-mail</span>
+                                    <i class="ph-bold ph-paper-plane-tilt text-red-500 text-xs"></i> <span>Follow-up E-mail</span>
                                 </button>
-                                <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1.5 rounded-lg text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                                    <i class="ph-bold ph-shield-warning text-purple-600 text-xs"></i> <span>Riscos & Alertas</span>
+                                <button onclick="switchMeetingTab('whatsapp')" id="btn-tab-whatsapp" class="px-3 py-1.5 rounded-lg text-gray-600 hover:text-black transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                                    <i class="ph-bold ph-whatsapp-logo text-emerald-600 text-xs"></i> <span>Follow-up WhatsApp</span>
                                 </button>
                             </div>
                             
@@ -865,65 +868,75 @@
         <div id="bottom-input-container" class="px-4 sm:px-6 pb-4 pt-1 w-full flex-shrink-0 transition-all duration-300">
             <div id="bottom-input-inner" class="w-full mx-auto transition-all duration-300 layout-width-container max-w-4xl relative space-y-2">
                 
-                <!-- 🌟 DOCKED BOUNDED COPILOT CHAT DRAWER (LIMITED STRICTLY ABOVE PROMPT BAR) -->
-                <div id="copilot-bottom-drawer" class="hidden bg-[#242426] backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] border border-zinc-700/60 text-zinc-100 overflow-hidden transition-all duration-300 animate-fade-in flex flex-col">
+                <!-- 🌟 DOCKED BOUNDED COPILOT CHAT DRAWER (LIGHT PREMIUM CLEAN AESTHETIC) -->
+                <div id="copilot-bottom-drawer" class="hidden bg-white/95 backdrop-blur-2xl rounded-2xl sm:rounded-[28px] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-gray-200/80 text-gray-900 overflow-hidden transition-all duration-300 animate-fade-in flex flex-col">
                     
                     <!-- 1. Drawer Header -->
-                    <div class="px-5 py-3 bg-[#1e1e20] border-b border-zinc-700/60 flex items-center justify-between select-none">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span class="text-xs font-bold text-zinc-200">Meta Muse Spark • Copilot 100x</span>
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400" id="drawer-model-badge">Gemini 3.7 Flash</span>
+                    <div class="px-5 py-3 bg-gray-50/90 border-b border-gray-100 flex items-center justify-between select-none">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-gray-900">Evo Copilot</span>
+                                <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100/80 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Base Conectada</span>
+                                </span>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 border border-gray-200/60" id="drawer-model-badge">Gemini 3.7 Flash</span>
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-1.5">
-                            <button onclick="clearCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700/60 transition cursor-pointer" title="Limpar Histórico">
+                            <button onclick="clearCopilotDrawer()" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200/60 transition cursor-pointer" title="Limpar Histórico">
                                 <i class="ph-bold ph-trash text-xs"></i>
                             </button>
-                            <button onclick="collapseCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700/60 transition cursor-pointer" title="Recolher Chat (Esc)">
-                                <i class="ph-bold ph-x text-xs"></i>
+                            <button onclick="collapseCopilotDrawer()" class="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200/80 text-gray-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1" title="Recolher Chat (Esc)">
+                                <span>Recolher</span>
+                                <i class="ph-bold ph-caret-down text-xs"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- 2. Bounded Scrollable Chat Messages Viewport (Max 360px height) -->
-                    <div id="copilot-drawer-messages" class="p-4 sm:p-5 overflow-y-auto max-h-[360px] space-y-3.5 text-xs sm:text-sm custom-scrollbar text-zinc-200">
-                        <div class="p-3.5 rounded-2xl bg-[#1c1c1e] border border-zinc-800 text-zinc-300 space-y-1">
-                            <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                    <!-- 2. Bounded Scrollable Chat Messages Viewport (Max 380px height) -->
+                    <div id="copilot-drawer-messages" class="p-4 sm:p-5 overflow-y-auto max-h-[380px] space-y-3.5 text-xs sm:text-sm custom-scrollbar text-gray-800">
+                        <div class="p-3.5 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-gray-700 space-y-1">
+                            <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
                                 <i class="ph-bold ph-sparkle text-xs"></i>
                                 <span>Chief of Staff Executivo</span>
                             </div>
-                            <p class="text-xs text-zinc-400 leading-relaxed">
-                                Conectado à sua base de 14 notas do Plaud Note Pro e WhatsApp Oficial (+55 11 96000-4895). Pergunte qualquer coisa ou anote tarefas.
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Conectado à sua base de 14 notas do Plaud Note Pro e WhatsApp Oficial (+55 11 96000-4895). Pergunte sobre reuniões, decisões ou anote novas tarefas.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Unified Bottom Input Bar (Dark Matte Aesthetic matching Image 1) -->
-                <div class="relative bg-[#1c1c1e] rounded-2xl sm:rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.35)] focus-within:shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-all duration-300 border border-zinc-800/90 text-zinc-100">
+                <!-- Unified Bottom Input Bar (White Premium Clean Aesthetic) -->
+                <div class="relative bg-white rounded-2xl sm:rounded-[26px] shadow-[0_10px_35px_rgba(0,0,0,0.06)] focus-within:shadow-[0_14px_45px_rgba(0,0,0,0.1)] transition-all duration-300 border border-gray-200/80 focus-within:border-gray-300 text-gray-900">
                     <textarea id="prompt-input" rows="2" 
                               onkeydown="handleKeyDown(event)" 
-                              placeholder="Ask anything, @ to mention, / for actions" 
-                              class="w-full bg-transparent px-5 pt-4 pb-12 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none font-sans"></textarea>
+                              placeholder="Pergunte à IA sobre suas notas, tarefas ou decisões... (use @ para citar)" 
+                              class="w-full bg-transparent px-5 pt-3.5 pb-12 text-sm text-gray-900 placeholder-gray-400 focus:outline-none resize-none font-sans"></textarea>
                     
-                    <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between gap-2">
-                        <!-- Left Controls: Plus and Model Selector -->
-                        <div class="flex items-center gap-3">
-                            <button type="button" onclick="showInAppToast('Anexar contexto ou nota', 'info')" class="text-zinc-400 hover:text-zinc-200 transition cursor-pointer p-0.5" title="Adicionar anexo / menção">
+                    <div class="absolute bottom-2.5 sm:bottom-3 left-3.5 sm:left-4 right-3.5 sm:right-4 flex items-center justify-between gap-2">
+                        <!-- Left Controls: Plus and Model Selector Pill -->
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="showInAppToast('Anexar contexto ou nota (@)', 'info')" class="text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer p-1.5 rounded-lg" title="Adicionar anexo / menção">
                                 <i class="ph-bold ph-plus text-sm"></i>
                             </button>
 
                             <div class="relative flex items-center">
-                                <div class="flex items-center gap-1.5 text-xs text-zinc-200 font-medium cursor-pointer group/modelselect">
-                                    <span class="text-zinc-200 font-sans" id="selected-model-name-label">Gemini 3.7 Flash</span>
-                                    <span class="text-[11px] text-zinc-500 font-normal">High</span>
-                                    <i class="ph-bold ph-caret-up text-[10px] text-zinc-400 group-hover/modelselect:text-white transition"></i>
+                                <div class="flex items-center gap-1.5 bg-gray-100/90 hover:bg-gray-200/80 px-2.5 py-1 rounded-full text-xs text-gray-700 font-medium transition cursor-pointer border border-gray-200/50 group/modelselect">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span class="text-gray-800 font-medium" id="selected-model-name-label">Gemini 3.7 Flash</span>
+                                    <span class="text-[10px] text-gray-400 font-normal">High</span>
+                                    <i class="ph-bold ph-caret-up text-[10px] text-gray-400 group-hover/modelselect:text-gray-700 transition"></i>
                                     
                                     <select id="chat-model-selector" onchange="onModelSelectorChanged(this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" title="Escolha o modelo de IA">
                                         <option value="gemini-3.7-flash" selected>Gemini 3.7 Flash High</option>
                                         <option value="gemini-3.6-flash">Gemini 3.6 Flash (100x)</option>
-                                        <option value="gpt-4o">GPT-4o C-Level</option>
+                                        <option value="gpt-4o">GPT-4o Master</option>
                                     </select>
                                 </div>
                             </div>
@@ -931,10 +944,10 @@
 
                         <!-- Right Controls: Mic & Send/Action Button -->
                         <div class="flex items-center gap-2 flex-shrink-0">
-                            <button type="button" onclick="toggleVoiceRecording()" class="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 transition cursor-pointer" title="Gravar Áudio">
+                            <button type="button" onclick="toggleVoiceRecording()" class="p-1.5 rounded-full text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition cursor-pointer" title="Gravar Áudio">
                                 <i class="ph-bold ph-microphone text-base"></i>
                             </button>
-                            <button onclick="sendPrompt()" id="btn-send" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#2c2c2e] hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs" title="Enviar (Enter)">
+                            <button onclick="sendPrompt()" id="btn-send" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900 hover:bg-black text-white flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs" title="Enviar (Enter)">
                                 <i class="ph-bold ph-arrow-up text-xs sm:text-sm"></i>
                             </button>
                         </div>
@@ -4156,12 +4169,12 @@
             const messages = document.getElementById('copilot-drawer-messages');
             if (messages) {
                 messages.innerHTML = `
-                    <div class="p-3.5 rounded-2xl bg-[#1c1c1e] border border-zinc-800 text-zinc-300 space-y-1">
-                        <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                    <div class="p-3.5 rounded-2xl bg-gray-50/90 border border-gray-200/80 text-gray-700 space-y-1">
+                        <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
                             <i class="ph-bold ph-sparkle text-xs"></i>
                             <span>Chief of Staff Executivo</span>
                         </div>
-                        <p class="text-xs text-zinc-400 leading-relaxed">
+                        <p class="text-xs text-gray-600 leading-relaxed">
                             Histórico reiniciado. Base de inteligência 100% conectada e pronta para novas solicitações.
                         </p>
                     </div>
@@ -5435,16 +5448,19 @@ Prazo/Contexto: ${deadline}`);
                 // general / default
                 tabsHtml = `
                     <button onclick="switchMeetingTab('summary')" id="btn-tab-summary" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'summary' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-article text-emerald-600 text-xs"></i> <span>Resumo da Nota</span>
+                        <i class="ph-bold ph-article text-emerald-600 text-xs"></i> <span>Síntese</span>
+                    </button>
+                    <button onclick="switchMeetingTab('participants')" id="btn-tab-participants" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'participants' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-users text-indigo-600 text-xs"></i> <span>Participantes</span>
                     </button>
                     <button onclick="switchMeetingTab('transcript')" id="btn-tab-transcript" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'transcript' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                         <i class="ph-bold ph-file-text text-blue-600 text-xs"></i> <span>Transcrição</span>
                     </button>
                     <button onclick="switchMeetingTab('email')" id="btn-tab-email" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'email' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-paper-plane-tilt text-red-500 text-xs"></i> <span>Follow-up / E-mail</span>
+                        <i class="ph-bold ph-paper-plane-tilt text-red-500 text-xs"></i> <span>Follow-up E-mail</span>
                     </button>
-                    <button onclick="switchMeetingTab('risks')" id="btn-tab-risks" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'risks' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                        <i class="ph-bold ph-shield-warning text-purple-600 text-xs"></i> <span>Riscos & Alertas</span>
+                    <button onclick="switchMeetingTab('whatsapp')" id="btn-tab-whatsapp" class="px-3 py-1.5 rounded-lg ${currentMeetingTab === 'whatsapp' ? 'bg-white text-gray-900 font-bold shadow-2xs' : 'text-gray-600 hover:text-black'} transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                        <i class="ph-bold ph-whatsapp-logo text-emerald-600 text-xs"></i> <span>Follow-up WhatsApp</span>
                     </button>
                 `;
             }
@@ -5500,10 +5516,12 @@ Prazo/Contexto: ${deadline}`);
 
             if (tab === 'transcript') {
                 renderTranscriptView();
+            } else if (tab === 'participants') {
+                renderParticipantsView();
             } else if (tab === 'email') {
                 renderEmailFollowupView();
-            } else if (tab === 'risks') {
-                renderRisksView();
+            } else if (tab === 'whatsapp') {
+                renderWhatsAppFollowupView();
             } else {
                 renderMeetingContent();
             }
@@ -5715,7 +5733,7 @@ Prazo/Contexto: ${deadline}`);
             });
         }
 
-        function renderRisksView() {
+        function renderParticipantsView() {
             if (!currentMeetingId) return;
             const m = meetingsData.find(item => item.file_id === currentMeetingId);
             if (!m) return;
@@ -5724,40 +5742,90 @@ Prazo/Contexto: ${deadline}`);
             if (!box) return;
 
             const intel = m.intelligence || {};
-            const risks = intel.risks || intel.objections_and_pushbacks || [];
+            const parts = intel.participants || [];
 
             box.innerHTML = `
                 <div class="space-y-4 animate-fade-in">
                     <div class="flex items-center justify-between pb-2 border-b border-gray-100">
                         <div class="flex items-center gap-2 text-xs font-bold text-gray-900">
-                            <i class="ph-bold ph-shield-warning text-purple-600"></i>
-                            <span>Riscos, Objeções & Pontos de Fricção Mapeados</span>
+                            <i class="ph-bold ph-users text-indigo-600"></i>
+                            <span>Participantes Mapeados & Stakeholders</span>
                         </div>
-                        <span class="text-[10px] font-semibold text-gray-400 font-mono">${risks.length} alertas identificados</span>
+                        <span class="text-[10px] font-semibold text-gray-400 font-mono">${parts.length} pessoas identificadas</span>
                     </div>
 
-                    ${risks.length === 0 ? `
+                    ${parts.length === 0 ? `
                         <div class="p-6 text-center text-xs text-gray-400 bg-gray-50 rounded-2xl">
-                            Nenhum risco crítico ou objeção detectada nesta reunião.
+                            Nenhum participante externo detectado explicitamente.
                         </div>
                     ` : `
-                        <div class="space-y-3">
-                            ${risks.map(r => {
-                                const text = typeof r === 'string' ? r : (r.risk || r.objection || JSON.stringify(r));
-                                const mit = typeof r === 'object' && r.mitigation ? r.mitigation : null;
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            ${parts.map(p => {
+                                const name = typeof p === 'string' ? p : (p.name || 'Participante');
+                                const role = typeof p === 'object' && p.role ? p.role : 'Stakeholder';
+                                const company = typeof p === 'object' && p.company ? p.company : (m.category || 'Organização');
+                                const stance = typeof p === 'object' && p.key_stance ? p.key_stance : 'Ativo';
+                                const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
                                 return `
-                                    <div class="p-4 rounded-2xl bg-purple-50/40 border border-purple-100 space-y-1.5 text-xs text-gray-800">
-                                        <div class="font-bold text-purple-950 flex items-center gap-1.5">
-                                            <i class="ph-bold ph-warning-circle text-purple-600 text-sm"></i>
-                                            <span>Ponto Crítico</span>
+                                    <div class="p-4 rounded-2xl bg-gray-50/80 border border-gray-100 space-y-2 text-xs text-gray-800">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-zinc-900 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-2xs">
+                                                ${initials}
+                                            </div>
+                                            <div class="truncate">
+                                                <div class="font-bold text-gray-950 truncate">${name}</div>
+                                                <div class="text-[11px] text-gray-500 font-medium truncate">${role} • ${company}</div>
+                                            </div>
                                         </div>
-                                        <div class="text-gray-800 leading-relaxed font-medium">${text}</div>
-                                        ${mit ? `<div class="pt-1 text-[11px] text-purple-700 font-semibold">🛡️ Mitigação sugerida: ${mit}</div>` : ''}
+                                        <div class="pt-1.5 border-t border-gray-200/60 text-[11px] text-gray-600">
+                                            <span class="font-semibold text-gray-800">Posicionamento:</span> ${stance}
+                                        </div>
                                     </div>
                                 `;
                             }).join('')}
                         </div>
                     `}
+                </div>
+            `;
+        }
+
+        function renderWhatsAppFollowupView() {
+            if (!currentMeetingId) return;
+            const m = meetingsData.find(item => item.file_id === currentMeetingId);
+            if (!m) return;
+
+            const box = document.getElementById('assistant-summary-box');
+            if (!box) return;
+
+            const intel = m.intelligence || {};
+            const waText = intel.whatsapp_followup || `🎯 *Alinhamento — ${m.title.replace('🎙️','').strip()}*\n\nOlá! Segue o resumo rápido do que alinhamos hoje:\n\n${(m.executive_summary || '').slice(0, 250)}...\n\nQualquer ajuste estou à disposição! 👍`;
+
+            box.innerHTML = `
+                <div class="space-y-4 animate-fade-in max-w-2xl mx-auto">
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                        <div class="flex items-center gap-2 text-xs font-bold text-gray-900">
+                            <i class="ph-bold ph-whatsapp-logo text-emerald-600 text-sm"></i>
+                            <span>Follow-up Executivo para WhatsApp</span>
+                        </div>
+                        <button onclick="copyToClipboardText(\`${waText.replace(/`/g, '\\`')}\`, 'Mensagem de WhatsApp copiada!')" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs">
+                            <i class="ph-bold ph-copy text-xs"></i>
+                            <span>Copiar WhatsApp</span>
+                        </button>
+                    </div>
+
+                    <!-- WhatsApp Message Card Box -->
+                    <div class="p-5 rounded-3xl bg-[#0b141a] text-zinc-100 shadow-lg border border-emerald-900/30 space-y-3">
+                        <div class="flex items-center justify-between text-[11px] text-zinc-400 border-b border-zinc-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <span class="font-bold text-zinc-200">WhatsApp Preview</span>
+                            </div>
+                            <span>Mensagem Formatada</span>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-[#1f2c34] text-zinc-200 text-xs sm:text-sm font-sans leading-relaxed whitespace-pre-wrap select-text">
+${waText}
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -6528,30 +6596,30 @@ Prazo/Contexto: ${deadline}`);
             const messagesContainer = document.getElementById('copilot-drawer-messages');
             if (!messagesContainer) return;
 
-            // 1. Append User Bubble inside Docked Terminal
+            // 1. Append User Bubble inside Docked Drawer
             const userMsgHtml = `
                 <div class="flex justify-end animate-fade-in">
-                    <div class="bg-zinc-800 text-zinc-100 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-2xl max-w-[85%] border border-zinc-700 shadow-xs leading-relaxed">
+                    <div class="bg-zinc-900 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-2xl rounded-tr-xs max-w-[85%] shadow-xs leading-relaxed">
                         ${text}
                     </div>
                 </div>
             `;
             messagesContainer.insertAdjacentHTML('beforeend', userMsgHtml);
 
-            // 2. Append Assistant Loading Indicator inside Docked Terminal
+            // 2. Append Assistant Loading Indicator inside Docked Drawer
             const loadingId = `term-loading-${Date.now()}`;
             const loadingHtml = `
-                <div id="${loadingId}" class="bg-zinc-900/90 border border-zinc-800 p-4 rounded-2xl flex items-center gap-3 text-zinc-400 text-xs animate-pulse">
-                    <i class="ph-bold ph-spinner animate-spin text-emerald-400 text-base"></i>
+                <div id="${loadingId}" class="bg-gray-50/90 border border-gray-200/80 p-4 rounded-2xl flex items-center gap-3 text-gray-600 text-xs animate-pulse">
+                    <i class="ph-bold ph-spinner animate-spin text-emerald-600 text-base"></i>
                     <span>Raciocinando e consultando inteligência executiva...</span>
                 </div>
             `;
             messagesContainer.insertAdjacentHTML('beforeend', loadingHtml);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            // 3. Request 100x Meta Muse Spark API
+            // 3. Request Copilot API
             const modelSelector = document.getElementById('chat-model-selector');
-            const selectedModel = modelSelector ? modelSelector.value : 'gemini-3.6-flash';
+            const selectedModel = modelSelector ? modelSelector.value : 'gemini-3.7-flash';
             const targetEndpoint = currentMeetingId ? `/api/ai-action/${currentMeetingId}` : `/api/copilot/chat`;
 
             try {
@@ -6573,28 +6641,28 @@ Prazo/Contexto: ${deadline}`);
                 const parsedMd = marked.parse(responseText);
 
                 const tasksCreatedHtml = (data.tasks_created && data.tasks_created.length > 0) ? `
-                    <div class="mt-2.5 p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-between text-[11px] text-emerald-300">
+                    <div class="mt-2.5 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-[11px] text-emerald-800">
                         <span class="flex items-center gap-1.5 font-bold">
-                            <i class="ph-bold ph-check-circle text-emerald-400"></i>
+                            <i class="ph-bold ph-check-circle text-emerald-600"></i>
                             ${data.tasks_created.length} tarefa(s) adicionada(s) à Central de Tarefas!
                         </span>
-                        <button onclick="filterTasksView('ALL'); collapseCopilotDrawer();" class="underline hover:text-white font-semibold cursor-pointer">Ver Tarefas</button>
+                        <button onclick="filterTasksView('ALL'); collapseCopilotDrawer();" class="underline hover:text-emerald-950 font-semibold cursor-pointer">Ver Tarefas</button>
                     </div>
                 ` : '';
 
                 const assistantMsgHtml = `
-                    <div class="bg-zinc-900/95 border border-zinc-800/80 p-4 sm:p-5 rounded-2xl space-y-2.5 animate-fade-in text-zinc-200">
-                        <div class="flex items-center justify-between pb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
+                    <div class="bg-gray-50/90 border border-gray-200/80 p-4 sm:p-5 rounded-2xl rounded-tl-xs space-y-2.5 animate-fade-in text-gray-900">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-200/70 text-[11px] text-gray-500">
                             <div class="flex items-center gap-1.5">
-                                <i class="ph-bold ph-sparkle text-emerald-400"></i>
-                                <span class="font-bold text-zinc-300">Meta Muse Spark</span>
-                                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${data.model || selectedModel}</span>
+                                <i class="ph-bold ph-sparkle text-emerald-600"></i>
+                                <span class="font-bold text-gray-900">Evo Copilot</span>
+                                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">${data.model || selectedModel}</span>
                             </div>
-                            <button onclick="navigator.clipboard.writeText(\`${responseText.replace(/`/g, '\\`')}\`); showInAppToast('Copiado para a área de transferência!', 'success')" class="hover:text-white transition cursor-pointer p-1" title="Copiar resposta">
+                            <button onclick="navigator.clipboard.writeText(\`${responseText.replace(/`/g, '\\`')}\`); showInAppToast('Copiado para a área de transferência!', 'success')" class="hover:text-gray-900 transition cursor-pointer p-1 text-gray-400" title="Copiar resposta">
                                 <i class="ph-bold ph-copy"></i>
                             </button>
                         </div>
-                        <div class="prose prose-invert prose-xs sm:prose-sm max-w-none leading-relaxed font-sans text-zinc-200">
+                        <div class="prose prose-xs sm:prose-sm max-w-none leading-relaxed font-sans text-gray-800 prose-headings:text-gray-900 prose-strong:text-gray-900 prose-p:text-gray-800 prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-zinc-900 prose-pre:text-zinc-100">
                             ${parsedMd}
                         </div>
                         ${tasksCreatedHtml}
@@ -6612,7 +6680,7 @@ Prazo/Contexto: ${deadline}`);
                 if (loadingEl) loadingEl.remove();
 
                 messagesContainer.insertAdjacentHTML('beforeend', `
-                    <div class="p-3 bg-red-950/60 border border-red-800/60 text-red-300 rounded-xl text-xs">
+                    <div class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
                         Erro ao obter resposta: ${e.message}
                     </div>
                 `);

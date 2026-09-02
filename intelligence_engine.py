@@ -407,95 +407,45 @@ TRECHO {chunk_idx}/{total_chunks}:
             logger.error(f"Failed to post-process JSON: {e}")
             return {"error": str(e), "raw_response": raw_json}
 
-
-    def route_and_process_text(self, text: str, user_id: str = "default_user") -> Dict[str, Any]:
+    def route_and_process_text(self, text: str, user_id: str = "felipe_donato") -> Dict[str, Any]:
         """
-        Roteamento Inteligente de Intenção para mensagens de texto via WhatsApp (100x Hyper-Intelligent).
-        Consulta SQLite e usa Gemini 3.6 Flash / GPT-4o para resposta em < 2s com contexto real.
+        Classifies incoming WhatsApp text and delegates to MCP tools with 100% tenant workspace isolation.
         """
         try:
             from database import db
-            # Consulta em tempo real ao SQLite DB
-            tasks = db.get_all_tasks(status="PENDING")
-            tasks_str = json.dumps([{"id": t["id"], "action": t["action"], "owner": t.get("owner"), "deadline": t.get("deadline_or_context")} for t in tasks[:15]], ensure_ascii=False)
-            
-            meetings = db.get_all_meetings()[:5]
-            meetings_str = json.dumps([{"id": m.get("file_id"), "title": m.get("title"), "summary": (m.get("executive_summary") or "")[:200]} for m in meetings], ensure_ascii=False)
-            
-            prompt = f"""Você é o Meta Muse Spark & EvoNotes AI — Copiloto Operacional e Chief of Staff Executivo do Felipe Donato.
-Sua missão é classificar a intenção da mensagem e responder diretamente no WhatsApp com máxima inteligência, tom executivo, precisão cirúrgica e simpatia natural.
-
-INTENÇÕES POSSÍVEIS:
-1. COMMAND_TASK: Criar uma nova tarefa (ex: "Anota aí", "Lembrar de...", "Adiciona tarefa para amanhã").
-2. QUESTION: Perguntas sobre o sistema, status, tarefas ativas ou conversa executiva (ex: "Minha conta ta ativa?", "Quais são minhas tarefas?").
-3. KNOWLEDGE_SEARCH: Perguntas sobre o histórico de notas/reuniões (ex: "O que foi decidido na reunião X?").
-4. MEMO: Apenas uma nota de reflexão longa para guardar.
-
-DADOS EM TEMPO REAL DO SISTEMA (SQLITE):
-- Usuário: Felipe Donato (Enterprise AE / Liderança Comercial & Estratégica)
-- Linha Oficial WhatsApp: +55 (11) 96000-4895 (Status: ATIVA & OPERACIONAL)
-- Tarefas Pendentes no Banco: {tasks_str}
-- Últimas Notas/Reuniões Gravadas: {meetings_str}
-- Status da Conta: ATIVA, Nuvem 100% Conectada (EvoNotes OS v2.0).
-- Banco de Dados Consultado: SQLite persistente (executive_voice.db) com tabelas meetings, commitments, custom_categories, user_profiles, accounts_deals.
-
-MENSAGEM DO FELIPE: "{text}"
-
-Retorne um JSON ESTRITO com o formato:
-{{
-  "intent": "COMMAND_TASK|QUESTION|KNOWLEDGE_SEARCH|MEMO",
-  "reply_msg": "Texto da resposta executiva pronta para envio no WhatsApp (use negrito, bullet points e emojis elegantes).",
-  "tasks_to_create": [
-     {{"action": "Ação clara", "owner": "Responsável (ex: Felipe Donato)", "deadline": "Prazo (ex: Amanhã às 15h)"}}
-  ],
-  "is_memo": false
-}}
-"""
-            # 1. Try Gemini
-            gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-            if gemini_key:
-                for g_model_name in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
-                    try:
-                        import google.generativeai as genai
-                        genai.configure(api_key=gemini_key)
-                        model = genai.GenerativeModel(g_model_name)
-                        resp = model.generate_content(prompt)
-                        res_json = clean_and_parse_json(resp.text)
-                        if isinstance(res_json, dict) and "reply_msg" in res_json:
-                            return res_json
-                    except Exception as ge:
-                        logger.warning(f"Gemini route error ({g_model_name}): {ge}")
-
-            # 2. Try OpenAI if configured
-            if self.client and "dummy" not in getattr(self.client, "api_key", "dummy"):
-                try:
-                    response = self.client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        temperature=0.2,
-                        response_format={"type": "json_object"},
-                        messages=[
-                            {"role": "system", "content": "Você é o Chief of Staff Executivo (Meta Muse Spark)."},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    raw_json = response.choices[0].message.content or "{}"
-                    res_json = clean_and_parse_json(raw_json)
-                    if isinstance(res_json, dict) and "reply_msg" in res_json:
-                        return res_json
-                except Exception as oe:
-                    logger.warning(f"OpenAI fallback error: {oe}")
-
-            # =========================================================================
-            # 🚀 3. DIRECT MCP TOOL ROUTER & INSTANCE EXECUTION (Zero Quota / Real DB)
-            # =========================================================================
             import mcp_server
+            import re
+            
+            # Consulta em tempo real ao SQLite DB filtrada pelo tenant
+            tasks = db.get_all_tasks(status="PENDING", user_id=user_id)
+            tasks_str = json.dumps([{"id": t["id"], "action": t["action"], "owner": t.get("owner"), "deadline": t.get("deadline_or_context")} for t in tasks[:20]], ensure_ascii=False)
+            
+            all_meetings = db.get_all_meetings(user_id=user_id)
+            meetings_summary_list = []
+            for m in all_meetings:
+                intel = m.get("intelligence")
+                if not isinstance(intel, dict):
+                    intel = {}
+                meetings_summary_list.append({
+                    "id": m.get("file_id"),
+                    "title": (m.get("title") or "Sem Título").replace("🎙️", "").strip(),
+                    "category": m.get("category", "Geral"),
+                    "date": (m.get("start_time") or "")[:10],
+                    "duration_min": round((m.get("duration_seconds") or 0) / 60, 1),
+                    "summary": (m.get("executive_summary") or "")[:180]
+                })
+            meetings_str = json.dumps(meetings_summary_list, ensure_ascii=False)
+            
+            # =========================================================================
+            # 🚀 1. FAST PATH: DIRECT MCP TOOL ROUTER (Sub-millisecond / 100% Real DB)
+            # =========================================================================
             lower_text = text.lower().strip()
 
             # 1. LIST NOTES / RECENT MEETINGS (execute_get_recent_notes)
             if any(k in lower_text for k in ["lista as notas", "liste as notas", "listar notas", "lista notas", "liste notas", "quais notas", "minhas notas", "ultimas notas", "últimas notas", "ver notas", "mostrar notas", "listar reunioes", "reunioes gravadas", "reuniões", "historico", "todas as notas"]):
-                mcp_res = mcp_server.execute_get_recent_notes({"limit": 5})
+                mcp_res = mcp_server.execute_get_recent_notes({"limit": 5}, user_id=user_id)
                 return {
-                    "intent": "KNOWLEDGE_SEARCH",
+                    "intent": "LIST_NOTES",
                     "reply_msg": mcp_res,
                     "tasks_to_create": [],
                     "is_memo": False
@@ -503,7 +453,7 @@ Retorne um JSON ESTRITO com o formato:
 
             # 2. EXECUTIVE BRIEFING / METRICS (execute_get_executive_briefing)
             if any(k in lower_text for k in ["briefing", "resumo geral", "status geral", "metricas", "métricas", "como está meu dia", "como esta meu dia", "visão geral", "dashboard"]):
-                mcp_res = mcp_server.execute_get_executive_briefing({})
+                mcp_res = mcp_server.execute_get_executive_briefing({}, user_id=user_id)
                 return {
                     "intent": "QUESTION",
                     "reply_msg": mcp_res,
@@ -513,7 +463,7 @@ Retorne um JSON ESTRITO com o formato:
 
             # 3. LIST TASKS / PENDING TO-DOS (execute_get_tasks)
             if any(k in lower_text for k in ["minhas tarefas", "quais tarefas", "tarefas pendentes", "o que tenho pra fazer", "o que eu tenho", "listar tarefas", "to-dos", "to dos", "pendencias", "pendências", "minha lista", "tarefas"]):
-                mcp_res = mcp_server.execute_get_tasks({"status": "PENDING"})
+                mcp_res = mcp_server.execute_get_tasks({"status": "PENDING"}, user_id=user_id)
                 return {
                     "intent": "QUESTION",
                     "reply_msg": mcp_res,
@@ -526,7 +476,7 @@ Retorne um JSON ESTRITO com o formato:
                 match_id = re.search(r"(\d+)", text)
                 if match_id:
                     t_id = int(match_id.group(1))
-                    mcp_res = mcp_server.execute_complete_task({"task_id": t_id})
+                    mcp_res = mcp_server.execute_complete_task({"task_id": t_id}, user_id=user_id)
                     return {
                         "intent": "COMMAND_TASK",
                         "reply_msg": mcp_res,
@@ -538,19 +488,20 @@ Retorne um JSON ESTRITO com o formato:
             if any(k in lower_text for k in ["anota aí", "anota ai", "lembrar de", "criar tarefa", "adicionar tarefa", "tarefa:", "nova tarefa"]):
                 clean_action = re.sub(r"^(anota aí|anota ai|lembrar de|criar tarefa|adicionar tarefa|nova tarefa|tarefa:)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
                 if not clean_action: clean_action = text
-                mcp_res = mcp_server.execute_create_task({"action": clean_action, "owner": "Felipe Donato", "deadline": "Hoje"})
+                owner_name = "Felipe Donato" if user_id == "felipe_donato" else "Você"
+                mcp_res = mcp_server.execute_create_task({"action": clean_action, "owner": owner_name, "deadline": "Hoje"}, user_id=user_id)
                 return {
                     "intent": "COMMAND_TASK",
                     "reply_msg": mcp_res,
-                    "tasks_to_create": [{"action": clean_action, "owner": "Felipe Donato", "deadline": "Hoje"}],
+                    "tasks_to_create": [{"action": clean_action, "owner": owner_name, "deadline": "Hoje"}],
                     "is_memo": False
                 }
 
             # 6. SEARCH NOTES BY KEYWORD / CLIENT (execute_search_notes)
-            if any(k in lower_text for k in ["busca nota", "buscar nota", "pesquisar", "pesquisa", "procurar", "o que conversamos sobre", "o que foi falado sobre", "o que foi decidido em", "reuniao com", "reunião com", "reuniao da", "reunião da", "nota sobre", "notas sobre", "wine", "britânia", "britania", "zamp", "bcr", "cury", "podcast"]):
+            if any(k in lower_text for k in ["busca nota", "buscar nota", "pesquisar", "pesquisa", "procurar", "o que conversamos sobre", "o que foi falado sobre", "o que foi decidido em", "reuniao com", "reunião com", "reuniao da", "reunião da", "nota sobre", "notas sobre"]):
                 clean_query = re.sub(r"^(busca nota|buscar nota|pesquisar|pesquisa|procurar|o que conversamos sobre|o que foi falado sobre|o que foi decidido em|reuniao com|reunião com|reuniao da|reunião da|nota sobre|notas sobre)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
                 if not clean_query: clean_query = text
-                mcp_res = mcp_server.execute_search_notes({"query": clean_query})
+                mcp_res = mcp_server.execute_search_notes({"query": clean_query}, user_id=user_id)
                 return {
                     "intent": "KNOWLEDGE_SEARCH",
                     "reply_msg": mcp_res,
@@ -562,7 +513,7 @@ Retorne um JSON ESTRITO com o formato:
             if any(k in lower_text for k in ["detalhes da nota", "detalhes de", "abrir nota", "resumo da nota", "nota id"]):
                 match_id = re.search(r"([a-f0-9]{20,40}|wa_\w+|rec_\w+|mcp_\w+)", text)
                 target_id = match_id.group(1) if match_id else text
-                mcp_res = mcp_server.execute_get_note_details({"file_id": target_id})
+                mcp_res = mcp_server.execute_get_note_details({"file_id": target_id}, user_id=user_id)
                 return {
                     "intent": "KNOWLEDGE_SEARCH",
                     "reply_msg": mcp_res,
@@ -574,7 +525,7 @@ Retorne um JSON ESTRITO com o formato:
             if any(k in lower_text for k in ["banco de dados", "qual banco", "database", "banco consultado", "qual eh meu banco", "qual é o meu banco"]):
                 return {
                     "intent": "QUESTION",
-                    "reply_msg": "🗄️ *Banco de Dados Oficial do EvoNotes OS:*\n\n• *Motor:* SQLite 3 Persistente (`data/executive_voice.db`)\n• *MCP Server:* Conectado aos endpoints `/mcp` e ferramentas nativas (`search_notes`, `get_tasks`, `get_recent_notes`, `create_task`)\n• *Tabelas Conectadas:*\n  - `meetings` (14 notas e reuniões gravadas)\n  - `commitments` (Central de tarefas e to-dos executivos)\n  - `custom_categories` (Categorias e filtros)\n  - `user_profiles` (Calibração de tom de voz do Felipe)\n  - `accounts_deals` (Pipeline comercial B2B)\n• *Sincronização:* Local no MacBook + Cloud Sync em tempo real via Railway.",
+                    "reply_msg": f"🗄️ *Banco de Dados Oficial do EvoNotes OS:*\n\n• *Motor:* SQLite 3 Persistente (`data/executive_voice.db`)\n• *Tenant:* `{user_id}` (Isolamento Multi-Tenant Ativo)\n• *MCP Server:* Conectado às ferramentas nativas (`search_notes`, `get_tasks`, `get_recent_notes`, `create_task`)\n• *Tabelas Conectadas:*\n  - `meetings` ({len(all_meetings)} notas no seu workspace)\n  - `commitments` ({len(tasks)} to-dos ativos)\n• *Sincronização:* Local + Cloud Sync em tempo real via Railway.",
                     "tasks_to_create": [],
                     "is_memo": False
                 }
@@ -584,7 +535,7 @@ Retorne um JSON ESTRITO com o formato:
                 opt_map = {
                     "1": "❓ *Perguntas Diretas:* Você pode me perguntar sobre o status da sua conta, consultar suas reuniões ou ver suas tarefas pendentes. Experimente: *'Quais são minhas tarefas de hoje?'*",
                     "2": "📝 *Criar Tarefas por Voz/Texto:* Experimente mandar: *'Anota aí: ligar para o parceiro amanhã às 14h'*",
-                    "3": "🔍 *Consultar Reuniões:* Experimente perguntar: *'lista as notas'* ou *'o que conversamos sobre Britânia?'*",
+                    "3": "🔍 *Consultar Reuniões:* Experimente perguntar: *'lista as notas'* ou *'o que conversamos sobre [assunto]?'*",
                     "4": "🎙️ *Áudios e Memos:* Basta encaminhar ou gravar uma mensagem de voz aqui no WhatsApp que eu transcrevo com Whisper e gero a ata executiva em segundos!",
                     "menu": "✨ *EvoNotes Copilot:* Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas (*'lista as notas'*) ou pergunte sobre suas tarefas pendentes!",
                     "ajuda": "✨ *EvoNotes Copilot:* Mande um áudio de voz, peça para criar uma tarefa (*'Anota aí...'*), consulte suas notas (*'lista as notas'*) ou pergunte sobre suas tarefas pendentes!"
@@ -600,23 +551,87 @@ Retorne um JSON ESTRITO com o formato:
             if any(k in lower_text for k in ["conta ta ativa", "conta está ativa", "status", "conectado", "ta funcionando", "está funcionando", "qual conta"]):
                 return {
                     "intent": "QUESTION",
-                    "reply_msg": "⚡ *Conta 100% Ativa e Operacional!*\n\n• *Usuário:* Felipe Donato (`felipe_donato`)\n• *EvoNotes OS:* Nuvem Conectada (Railway)\n• *WhatsApp Oficial:* +55 (11) 96000-4895 (Meta Cloud API)\n• *MCP Server:* Ativo com 8 ferramentas executivas\n• *Base:* 14 notas registradas e tarefas ativas.",
+                    "reply_msg": f"⚡ *Conta 100% Ativa e Operacional!*\n\n• *Tenant:* `{user_id}`\n• *EvoNotes OS:* Nuvem Conectada (Railway)\n• *WhatsApp Oficial:* +55 (11) 96000-4895 (Meta Cloud API)\n• *MCP Server:* Ativo com 8 ferramentas executivas\n• *Base:* {len(all_meetings)} notas registradas e {len(tasks)} tarefas ativas.",
                     "tasks_to_create": [],
                     "is_memo": False
                 }
 
+            # =========================================================================
+            # 🧠 2. LLM REASONING & SEMANTIC CLASSIFIER (For Free-Form Questions)
+            # =========================================================================
+            prompt = f"""Você é o Meta Muse Spark & EvoNotes AI — Copiloto Operacional e Chief of Staff Executivo para o usuário {user_id}.
+Sua missão é classificar a intenção da mensagem e responder com máxima inteligência, tom executivo conciso, precisão cirúrgica e simpatia natural.
+
+INTENÇÕES POSSÍVEIS:
+1. COMMAND_TASK: Criar uma nova tarefa.
+2. LIST_NOTES: Listar, organizar ou buscar reuniões/gravações.
+3. QUESTION: Perguntas sobre status da conta, tarefas ativas ou conversa executiva.
+4. KNOWLEDGE_SEARCH: Perguntas sobre o conteúdo específico de uma reunião.
+
+DADOS EM TEMPO REAL DO SISTEMA (SQLITE):
+- Usuário / Tenant: {user_id}
+- Linha Oficial WhatsApp: +55 (11) 96000-4895 (Status: ATIVA & OPERACIONAL)
+- Total de Tarefas Pendentes no Banco ({len(tasks)}): {tasks_str}
+- Total de Notas/Gravações no Banco ({len(all_meetings)}): {meetings_str}
+
+MENSAGEM: "{text}"
+
+Retorne um JSON ESTRITO com o formato:
+{{
+  "intent": "COMMAND_TASK|LIST_NOTES|QUESTION|KNOWLEDGE_SEARCH|MEMO",
+  "reply_msg": "Texto da resposta executiva formatada em markdown.",
+  "tasks_to_create": [
+     {{"action": "Ação clara", "owner": "Responsável", "deadline": "Prazo"}}
+  ],
+  "is_memo": false
+}}
+"""
+            # 1. Try Gemini 3.6 Flash
+            gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            if gemini_key:
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=gemini_key)
+                    model = genai.GenerativeModel("gemini-3.6-flash")
+                    resp = model.generate_content(prompt)
+                    res_json = clean_and_parse_json(resp.text)
+                    if isinstance(res_json, dict) and "reply_msg" in res_json:
+                        return res_json
+                except Exception as ge:
+                    logger.warning(f"Gemini route error: {ge}")
+
+            # 2. Try OpenAI if configured
+            if self.client and "dummy" not in getattr(self.client, "api_key", "dummy"):
+                try:
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                        messages=[
+                            {"role": "system", "content": f"Você é o Chief of Staff Executivo para o usuário {user_id}."},
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    raw_json = response.choices[0].message.content or "{}"
+                    res_json = clean_and_parse_json(raw_json)
+                    if isinstance(res_json, dict) and "reply_msg" in res_json:
+                        return res_json
+                except Exception as oe:
+                    logger.warning(f"OpenAI fallback error: {oe}")
+
             # General Fallback with Contextual MCP Actions
             return {
                 "intent": "QUESTION", 
-                "reply_msg": f"⚡ *Chief of Staff EvoNotes:*\n\nEntendido, Felipe! Estou com sua base conectada via MCP (14 notas e {len(tasks)} tarefas ativas).\n\n💡 *Experimente:*\n• *'lista as notas'* — Ver suas últimas reuniões\n• *'minhas tarefas'* — Consultar to-dos pendentes\n• *'briefing'* — Ver resumo geral do dia\n• *'Anota aí: [tarefa]'* — Criar nova ação\n• Ou mande um áudio de voz para transcrição imediata!", 
+                "reply_msg": f"⚡ *Chief of Staff EvoNotes:*\n\nEntendido! Estou com seu workspace `{user_id}` conectado via MCP ({len(all_meetings)} notas e {len(tasks)} tarefas ativas).\n\n💡 *Experimente:*\n• *'lista as notas'* — Ver suas últimas reuniões\n• *'minhas tarefas'* — Consultar to-dos pendentes\n• *'briefing'* — Ver resumo geral do dia\n• *'Anota aí: [tarefa]'* — Criar nova ação\n• Ou mande um áudio de voz para transcrição imediata!", 
                 "tasks_to_create": [],
                 "is_memo": False
             }
         except Exception as e:
-            logger.error(f"Error in route_and_process_text: {e}")
+            import traceback
+            logger.error(f"Error in route_and_process_text:\n{traceback.format_exc()}")
             return {
                 "intent": "QUESTION", 
-                "reply_msg": "⚡ Olá Felipe! Sua inteligência executiva no EvoNotes está 100% ativa, conectada e operacional.", 
+                "reply_msg": "⚡ Olá! Sua inteligência executiva no EvoNotes está 100% ativa, conectada e operacional.", 
                 "tasks_to_create": [],
                 "is_memo": False
             }

@@ -162,6 +162,11 @@ class WhatsAppVoiceIngest:
             msg_id = msg.get("id", f"wa_meta_{int(time.time())}")
             msg_type = msg.get("type", "")
 
+            # Resolve or auto-provision Tenant Workspace for this sender
+            contacts = val.get("contacts", [])
+            sender_name = contacts[0].get("profile", {}).get("name", "") if contacts else ""
+            resolved_user_id = db.resolve_or_create_tenant(sender_phone, sender_name=sender_name) if sender_phone else user_id
+
             if msg_type in ["audio", "voice"]:
                 media_info = msg.get("audio") or msg.get("voice", {})
                 media_id = media_info.get("id")
@@ -199,20 +204,20 @@ class WhatsAppVoiceIngest:
                     "sender_phone": sender_phone,
                     "source_type": "WHATSAPP_CLOUD_API"
                 }
-                intel = self.intelligence_engine.analyze(raw_text, metadata=meta, user_id=user_id)
+                intel = self.intelligence_engine.analyze(raw_text, metadata=meta, user_id=resolved_user_id)
 
                 duration_s = round(time.time() - start_time, 1)
                 reply_msg = self._build_whatsapp_reply(intel, raw_text, duration_s)
                 if sender_phone:
                     self.send_whatsapp_text(sender_phone, reply_msg)
 
-                self._persist_meeting_and_tasks(msg_id, sender_phone, intel, raw_text, target_audio, transcript_data)
-                return {"status": "SUCCESS", "file_id": msg_id, "title": intel.get("meeting_title"), "processing_time": duration_s}
+                self._persist_meeting_and_tasks(msg_id, sender_phone, intel, raw_text, target_audio, transcript_data, user_id=resolved_user_id)
+                return {"status": "SUCCESS", "file_id": msg_id, "title": intel.get("meeting_title"), "processing_time": duration_s, "tenant": resolved_user_id}
 
             elif msg_type == "text":
                 text_body = msg.get("text", {}).get("body", "")
                 if text_body:
-                    return self._process_text_memo(text_body, sender_phone, user_id, start_time)
+                    return self._process_text_memo(text_body, sender_phone, resolved_user_id, start_time)
                 return {"status": "SKIPPED", "reason": "EMPTY_TEXT"}
 
             return {"status": "SKIPPED", "reason": f"UNSUPPORTED_TYPE_{msg_type}"}
@@ -226,6 +231,8 @@ class WhatsAppVoiceIngest:
             return {"status": "SKIPPED", "reason": "FROM_ME"}
 
         phone = payload.get("phone", "") or payload.get("senderPhone", "")
+        sender_name = payload.get("senderName", "")
+        resolved_user_id = db.resolve_or_create_tenant(phone, sender_name=sender_name) if phone else user_id
         msg_type = str(payload.get("type", "")).lower()
 
         audio_url = ""
@@ -239,7 +246,7 @@ class WhatsAppVoiceIngest:
         if not audio_url and msg_type in ["text", "chat", "conversation"]:
             text_body = payload.get("text", {}).get("message") or payload.get("message", "")
             if text_body:
-                return self._process_text_memo(text_body, phone, user_id, start_time)
+                return self._process_text_memo(text_body, phone, resolved_user_id, start_time)
             return {"status": "SKIPPED", "reason": "NO_CONTENT"}
 
         if not audio_url:
@@ -269,17 +276,17 @@ class WhatsAppVoiceIngest:
             "sender_phone": phone,
             "source_type": "WHATSAPP_ZAPI"
         }
-        intel = self.intelligence_engine.analyze(raw_text, metadata=meta, user_id=user_id)
+        intel = self.intelligence_engine.analyze(raw_text, metadata=meta, user_id=resolved_user_id)
 
         duration_s = round(time.time() - start_time, 1)
         reply_msg = self._build_whatsapp_reply(intel, raw_text, duration_s)
         if phone:
             self.send_whatsapp_text(phone, reply_msg)
 
-        self._persist_meeting_and_tasks(msg_id, phone, intel, raw_text, target_audio, transcript_data)
-        return {"status": "SUCCESS", "file_id": msg_id, "title": intel.get("meeting_title"), "processing_time": duration_s}
+        self._persist_meeting_and_tasks(msg_id, phone, intel, raw_text, target_audio, transcript_data, user_id=resolved_user_id)
+        return {"status": "SUCCESS", "file_id": msg_id, "title": intel.get("meeting_title"), "processing_time": duration_s, "tenant": resolved_user_id}
 
-    def _persist_meeting_and_tasks(self, msg_id: str, phone: str, intel: Dict[str, Any], raw_text: str, target_audio: Path, transcript_data: Dict[str, Any]):
+    def _persist_meeting_and_tasks(self, msg_id: str, phone: str, intel: Dict[str, Any], raw_text: str, target_audio: Path, transcript_data: Dict[str, Any], user_id: str = "felipe_donato"):
         title_slug = intel.get("meeting_title", "WhatsApp_Voice").replace("/", "-").replace(" ", "_")
         doc_path = DESKTOP_ZENDESK_DIR / f"WHATSAPP_{datetime.now().strftime('%Y-%m-%d')}_📱_{title_slug}.md"
         
@@ -290,6 +297,7 @@ class WhatsAppVoiceIngest:
                     "tipo: whatsapp-voice-memo",
                     f'id_mensagem: "{msg_id}"',
                     f'remetente: "{phone}"',
+                    f'tenant: "{user_id}"',
                     f'data: "{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}"',
                     f'categoria: "{intel.get("category", "Pessoal")}"',
                     "status: processado",
@@ -330,8 +338,10 @@ class WhatsAppVoiceIngest:
             "executive_summary": intel.get("executive_summary", ""),
             "intelligence": intel,
             "transcript_full": raw_text,
-            "custom_notes": f"Ingerido via WhatsApp ({phone})"
-        })
+            "custom_notes": f"Ingerido via WhatsApp ({phone})",
+            "user_id": user_id,
+            "sender_phone": phone
+        }, user_id=user_id)
 
         todos = intel.get("commitments_and_promises", [])
         for todo in todos:
@@ -341,8 +351,9 @@ class WhatsAppVoiceIngest:
                     db.create_task(
                         meeting_id=msg_id,
                         action=action,
-                        owner=todo.get("owner", "Felipe Donato"),
-                        deadline=todo.get("deadline_or_context", "Hoje")
+                        owner=todo.get("owner", "Felipe Donato" if user_id == "felipe_donato" else "Você"),
+                        deadline=todo.get("deadline_or_context", "Hoje"),
+                        user_id=user_id
                     )
                 except Exception as e:
                     logger.warning(f"Could not insert task into DB: {e}")
@@ -387,14 +398,14 @@ class WhatsAppVoiceIngest:
             "source_type": "WHATSAPP_TEXT"
         }
 
-        # 1. Roteamento Inteligente de Intenção (Intent Router)
+        # 1. Roteamento Inteligente de Intenção com Workspace Isolado
         intent_data = self.intelligence_engine.route_and_process_text(text, user_id=user_id)
         intent = intent_data.get("intent", "QUESTION")
         reply_msg = intent_data.get("reply_msg", "Comando processado.")
         is_memo = intent_data.get("is_memo", False)
 
         if is_memo or len(text) > 300:
-            # Rota: ÁUDIO / MEMO LONGO (Textos longos)
+            # Rota: ÁUDIO / MEMO LONGO
             intel = self.intelligence_engine.analyze(text, metadata=meta, user_id=user_id)
             duration_s = round(time.time() - start_time, 1)
             reply_msg = self._build_whatsapp_reply(intel, text, duration_s)
@@ -413,14 +424,16 @@ class WhatsAppVoiceIngest:
                 "executive_summary": intel.get("executive_summary", ""),
                 "intelligence": intel,
                 "transcript_full": text,
-                "custom_notes": f"Ingerido via WhatsApp Texto ({phone})"
-            })
-            return {"status": "SUCCESS", "file_id": msg_id, "processing_time": duration_s}
+                "custom_notes": f"Ingerido via WhatsApp Texto ({phone})",
+                "user_id": user_id,
+                "sender_phone": phone
+            }, user_id=user_id)
+            return {"status": "SUCCESS", "file_id": msg_id, "processing_time": duration_s, "tenant": user_id}
 
         # Rota: PERGUNTA / COMANDO / CONVERSA / KNOWLEDGE_SEARCH
         duration_s = round(time.time() - start_time, 1)
         
-        # Criação de Tarefa Rápida no SQLite
+        # Criação de Tarefa Rápida no SQLite no Tenant Correto
         tasks = intent_data.get("tasks_to_create", [])
         for t in tasks:
             action = t.get("action")
@@ -428,8 +441,9 @@ class WhatsAppVoiceIngest:
                 db.create_task(
                     meeting_id=msg_id,
                     action=action,
-                    owner=t.get("owner", "Felipe Donato"),
-                    deadline=t.get("deadline", "Hoje")
+                    owner=t.get("owner", "Felipe Donato" if user_id == "felipe_donato" else "Você"),
+                    deadline=t.get("deadline", "Hoje"),
+                    user_id=user_id
                 )
 
         if phone:
@@ -446,8 +460,10 @@ class WhatsAppVoiceIngest:
             "executive_summary": reply_msg,
             "intelligence": {"category": "Conversa", "executive_summary": reply_msg},
             "transcript_full": text,
-            "custom_notes": f"Interação rápida via WhatsApp ({phone})"
-        })
+            "custom_notes": f"Interação rápida via WhatsApp ({phone})",
+            "user_id": user_id,
+            "sender_phone": phone
+        }, user_id=user_id)
 
         return {"status": "SUCCESS", "file_id": msg_id, "processing_time": duration_s}
 

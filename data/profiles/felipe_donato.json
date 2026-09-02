@@ -8,21 +8,21 @@
   "calibration_target": 10,
   "calibration_status": "LEARNING",
   "vocabulary_and_jargon": [
-    "Jurisprudência",
-    "Trânsito em Julgado",
-    "Petição Inicial",
-    "Liminar",
-    "Agravo de Instrumento",
-    "Contestação",
-    "Réu",
-    "Autor",
-    "Sucumbência",
-    "Dano Moral",
-    "Súmula",
-    "Honorários",
-    "Audiência de Conciliação",
-    "Decadência",
-    "Prescrição"
+    "RFC",
+    "Refactor",
+    "Latência",
+    "CI/CD",
+    "Endpoint",
+    "Pull Request",
+    "Deploy",
+    "Idempotência",
+    "Microserviços",
+    "Cache",
+    "Postgres",
+    "Redis",
+    "Throughput",
+    "Docker",
+    "SLA"
   ],
   "stakeholders": [],
   "style_preferences": {
@@ -31,5 +31,5 @@
     "risk_sensitivity": "ALTA"
   },
   "learned_insights": [],
-  "last_updated": "2026-09-01T16:49:15.222009"
+  "last_updated": "2026-09-01T23:58:42.223282"
 }

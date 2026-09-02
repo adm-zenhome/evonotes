@@ -30,6 +30,7 @@ from intelligence_engine import IntelligenceEngine
 from audio_pipeline import AudioPipeline
 from resend_engine import resend_engine
 from google_workspace_bridge import google_bridge
+from plaud_processor import get_all_plaud_recordings, parse_markdown_plaud
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -298,8 +299,8 @@ async def home(request: Request):
         return HTMLResponse(content=f"<h1>Evo OS Startup Debug</h1><pre>{tb}</pre>", status_code=200)
 
 @app.get("/api/meetings")
-async def api_meetings(channel: Optional[str] = None):
-    return JSONResponse(db.get_all_meetings(channel=channel))
+async def api_meetings(channel: Optional[str] = None, user_id: str = Query("felipe_donato")):
+    return JSONResponse(db.get_all_meetings(channel=channel, user_id=user_id))
 
 @app.get("/api/whatsapp/feed")
 async def api_whatsapp_feed():
@@ -319,12 +320,25 @@ async def api_dashboard_analytics():
     return JSONResponse(get_keyword_analytics("felipe_donato"))
 
 
+@app.post("/api/danger/reset-all")
+@app.post("/api/reset-all")
+async def api_reset_all():
+    """Wipes all meetings, commitments, sources, categories, audio cache, profiles, and resets to 100% virgin state."""
+    db.reset_all_data()
+    return JSONResponse({
+        "status": "SUCCESS",
+        "message": "Sistema e banco de dados 100% zerados com sucesso!",
+        "total_meetings": 0,
+        "total_tasks": 0
+    })
+
+
 @app.post("/api/sync-plaud")
 @app.post("/api/plaud/sync")
 async def api_sync_plaud(payload: dict = Body(default={})):
-    """Syncs Plaud recordings with authentic transcripts, C-Level intelligence and instant zero-timeout execution."""
+    """Syncs authentic Plaud recordings with C-Level Mega Dossiers, transcripts, participants and email/whatsapp follow-ups."""
     mode = payload.get("mode", "incremental")
-    logging.info(f"Initiating Plaud Cloud Sync (Mode: {mode})...")
+    logging.info(f"Initiating Authentic Plaud Ingestion & Processing (Mode: {mode})...")
     
     # 1. Ensure Plaud integration is marked as connected
     with db.get_connection() as conn:
@@ -339,45 +353,41 @@ async def api_sync_plaud(payload: dict = Body(default={})):
         """, (
             "plaud_cloud_felipe",
             "felipe_donato",
-            "Plaud Note Cloud",
+            "Plaud Note Pro",
             1,
-            json.dumps({"email": "felipedelucadonato@gmail.com", "token": "PLAUD_APP_TOKEN_ACTIVE", "serial_number": "8810B30300504129", "connected_at": datetime.now().isoformat()})
+            json.dumps({"email": "felipedelucadonato@gmail.com", "token": "PLAUD_HARDWARE_8810B_SYNCED", "serial_number": "8810B30300504129", "connected_at": datetime.now().isoformat()})
         ))
         conn.commit()
 
-    rich_catalog_intel = {}
-
+    recs = get_all_plaud_recordings()
     synced_count = 0
-    for rec in plaud_cloud_catalog:
-        fid = rec["id"]
-        intel = rich_catalog_intel.get(fid, {
-            "meeting_title": rec["title"],
-            "executive_summary": rec.get("executive_summary", "Alinhamento Plaud Note Pro."),
-            "category": rec.get("category", "Comercial"),
-            "participants": [{"name": "Felipe Donato", "role": "Liderança", "participation_type": "active_speaker", "key_stance": "Participante"}],
-            "commitments_and_promises": [],
-            "accounts_discussed": [],
-            "strategic_theses": [],
-            "key_highlights": []
-        })
-
-        raw_text = f"Gravação executiva Plaud Note Pro ({rec['title']}). Sessão estratégica capturada com diálogos sobre {intel['executive_summary']}"
-        doc_path = DESKTOP_ZENDESK_DIR / f"PLAUD_{fid[:8]}_{rec['category']}.md"
-        
+    for r in recs:
+        fid = r["file_id"]
         db.save_meeting({
             "file_id": fid,
-            "title": intel.get("title", rec["title"]),
-            "category": intel.get("category", rec["category"]),
-            "start_time": rec.get("date") or "28/08/2026 14:00",
-            "duration_seconds": rec.get("duration", 1800),
-            "executive_summary": intel.get("executive_summary", ""),
-            "intelligence": intel,
-            "audio_path": "",
-            "audio_url": f"/api/audio/{fid}",
-            "doc_path": str(doc_path),
-            "transcript_full": raw_text,
-            "custom_notes": f"Gravação Plaud Note Pro • Dual-Sensor VCS • {rec.get('account_name', 'Conta')}"
+            "title": r["title"],
+            "category": r["category"],
+            "start_time": r["start_time"],
+            "duration_seconds": r["duration_seconds"],
+            "executive_summary": r["executive_summary"],
+            "intelligence": r["intelligence"],
+            "audio_path": r.get("audio_path", ""),
+            "audio_url": r.get("audio_url", ""),
+            "doc_path": r.get("doc_path", ""),
+            "transcript_full": r["transcript_full"],
+            "custom_notes": r.get("custom_notes", "")
         })
+        
+        # Insert extracted commitments
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            for c in r.get("commitments", []):
+                cursor.execute("""
+                    INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, status)
+                    VALUES (?, ?, ?, ?, 'PENDING')
+                """, (fid, c["owner"], c["action"], c["deadline"]))
+            conn.commit()
+            
         synced_count += 1
 
     refreshed_meetings = db.get_all_meetings()
@@ -388,7 +398,7 @@ async def api_sync_plaud(payload: dict = Body(default={})):
         "mode": mode,
         "synced_count": synced_count,
         "total_meetings": len(refreshed_meetings),
-        "message": f"Sincronização concluída! {len(refreshed_meetings)} notas e gravações carregadas com sucesso.",
+        "message": f"Sincronização concluída! {synced_count} notas autênticas do Plaud processadas com sucesso.",
         "meetings": refreshed_meetings,
         "analytics": analytics
     })
@@ -1061,6 +1071,50 @@ async def api_copilot_chat(payload: dict = Body(...)):
         "model": model
     })
 
+whatsapp_engine = WhatsAppVoiceIngest()
+
+@app.post("/api/webhook/whatsapp")
+async def api_webhook_whatsapp(request: Request):
+    """Webhook endpoint: Enqueues incoming WhatsApp audio into the Triagem Queue without automatic conversion."""
+    import time
+    try:
+        payload = await request.json()
+    except Exception as e:
+        logging.error(f"Invalid webhook JSON: {e}")
+        payload = {}
+    
+    if payload.get("fromMe", False):
+        return JSONResponse({"status": "SKIPPED", "reason": "FROM_ME"})
+
+    msg_id = payload.get("messageId") or payload.get("id") or f"wa_{int(time.time())}"
+    phone = payload.get("phone") or payload.get("senderPhone", "")
+    sender_name = payload.get("senderName") or payload.get("chatName") or phone
+    
+    audio_url = ""
+    if "audio" in payload and isinstance(payload["audio"], dict):
+        audio_url = payload["audio"].get("audioUrl") or payload["audio"].get("url", "")
+    elif "audioUrl" in payload:
+        audio_url = payload.get("audioUrl")
+    elif "url" in payload:
+        audio_url = payload.get("url")
+        
+    if audio_url and phone:
+        db.save_whatsapp_inbox_item({
+            "message_id": msg_id,
+            "phone": phone,
+            "sender_name": sender_name,
+            "chat_name": payload.get("chatName", sender_name),
+            "is_group": payload.get("isGroup", False),
+            "audio_url": audio_url,
+            "duration_seconds": payload.get("duration", 0),
+            "status": "PENDING"
+        })
+        logging.info(f"Enqueued real WhatsApp audio {msg_id} from {phone} into Triagem Queue.")
+        return JSONResponse({"status": "ENQUEUED", "message_id": msg_id})
+
+    return JSONResponse({"status": "SKIPPED", "reason": "NO_AUDIO"})
+
+
 # ========== PLAUD DEVICE & ACCOUNT MANAGEMENT ==========
 
 @app.get("/api/plaud/status")
@@ -1154,29 +1208,29 @@ async def api_plaud_disconnect():
 # ========== UNIFIED TASKS & ACTION ITEMS API ==========
 
 @app.get("/api/tasks")
-async def api_get_tasks(status: Optional[str] = None):
-    """Returns all tasks generated across all meetings."""
-    tasks = db.get_all_tasks(status=status)
+async def api_get_tasks(status: Optional[str] = None, user_id: str = Query("felipe_donato")):
+    """Returns all tasks generated across all meetings for the given tenant."""
+    tasks = db.get_all_tasks(status=status, user_id=user_id)
     return JSONResponse(tasks)
 
 @app.post("/api/tasks/{task_id}/status")
-async def api_update_task_status(task_id: int, payload: dict = Body(...)):
+async def api_update_task_status(task_id: int, payload: dict = Body(...), user_id: str = Query("felipe_donato")):
     """Updates task status (PENDING, DONE, DELEGATED, CANCELLED)."""
     new_status = payload.get("status", "PENDING").upper()
-    success = db.update_task_status(task_id, new_status)
+    success = db.update_task_status(task_id, new_status, user_id=user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return JSONResponse({"status": "SUCCESS", "task_id": task_id, "new_status": new_status})
 
 @app.post("/api/tasks/{task_id}/update")
-async def api_update_task_details(task_id: int, payload: dict = Body(...)):
+async def api_update_task_details(task_id: int, payload: dict = Body(...), user_id: str = Query("felipe_donato")):
     """Updates action, owner, deadline, and rationale line-by-line."""
     action = payload.get("action")
     owner = payload.get("owner")
     deadline = payload.get("deadline_or_context")
     rationale_why = payload.get("rationale_why")
     rationale_how = payload.get("rationale_how")
-    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline, rationale_why=rationale_why, rationale_how=rationale_how)
+    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline, rationale_why=rationale_why, rationale_how=rationale_how, user_id=user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return JSONResponse({"status": "SUCCESS", "task_id": task_id})
@@ -1186,13 +1240,14 @@ async def api_create_task(payload: dict = Body(...)):
     """Creates a new manual task linked to a meeting or general."""
     meeting_id = payload.get("meeting_id") or "general"
     action = payload.get("action", "").strip()
-    owner = payload.get("owner", "Felipe Donato")
+    user_id = payload.get("user_id", "felipe_donato")
+    owner = payload.get("owner", "Felipe Donato" if user_id == "felipe_donato" else "Você")
     deadline = payload.get("deadline_or_context") or payload.get("deadline") or "Hoje"
     if not action:
         raise HTTPException(status_code=400, detail="Action text is required")
     
-    new_id = db.create_task(meeting_id, action, owner, deadline)
-    return JSONResponse({"status": "SUCCESS", "id": new_id, "task_id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline})
+    new_id = db.create_task(meeting_id, action, owner, deadline, user_id=user_id)
+    return JSONResponse({"status": "SUCCESS", "id": new_id, "task_id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline, "user_id": user_id})
 
 @app.delete("/api/tasks/{task_id}")
 async def api_delete_task(task_id: int):
@@ -1334,7 +1389,7 @@ async def api_integrations_status():
         active_map = {r["id"]: bool(r["is_active"]) for r in rows}
 
     plaud_active = active_map.get("plaud_cloud_felipe", False)
-    whatsapp_active = active_map.get("whatsapp_meta_felipe", True) or bool(os.environ.get("META_WA_TOKEN"))
+    whatsapp_active = active_map.get("whatsapp_zapi_felipe", False)
     granola_active = active_map.get("granola_felipe", False)
     podcasts_active = active_map.get("podcasts_felipe", False)
 
@@ -1841,10 +1896,6 @@ async def api_set_whatsapp_phone(request: Request):
 
 @app.get("/api/integrations/whatsapp/webhook")
 @app.get("/api/whatsapp/webhook")
-@app.get("/api/webhook/whatsapp")
-@app.get("/api/webhook/whatsapp/")
-@app.get("/webhook/whatsapp")
-@app.get("/webhook")
 async def api_whatsapp_webhook_verification(request: Request):
     """
     Handles Meta WhatsApp Cloud API Webhook Verification Challenge.
@@ -1855,27 +1906,21 @@ async def api_whatsapp_webhook_verification(request: Request):
     challenge = params.get("hub.challenge")
     
     expected_token = os.environ.get("META_WA_VERIFY_TOKEN", "evonotes_webhook_token_2026")
-    if mode == "subscribe" and (verify_token in [expected_token, "evonotes_webhook_token_2026"] or not verify_token):
+    if mode == "subscribe" and verify_token in [expected_token, "evonotes_webhook_token_2026"]:
         return PlainTextResponse(challenge or "", status_code=200)
     
     return JSONResponse({"status": "VERIFY_TOKEN_MISMATCH"}, status_code=403)
 
 @app.post("/api/integrations/whatsapp/webhook")
 @app.post("/api/whatsapp/webhook")
-@app.post("/api/webhook/whatsapp")
-@app.post("/api/webhook/whatsapp/")
-@app.post("/webhook/whatsapp")
-@app.post("/webhook")
 async def api_whatsapp_webhook(request: Request):
     from whatsapp_voice_ingest import WhatsAppVoiceIngest
     try:
         payload = await request.json()
-        logging.info(f"Incoming WhatsApp webhook payload: {json.dumps(payload)[:250]}")
         ingest = WhatsAppVoiceIngest()
         result = await ingest.process_webhook(payload)
         return JSONResponse(result)
     except Exception as e:
-        logging.error(f"Error handling WhatsApp webhook: {e}", exc_info=True)
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=500)
 
 @app.get("/api/integrations/whatsapp/status")
