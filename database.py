@@ -319,6 +319,20 @@ class ExecutiveDatabase:
                 )
             """)
 
+            # WhatsApp One-Time Password (OTP) Authentication Table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS auth_otps (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    phone_number TEXT NOT NULL,
+                    otp_code TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP NOT NULL,
+                    attempts INTEGER DEFAULT 0,
+                    is_used INTEGER DEFAULT 0
+                )
+            """)
+
             # Performance & Multi-Tenant Indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_meetings_category ON meetings(category)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_meetings_user_id ON meetings(user_id)")
@@ -330,6 +344,7 @@ class ExecutiveDatabase:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_meeting_source_links_meeting_id ON meeting_source_links(meeting_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_exclusions_type_name ON inferred_exclusions_feedback(entity_type, entity_name)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_profiles_whatsapp ON user_profiles(whatsapp_phone)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_auth_otps_lookup ON auth_otps(phone_number, is_used)")
 
             conn.commit()
             logging.info(f"SQLite database initialized at {self.db_path}")
@@ -425,6 +440,80 @@ class ExecutiveDatabase:
             conn.commit()
             logging.info(f"Auto-provisioned new tenant workspace for {user_name} ({new_user_id})")
             return new_user_id
+
+    def create_otp(self, phone_number: str, user_id: str) -> str:
+        """
+        Generates and saves a 6-digit WhatsApp OTP with a 5-minute validity.
+        Invalidates previous unused OTPs for the same phone.
+        """
+        import random
+        import re
+        from datetime import datetime, timedelta
+        clean_phone = re.sub(r"\D", "", phone_number or "")
+        otp_code = f"{random.randint(100000, 999999)}"
+        expires_at = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Invalidate older pending OTPs
+            cursor.execute("UPDATE auth_otps SET is_used = 1 WHERE phone_number = ? AND is_used = 0", (clean_phone,))
+            cursor.execute("""
+                INSERT INTO auth_otps (phone_number, otp_code, user_id, expires_at)
+                VALUES (?, ?, ?, ?)
+            """, (clean_phone, otp_code, user_id, expires_at))
+            conn.commit()
+
+        logging.info(f"Generated OTP for phone {clean_phone} (tenant: {user_id}, expires: {expires_at})")
+        return otp_code
+
+    def verify_otp(self, phone_number: str, otp_code: str) -> Optional[str]:
+        """
+        Verifies the 6-digit OTP for the given phone.
+        Returns user_id if valid, or None if invalid/expired.
+        """
+        import re
+        from datetime import datetime
+        clean_phone = re.sub(r"\D", "", phone_number or "")
+        clean_code = re.sub(r"\D", "", otp_code or "").strip()
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, user_id, otp_code, expires_at, attempts
+                FROM auth_otps
+                WHERE phone_number = ? AND is_used = 0
+                ORDER BY id DESC
+                LIMIT 1
+            """, (clean_phone,))
+            row = cursor.fetchone()
+
+            if not row:
+                logging.warning(f"No active OTP found for phone {clean_phone}")
+                return None
+
+            otp_id = row["id"]
+            expected_code = row["otp_code"]
+            expires_at_str = row["expires_at"]
+            user_id = row["user_id"]
+
+            try:
+                expires_dt = datetime.strptime(expires_at_str, "%Y-%m-%d %H:%M:%S")
+                if datetime.now() > expires_dt:
+                    logging.warning(f"OTP expired for phone {clean_phone}")
+                    return None
+            except Exception:
+                pass
+
+            if clean_code == expected_code:
+                cursor.execute("UPDATE auth_otps SET is_used = 1 WHERE id = ?", (otp_id,))
+                conn.commit()
+                logging.info(f"OTP verified successfully for phone {clean_phone} (tenant: {user_id})")
+                return user_id
+            else:
+                cursor.execute("UPDATE auth_otps SET attempts = attempts + 1 WHERE id = ?", (otp_id,))
+                conn.commit()
+                logging.warning(f"Invalid OTP attempt for phone {clean_phone}: got '{clean_code}', expected '{expected_code}'")
+                return None
 
     def get_all_meetings(self, channel: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:

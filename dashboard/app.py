@@ -73,6 +73,7 @@ client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "s
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 intelligence_engine = IntelligenceEngine()
+whatsapp_engine = WhatsAppVoiceIngest()
 
 @app.post("/api/evonotes/waitlist")
 async def api_evonotes_waitlist(payload: dict = Body(default={})):
@@ -255,7 +256,7 @@ async def app_redirect():
 @app.get("/ogin", response_class=HTMLResponse)
 @app.get("/ogin/", response_class=HTMLResponse)
 async def login_page(request: Request):
-    """Serve a tela oficial de login do Evo OS."""
+    """Serve a tela oficial de login e auto-onboarding via WhatsApp OTP."""
     try:
         return templates.TemplateResponse(
             request=request,
@@ -264,21 +265,108 @@ async def login_page(request: Request):
         )
     except Exception as e:
         logging.error(f"Error rendering login template: {e}")
-        return RedirectResponse(url="/dashboard")
+        return HTMLResponse("<h1>Evo Notes</h1><a href='/login'>Entrar</a>")
+
+@app.post("/api/auth/send-otp")
+async def api_send_otp(payload: dict = Body(...)):
+    """
+    Gera código OTP de 6 dígitos e envia para o WhatsApp do usuário via Meta Cloud API.
+    Auto-provisiona o workspace se for o primeiro acesso.
+    """
+    raw_phone = payload.get("phone", "").strip()
+    name = payload.get("name", "").strip()
+    clean_phone = re.sub(r"\D", "", raw_phone)
+
+    if not clean_phone or len(clean_phone) < 8:
+        raise HTTPException(status_code=400, detail="Por favor, informe um número de telefone WhatsApp válido com DDD.")
+
+    # Se o número não começar com 55 e tiver 10 ou 11 dígitos, adiciona DDI 55
+    if len(clean_phone) in [10, 11] and not clean_phone.startswith("55"):
+        clean_phone = f"55{clean_phone}"
+
+    # 1. Resolve ou provisiona o workspace daquele cliente no SQLite
+    user_id = db.resolve_or_create_tenant(clean_phone, sender_name=name)
+
+    # 2. Gera o código OTP de 6 dígitos no banco com expiração de 5 minutos
+    otp_code = db.create_otp(clean_phone, user_id)
+
+    # 3. Dispara o código para o WhatsApp do usuário
+    wa_msg = (
+        f"🔐 *Seu Código de Acesso ao EvoNotes OS:*\n\n"
+        f"👉 *{otp_code}*\n\n"
+        f"_Insira este código na tela para acessar seu workspace privado._\n"
+        f"_Válido por 5 minutos. Não compartilhe com ninguém._"
+    )
+    
+    sent = whatsapp_engine.send_whatsapp_text(clean_phone, wa_msg)
+    if not sent:
+        logging.warning(f"Could not send OTP message to WhatsApp {clean_phone}, logging OTP directly.")
+
+    return JSONResponse({
+        "success": True,
+        "phone": clean_phone,
+        "user_id": user_id,
+        "message": "Código de 6 dígitos enviado com sucesso para o seu WhatsApp!"
+    })
+
+@app.post("/api/auth/verify-otp")
+async def api_verify_otp(payload: dict = Body(...)):
+    """
+    Valida o código OTP digitado e autentica a sessão do usuário.
+    """
+    raw_phone = payload.get("phone", "").strip()
+    otp_code = payload.get("otp", "").strip()
+    clean_phone = re.sub(r"\D", "", raw_phone)
+
+    if len(clean_phone) in [10, 11] and not clean_phone.startswith("55"):
+        clean_phone = f"55{clean_phone}"
+
+    user_id = db.verify_otp(clean_phone, otp_code)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Código incorreto ou expirado. Verifique a mensagem no seu WhatsApp e tente novamente.")
+
+    redirect_url = f"/dashboard?user_id={user_id}"
+    resp = JSONResponse({
+        "success": True,
+        "user_id": user_id,
+        "redirect_url": redirect_url,
+        "message": "Autenticação realizada com sucesso!"
+    })
+    # Define cookie de sessão duradouro
+    resp.set_cookie(
+        key="evonotes_user_id",
+        value=user_id,
+        max_age=60 * 60 * 24 * 60, # 60 dias
+        httponly=False,
+        samesite="lax"
+    )
+    return resp
+
+@app.get("/logout")
+@app.post("/api/auth/logout")
+async def api_logout():
+    """Encerra a sessão e remove o cookie de autenticação."""
+    resp = RedirectResponse(url="/login", status_code=303)
+    resp.delete_cookie("evonotes_user_id")
+    return resp
 
 @app.get("/dashboard", response_class=HTMLResponse)
 @app.get("/dashboard/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request, user_id: Optional[str] = Query(None)):
     try:
-        meetings = db.get_all_meetings()
-        profile = learning_engine.get_or_create_profile("felipe_donato")
-        analytics = get_keyword_analytics("felipe_donato")
-        tasks = db.get_all_tasks()
+        # Prioridade de autenticação: Query param > Cookie
+        active_user_id = user_id or request.cookies.get("evonotes_user_id") or "felipe_donato"
         
-        my_tasks = [t for t in tasks if "felipe" in (t.get("owner") or "").lower() and t.get("status") == "PENDING"]
+        meetings = db.get_all_meetings(user_id=active_user_id)
+        profile = learning_engine.get_or_create_profile(active_user_id)
+        analytics = get_keyword_analytics(active_user_id)
+        tasks = db.get_all_tasks(user_id=active_user_id)
+        
+        owner_name = "felipe" if active_user_id == "felipe_donato" else ""
+        my_tasks = [t for t in tasks if (not owner_name or owner_name in (t.get("owner") or "").lower()) and t.get("status") == "PENDING"]
         hours_saved = round((len(meetings) * 45) / 60, 1)
         
-        return templates.TemplateResponse(
+        resp = templates.TemplateResponse(
             request=request,
             name="index.html",
             context={
@@ -289,9 +377,13 @@ async def home(request: Request):
                 "my_tasks": my_tasks,
                 "my_tasks_count": len(my_tasks),
                 "total_meetings_count": len(meetings),
-                "hours_saved": hours_saved
+                "hours_saved": hours_saved,
+                "active_user_id": active_user_id
             }
         )
+        if active_user_id:
+            resp.set_cookie(key="evonotes_user_id", value=active_user_id, max_age=60*60*24*60, samesite="lax")
+        return resp
     except Exception as e:
         logging.error(f"Error rendering dashboard template: {e}", exc_info=True)
         import traceback
