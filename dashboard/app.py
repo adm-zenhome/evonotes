@@ -73,7 +73,6 @@ client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "s
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
 intelligence_engine = IntelligenceEngine()
-whatsapp_engine = WhatsAppVoiceIngest()
 
 @app.post("/api/evonotes/waitlist")
 async def api_evonotes_waitlist(payload: dict = Body(default={})):
@@ -270,7 +269,7 @@ async def login_page(request: Request):
 @app.post("/api/auth/send-otp")
 async def api_send_otp(payload: dict = Body(...)):
     """
-    Gera código OTP de 6 dígitos e envia para o WhatsApp do usuário via Meta Cloud API.
+    Gera código OTP de 6 dígitos e envia para o WhatsApp do usuário via Meta Cloud API / Z-API.
     Auto-provisiona o workspace se for o primeiro acesso.
     """
     raw_phone = payload.get("phone", "").strip()
@@ -299,14 +298,17 @@ async def api_send_otp(payload: dict = Body(...)):
     )
     
     sent = whatsapp_engine.send_whatsapp_text(clean_phone, wa_msg)
-    if not sent:
-        logging.warning(f"Could not send OTP message to WhatsApp {clean_phone}, logging OTP directly.")
+    
+    # Gera deep link wa.me para abertura direta de conversa se a janela 24h da Meta estiver fechada
+    wa_deep_link = f"https://wa.me/5511960004895?text=Entrar%20no%20EvoNotes%20(Código:%20{otp_code})"
 
     return JSONResponse({
         "success": True,
         "phone": clean_phone,
         "user_id": user_id,
-        "message": "Código de 6 dígitos enviado com sucesso para o seu WhatsApp!"
+        "sent_via_whatsapp": bool(sent),
+        "wa_deep_link": wa_deep_link,
+        "message": "Código de 6 dígitos gerado e enviado para o seu WhatsApp!"
     })
 
 @app.post("/api/auth/verify-otp")
@@ -391,8 +393,8 @@ async def home(request: Request, user_id: Optional[str] = Query(None)):
         return HTMLResponse(content=f"<h1>Evo OS Startup Debug</h1><pre>{tb}</pre>", status_code=200)
 
 @app.get("/api/meetings")
-async def api_meetings(channel: Optional[str] = None, user_id: str = Query("felipe_donato")):
-    return JSONResponse(db.get_all_meetings(channel=channel, user_id=user_id))
+async def api_meetings(channel: Optional[str] = None):
+    return JSONResponse(db.get_all_meetings(channel=channel))
 
 @app.get("/api/whatsapp/feed")
 async def api_whatsapp_feed():
@@ -664,8 +666,47 @@ async def api_stream_audio_universal(item_id: str):
 
     # 4. Checa banco de reuniões
     m = db.get_meeting(item_id)
-    if m and m.get("audio_path") and Path(m["audio_path"]).exists():
+    if m and m.get("audio_path") and Path(m["audio_path"]).exists() and Path(m["audio_path"]).stat().st_size > 10:
         return FileResponse(m["audio_path"], media_type="audio/mpeg")
+
+    # 5. Fallback Dinâmico: Gerar áudio do Executive Summary em Cache se o áudio não existir fisicamente!
+    if m:
+        summary_text = m.get("executive_summary") or m.get("title") or "Resumo executivo da gravação."
+        clean_text = re.sub(r'[*#_`>\[\]]', '', summary_text)[:600]
+        audio_briefing_dir = CACHE_DIR / "audio_briefings"
+        audio_briefing_dir.mkdir(parents=True, exist_ok=True)
+        briefing_mp3 = audio_briefing_dir / f"{item_id}_briefing.mp3"
+        
+        if briefing_mp3.exists() and briefing_mp3.stat().st_size > 100:
+            return FileResponse(str(briefing_mp3), media_type="audio/mpeg")
+            
+        try:
+            # 1. Tenta gTTS em Português Brasileiro
+            from gtts import gTTS
+            tts = gTTS(clean_text, lang='pt', tld='com.br')
+            tts.save(str(briefing_mp3))
+            if briefing_mp3.exists() and briefing_mp3.stat().st_size > 100:
+                return FileResponse(str(briefing_mp3), media_type="audio/mpeg")
+        except Exception as ge:
+            logging.warning(f"gTTS fallback error: {ge}")
+
+        try:
+            # 2. Tenta VoiceBriefingEngine
+            intel = m.get("intelligence") or {
+                "meeting_title": m.get("title", "Reunião Executiva"),
+                "executive_summary": summary_text
+            }
+            profile = learning_engine.get_or_create_profile("felipe_donato")
+            audio_path = voice_engine.create_audio_briefing(
+                file_id=item_id,
+                intelligence=intel,
+                user_profile=profile,
+                force_new_take=False
+            )
+            if audio_path and audio_path.exists():
+                return FileResponse(str(audio_path), media_type="audio/mpeg")
+        except Exception as ve:
+            logging.warning(f"VoiceEngine fallback error: {ve}")
 
     raise HTTPException(status_code=404, detail="Arquivo de áudio não encontrado")
 
@@ -1300,29 +1341,29 @@ async def api_plaud_disconnect():
 # ========== UNIFIED TASKS & ACTION ITEMS API ==========
 
 @app.get("/api/tasks")
-async def api_get_tasks(status: Optional[str] = None, user_id: str = Query("felipe_donato")):
-    """Returns all tasks generated across all meetings for the given tenant."""
-    tasks = db.get_all_tasks(status=status, user_id=user_id)
+async def api_get_tasks(status: Optional[str] = None):
+    """Returns all tasks generated across all meetings."""
+    tasks = db.get_all_tasks(status=status)
     return JSONResponse(tasks)
 
 @app.post("/api/tasks/{task_id}/status")
-async def api_update_task_status(task_id: int, payload: dict = Body(...), user_id: str = Query("felipe_donato")):
+async def api_update_task_status(task_id: int, payload: dict = Body(...)):
     """Updates task status (PENDING, DONE, DELEGATED, CANCELLED)."""
     new_status = payload.get("status", "PENDING").upper()
-    success = db.update_task_status(task_id, new_status, user_id=user_id)
+    success = db.update_task_status(task_id, new_status)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return JSONResponse({"status": "SUCCESS", "task_id": task_id, "new_status": new_status})
 
 @app.post("/api/tasks/{task_id}/update")
-async def api_update_task_details(task_id: int, payload: dict = Body(...), user_id: str = Query("felipe_donato")):
+async def api_update_task_details(task_id: int, payload: dict = Body(...)):
     """Updates action, owner, deadline, and rationale line-by-line."""
     action = payload.get("action")
     owner = payload.get("owner")
     deadline = payload.get("deadline_or_context")
     rationale_why = payload.get("rationale_why")
     rationale_how = payload.get("rationale_how")
-    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline, rationale_why=rationale_why, rationale_how=rationale_how, user_id=user_id)
+    success = db.update_task_details(task_id, action=action, owner=owner, deadline=deadline, rationale_why=rationale_why, rationale_how=rationale_how)
     if not success:
         raise HTTPException(status_code=404, detail="Task not found")
     return JSONResponse({"status": "SUCCESS", "task_id": task_id})
@@ -1332,14 +1373,13 @@ async def api_create_task(payload: dict = Body(...)):
     """Creates a new manual task linked to a meeting or general."""
     meeting_id = payload.get("meeting_id") or "general"
     action = payload.get("action", "").strip()
-    user_id = payload.get("user_id", "felipe_donato")
-    owner = payload.get("owner", "Felipe Donato" if user_id == "felipe_donato" else "Você")
+    owner = payload.get("owner", "Felipe Donato")
     deadline = payload.get("deadline_or_context") or payload.get("deadline") or "Hoje"
     if not action:
         raise HTTPException(status_code=400, detail="Action text is required")
     
-    new_id = db.create_task(meeting_id, action, owner, deadline, user_id=user_id)
-    return JSONResponse({"status": "SUCCESS", "id": new_id, "task_id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline, "user_id": user_id})
+    new_id = db.create_task(meeting_id, action, owner, deadline)
+    return JSONResponse({"status": "SUCCESS", "id": new_id, "task_id": new_id, "action": action, "owner": owner, "deadline_or_context": deadline})
 
 @app.delete("/api/tasks/{task_id}")
 async def api_delete_task(task_id: int):

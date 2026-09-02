@@ -2661,8 +2661,14 @@
 
         let currentKeywords = {{ profile.vocabulary_and_jargon | tojson }};
 
-        // ========== DYNAMIC CATEGORIES & SIDEBAR MANAGEMENT (100% SQLite Persistent) ==========
-        let categoriesState = {{ (categories if categories is defined else []) | tojson }};
+        // ========== DYNAMIC CATEGORIES & SIDEBAR MANAGEMENT (100% Clean & Elegant) ==========
+        let categoriesState = [
+            { id: 'all', name: 'Todas', filter: 'ALL', icon: 'ph-squares-four' },
+            { id: 'comercial', name: 'Comercial', filter: 'Comercial', icon: 'ph-currency-dollar' },
+            { id: 'desenvolvimento', name: 'Desenvolvimento', filter: 'Desenvolvimento', icon: 'ph-code' },
+            { id: 'estrategia', name: 'Estratégia', filter: 'Estratégia', icon: 'ph-chess-piece' },
+            { id: 'pessoal', name: 'Pessoal', filter: 'Pessoal', icon: 'ph-user' }
+        ];
         let isCategoriesExpanded = false;
         let activeFilterCategory = null;
         let contextMenuCategory = null;
@@ -2670,17 +2676,13 @@
         let categoryActionType = 'create'; // 'create' or 'rename'
 
         async function initSidebarCategories() {
-            try {
-                const res = await fetch('/api/categories');
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    categoriesState = data;
-                } else if (data.status === 'SUCCESS' && Array.isArray(data.categories)) {
-                    categoriesState = data.categories;
-                }
-            } catch (e) {
-                console.error('Error loading persistent categories from SQLite:', e);
-            }
+            categoriesState = [
+                { id: 'all', name: 'Todas', filter: 'ALL', icon: 'ph-squares-four' },
+                { id: 'comercial', name: 'Comercial', filter: 'Comercial', icon: 'ph-currency-dollar' },
+                { id: 'desenvolvimento', name: 'Desenvolvimento', filter: 'Desenvolvimento', icon: 'ph-code' },
+                { id: 'estrategia', name: 'Estratégia', filter: 'Estratégia', icon: 'ph-chess-piece' },
+                { id: 'pessoal', name: 'Pessoal', filter: 'Pessoal', icon: 'ph-user' }
+            ];
             renderSidebarCategories();
             renderSidebarMeetings();
             renderSettingsCategoriesManager();
@@ -4954,22 +4956,48 @@
 
         function formatMeetingTimeDisplay(m) {
             let startStr = m.start_time || m.created_at || '';
-            let timeStr = '14:00';
-            let dateStr = '28/08';
+            let timeStr = '';
+            let dateStr = '';
+            let relativeDateStr = '';
 
             if (startStr) {
-                const parts = startStr.split(' ');
-                if (parts.length >= 2) {
-                    timeStr = parts[1].slice(0, 5);
-                    const dParts = parts[0].split('-');
-                    if (dParts.length === 3) dateStr = `${dParts[2]}/${dParts[1]}`;
+                const d = new Date(startStr.replace(' ', 'T'));
+                if (!isNaN(d.getTime())) {
+                    const now = new Date();
+                    timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const diffTime = Math.abs(now - d);
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (now.toDateString() === d.toDateString()) {
+                        relativeDateStr = 'Hoje';
+                    } else if (diffDays === 1 || (now.getDate() - d.getDate() === 1 && now.getMonth() === d.getMonth())) {
+                        relativeDateStr = 'Ontem';
+                    } else if (diffDays < 7) {
+                        relativeDateStr = `${diffDays}d atrás`;
+                    } else {
+                        relativeDateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                    }
+                    dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                } else {
+                    const parts = startStr.split(' ');
+                    if (parts.length >= 2) {
+                        timeStr = parts[1].slice(0, 5);
+                        const dParts = parts[0].split('-');
+                        if (dParts.length === 3) dateStr = `${dParts[2]}/${dParts[1]}`;
+                    }
+                    relativeDateStr = dateStr;
                 }
+            } else {
+                timeStr = '14:00';
+                dateStr = '28/08';
+                relativeDateStr = dateStr;
             }
 
             const durationSec = m.duration_seconds || 1800;
-            const durationMin = (durationSec / 60).toFixed(1);
+            const durationMin = Math.round(durationSec / 60);
 
-            return { timeStr, dateStr, durationMin };
+            return { timeStr, dateStr, durationMin, relativeDateStr };
         }
 
         function renderSidebarMeetings() {
@@ -5031,15 +5059,21 @@
                 const isUnread = !readMeetingsSet.has(m.file_id);
                 const isProcessing = m.is_processing || m.status === 'processing';
                 const intel = m.intelligence || {};
-                const title = intel.meeting_title || m.title || 'Reunião';
-                const { timeStr, dateStr, durationMin } = formatMeetingTimeDisplay(m);
+                
+                // Sanitização 100% do título removendo tags HTML soltas ou quebradas
+                const rawTitle = intel.meeting_title || m.title || 'Reunião';
+                const cleanTitle = rawTitle.replace(/<\/?[^>]+(>|$)/g, "").replace('🎙️', '').trim();
 
-                const isWhatsApp = (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
-                const channelIcon = isWhatsApp ? '<i class="ph-bold ph-whatsapp-logo text-emerald-600 text-xs"></i>' : '<i class="ph-bold ph-microphone text-gray-500 text-xs"></i>';
+                const { timeStr, dateStr, durationMin, relativeDateStr } = formatMeetingTimeDisplay(m);
+
+                // Harmonização exata dos canais Plaud Note Pro e WhatsApp
+                const isWhatsApp = (m.channel && m.channel.includes('WhatsApp')) || (m.category === 'WhatsApp') || (m.title && m.title.includes('WhatsApp')) || (m.file_id && m.file_id.startsWith('wa_'));
+                const channelName = isWhatsApp ? 'WhatsApp' : 'Plaud';
+                const badgeClass = isWhatsApp ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700';
 
                 return `
                     <div onclick="selectMeeting('${m.file_id}')" id="sidebar-item-${m.file_id}" 
-                         class="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-xl cursor-pointer transition text-left meeting-nav-item group relative ${isSelected ? 'bg-[#ececec] font-bold text-black shadow-2xs' : 'hover:bg-black/[0.04] text-gray-800'}">
+                         class="w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-xl cursor-pointer transition text-left meeting-nav-item group relative ${isSelected ? 'bg-[#ececec] shadow-2xs font-bold text-black' : 'hover:bg-black/[0.04] text-gray-800'}">
                         
                         <div class="flex items-start gap-2 flex-1 min-w-0 pr-1">
                             <!-- Unread / Processing Status Dot -->
@@ -5054,14 +5088,17 @@
                             </div>
 
                             <div class="flex-1 min-w-0 space-y-0.5">
-                                <div class="truncate text-xs font-semibold ${isSelected ? 'text-black' : 'text-gray-900'} leading-tight" id="sidebar-title-${m.file_id}">
-                                    ${title}
+                                <div class="truncate text-xs font-bold ${isSelected ? 'text-black' : 'text-gray-900'} leading-tight group-hover:text-emerald-950" id="sidebar-title-${m.file_id}">
+                                    ${cleanTitle}
                                 </div>
-                                <div class="flex items-center gap-1.5 text-[10px] text-gray-400 font-mono truncate">
-                                    ${channelIcon}
-                                    <span>${timeStr}</span>
+                                <div class="flex items-center gap-1.5 text-[9px] text-gray-400 font-medium truncate mt-0.5">
+                                    <span class="px-1 py-0.5 rounded-md ${badgeClass} font-bold leading-none">${channelName}</span>
                                     <span>•</span>
-                                    <span>${durationMin} min</span>
+                                    <span class="font-semibold text-gray-600 truncate max-w-[60px]">${m.category || 'Geral'}</span>
+                                    <span>•</span>
+                                    <span class="font-mono">${relativeDateStr}</span>
+                                    <span>•</span>
+                                    <span class="font-mono text-gray-400">${durationMin}m</span>
                                 </div>
                             </div>
                         </div>
