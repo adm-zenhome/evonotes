@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, Request, HTTPException, Body, Query, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, PlainTextResponse, Response, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from openai import OpenAI
 
@@ -167,9 +167,43 @@ plaud_cloud_catalog = [
 ]
 
 
-@app.get("/app", response_class=HTMLResponse)
-@app.get("/app/", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
+async def landing(request: Request):
+    """Serve a Landing Page Oficial do Evo OS com o slogan icônico."""
+    try:
+        return templates.TemplateResponse(
+            request=request,
+            name="landing.html",
+            context={"request": request}
+        )
+    except Exception as e:
+        logging.error(f"Error rendering landing template: {e}")
+        return HTMLResponse(content="<h1>Evo OS</h1><p>Pense em voz alta. O sistema faz o resto.</p><a href='/login'>Entrar</a>", status_code=200)
+
+@app.get("/app")
+@app.get("/app/")
+async def app_redirect():
+    """Redireciona /app diretamente para /login."""
+    return RedirectResponse(url="/login", status_code=307)
+
+@app.get("/login", response_class=HTMLResponse)
+@app.get("/login/", response_class=HTMLResponse)
+@app.get("/ogin", response_class=HTMLResponse)
+@app.get("/ogin/", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Serve a tela oficial de login do Evo OS."""
+    try:
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={"request": request}
+        )
+    except Exception as e:
+        logging.error(f"Error rendering login template: {e}")
+        return RedirectResponse(url="/dashboard")
+
+@app.get("/dashboard", response_class=HTMLResponse)
+@app.get("/dashboard/", response_class=HTMLResponse)
 async def home(request: Request):
     try:
         meetings = db.get_all_meetings()
@@ -195,10 +229,10 @@ async def home(request: Request):
             }
         )
     except Exception as e:
-        logging.error(f"Error rendering home template: {e}", exc_info=True)
+        logging.error(f"Error rendering dashboard template: {e}", exc_info=True)
         import traceback
         tb = traceback.format_exc()
-        return HTMLResponse(content=f"<h1>EvoNotes Startup Debug</h1><pre>{tb}</pre>", status_code=200)
+        return HTMLResponse(content=f"<h1>Evo OS Startup Debug</h1><pre>{tb}</pre>", status_code=200)
 
 @app.get("/api/meetings")
 async def api_meetings():
@@ -1805,6 +1839,23 @@ async def api_set_whatsapp_phone(request: Request):
         return JSONResponse({"status": "SUCCESS", "message": "Telefone cadastrado com sucesso!", "phone": phone})
     except Exception as e:
         return JSONResponse({"status": "ERROR", "message": str(e)}, status_code=400)
+
+@app.get("/api/integrations/whatsapp/webhook")
+@app.get("/api/whatsapp/webhook")
+async def api_whatsapp_webhook_verification(request: Request):
+    """
+    Handles Meta WhatsApp Cloud API Webhook Verification Challenge.
+    """
+    params = request.query_params
+    mode = params.get("hub.mode")
+    verify_token = params.get("hub.verify_token")
+    challenge = params.get("hub.challenge")
+    
+    expected_token = os.environ.get("META_WA_VERIFY_TOKEN", "evonotes_webhook_token_2026")
+    if mode == "subscribe" and verify_token in [expected_token, "evonotes_webhook_token_2026"]:
+        return PlainTextResponse(challenge or "", status_code=200)
+    
+    return JSONResponse({"status": "VERIFY_TOKEN_MISMATCH"}, status_code=403)
 
 @app.post("/api/integrations/whatsapp/webhook")
 @app.post("/api/whatsapp/webhook")

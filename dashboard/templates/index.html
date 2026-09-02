@@ -42,22 +42,13 @@
             
             <!-- Sidebar Header -->
             <div class="p-3 flex items-center justify-between relative z-50">
-                <button onclick="showHomeDashboard()" class="flex items-center gap-2 text-sm font-bold text-[#0d0d0d] hover:bg-[#ececec] px-2.5 py-1.5 rounded-xl transition cursor-pointer" title="Ir para a Tela Inicial">
+                <button onclick="showHomeDashboard()" class="flex items-center gap-2 text-sm font-bold text-[#0d0d0d] hover:bg-[#ececec] px-2.5 py-1.5 rounded-xl transition cursor-pointer">
                     <div class="w-6 h-6 rounded-lg bg-zinc-950 text-white flex items-center justify-center text-xs font-black">
                         <i class="ph-bold ph-waveform"></i>
                     </div>
                     <span>EvoNotes</span>
                 </button>
                 <div class="flex items-center gap-1">
-                    <!-- Quick Record Button -->
-                    <button onclick="toggleGlobalVoiceRecording()" id="btn-sidebar-quick-record" class="p-1.5 text-gray-500 hover:text-red-600 rounded-lg hover:bg-[#ececec] transition cursor-pointer" title="Gravar Nota pelo Microfone">
-                        <i class="ph-bold ph-microphone text-base text-red-500"></i>
-                    </button>
-                    <!-- Quick Import Audio Button -->
-                    <button onclick="triggerGlobalAudioUpload()" id="btn-sidebar-quick-upload" class="p-1.5 text-gray-500 hover:text-blue-600 rounded-lg hover:bg-[#ececec] transition cursor-pointer" title="Importar Arquivo de Áudio">
-                        <i class="ph-bold ph-upload-simple text-base text-blue-600"></i>
-                    </button>
-                    <!-- Settings -->
                     <button onclick="openSettingsModal()" class="p-1.5 text-gray-400 hover:text-black rounded-lg hover:bg-[#ececec] transition cursor-pointer" title="Configurações e Conexões">
                         <i class="ph-bold ph-sliders-horizontal text-base"></i>
                     </button>
@@ -70,23 +61,9 @@
                         </button>
                         
                         <!-- Floating Sync Sources Menu Dropdown -->
-                        <div id="sync-sources-menu" class="hidden absolute right-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 z-[999] space-y-1 text-xs select-none">
-                            <div class="px-2.5 py-1.5 text-[10px] font-bold uppercase text-gray-400 tracking-wider">Captura & Fontes de Áudio</div>
-                            <button onclick="toggleGlobalVoiceRecording(); toggleSyncSourcesMenu(event);" class="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-red-50 text-gray-800 hover:text-red-900 rounded-xl transition text-left cursor-pointer">
-                                <i class="ph-bold ph-microphone text-red-600 text-sm"></i>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-bold text-xs">Gravar pelo Microfone</div>
-                                    <div class="text-[10px] text-gray-400">Gravação direta ao vivo</div>
-                                </div>
-                            </button>
-                            <button onclick="triggerGlobalAudioUpload(); toggleSyncSourcesMenu(event);" class="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-blue-50 text-gray-800 hover:text-blue-900 rounded-xl transition text-left cursor-pointer">
-                                <i class="ph-bold ph-upload-simple text-blue-600 text-sm"></i>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-bold text-xs">Importar Áudio Local</div>
-                                    <div class="text-[10px] text-gray-400">MP3, M4A, WAV, WebM</div>
-                                </div>
-                            </button>
-                            <button onclick="openPlaudSyncChoiceModal(); toggleSyncSourcesMenu(event);" class="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-emerald-50 text-gray-800 hover:text-emerald-900 rounded-xl transition text-left cursor-pointer">
+                        <div id="sync-sources-menu" class="hidden absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200 p-2 z-[999] space-y-1 text-xs select-none">
+                            <div class="px-2.5 py-1.5 text-[10px] font-bold uppercase text-gray-400 tracking-wider">Fontes de Áudio</div>
+                            <button onclick="syncPlaudNoteFeed(); toggleSyncSourcesMenu(event);" class="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-emerald-50 text-gray-800 hover:text-emerald-900 rounded-xl transition text-left cursor-pointer">
                                 <i class="ph-bold ph-waveform text-emerald-600 text-sm"></i>
                                 <div class="flex-1 min-w-0">
                                     <div class="font-bold text-xs">Plaud Note Cloud</div>
@@ -98,6 +75,13 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="font-bold text-xs">WhatsApp Voice</div>
                                     <div class="text-[10px] text-gray-400">Verificar status do gateway</div>
+                                </div>
+                            </button>
+                            <button onclick="document.getElementById('audio-upload-input')?.click(); toggleSyncSourcesMenu(event);" class="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-blue-50 text-gray-800 hover:text-blue-900 rounded-xl transition text-left cursor-pointer">
+                                <i class="ph-bold ph-upload-simple text-blue-600 text-sm"></i>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-xs">Importar Áudio Local</div>
+                                    <div class="text-[10px] text-gray-400">MP3, M4A, WAV, WebM</div>
                                 </div>
                             </button>
                         </div>
@@ -210,7 +194,7 @@
             <div class="w-full mx-auto flex items-center justify-between gap-2 layout-width-container max-w-5xl">
                 <div class="flex items-center gap-2 truncate min-w-0 flex-1">
                     
-                    <!-- Navigation Control: Adaptive Back / Menu Button & Quick Actions -->
+                    <!-- Navigation Control: Adaptive Back / Menu Button -->
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                         
                         <!-- Mobile Hamburger (Shown when on Home) -->
@@ -224,20 +208,8 @@
                             <span>Início</span>
                         </button>
 
-                        <!-- Quick Record Audio Button (Global) -->
-                        <button onclick="toggleGlobalVoiceRecording()" id="topbar-btn-record" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Gravar pelo microfone">
-                            <i class="ph-bold ph-microphone text-red-600 text-sm animate-pulse"></i>
-                            <span class="hidden sm:inline">Gravar</span>
-                        </button>
-
-                        <!-- Quick Import Audio Button (Global) -->
-                        <button onclick="triggerGlobalAudioUpload()" id="topbar-btn-upload" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Importar arquivo de áudio">
-                            <i class="ph-bold ph-upload-simple text-blue-600 text-sm"></i>
-                            <span class="hidden sm:inline">Importar</span>
-                        </button>
-
                         <!-- Tasks Central Shortcut Button -->
-                        <button onclick="showTasksCentralView()" id="topbar-btn-tasks" class="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Central de Tarefas">
+                        <button onclick="showTasksCentralView()" id="topbar-btn-tasks" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-gray-800 border border-gray-200/80 font-bold text-xs shadow-2xs active:scale-95 transition cursor-pointer" title="Central de Tarefas">
                             <i class="ph-bold ph-check-square text-blue-600 text-xs"></i>
                             <span>Tarefas</span>
                         </button>
@@ -1858,7 +1830,7 @@
         }
 
         // ==============================================================
-        // 🎙️ GLOBAL WEB VOICE RECORDING & AUDIO UPLOAD STUDIO (ZERO FRICTION)
+        // 🎙️ WEB VOICE RECORDING & DRAG & DROP STUDIO (ZERO FRICTION)
         // ==============================================================
         let mediaRecorder = null;
         let audioChunks = [];
@@ -1866,36 +1838,15 @@
         let recordStartTime = 0;
         let isRecording = false;
 
-        function triggerGlobalAudioUpload() {
-            const input = document.getElementById('global-audio-upload-input') || document.getElementById('audio-file-input');
-            if (input) input.click();
-        }
-
-        function handleGlobalAudioUpload(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                processAudioUpload(file, file.name.replace(/\.[^/.]+$/, ""));
-                input.value = '';
-            }
-        }
-
-        function syncPlaudNoteFeed() {
-            openPlaudSyncChoiceModal();
-        }
-
-        async function toggleGlobalVoiceRecording() {
-            if (isRecording) {
-                await stopGlobalVoiceRecordingAndProcess();
-            } else {
-                await startGlobalVoiceRecording();
-            }
-        }
-
         async function toggleWebVoiceRecording() {
-            return toggleGlobalVoiceRecording();
+            if (isRecording) {
+                stopWebVoiceRecordingAndProcess();
+            } else {
+                startWebVoiceRecording();
+            }
         }
 
-        async function startGlobalVoiceRecording() {
+        async function startWebVoiceRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 audioChunks = [];
@@ -1915,36 +1866,24 @@
                 isRecording = true;
                 recordStartTime = Date.now();
 
-                // UI Updates: Global Floating Recording Bar
-                const globalBar = document.getElementById('global-recording-bar');
-                const globalTimer = document.getElementById('global-recording-timer');
-                if (globalBar) globalBar.classList.remove('hidden');
-                if (globalTimer) globalTimer.innerText = '00:00';
+                // UI Updates
+                const timerEl = document.getElementById('recording-timer');
+                const visEl = document.getElementById('recording-visualizer');
+                const labelEl = document.getElementById('record-btn-label');
+                const iconEl = document.getElementById('record-btn-icon');
+                const cardEl = document.getElementById('mic-recorder-card');
 
-                // UI Updates: Home Studio Card (if visible)
-                const homeTimerEl = document.getElementById('recording-timer');
-                const homeVisEl = document.getElementById('recording-visualizer');
-                const homeLabelEl = document.getElementById('record-btn-label');
-                const homeIconEl = document.getElementById('record-btn-icon');
-                const homeCardEl = document.getElementById('mic-recorder-card');
-
-                if (homeTimerEl) { homeTimerEl.classList.remove('hidden'); homeTimerEl.innerText = '00:00'; }
-                if (homeVisEl) homeVisEl.classList.remove('hidden');
-                if (homeCardEl) { homeCardEl.classList.add('bg-red-50/50', 'border-red-300'); }
-                if (homeLabelEl) homeLabelEl.innerText = 'Parar & Gerar Nota';
-                if (homeIconEl) homeIconEl.className = 'ph-bold ph-stop text-white text-sm';
-
-                // Topbar & Sidebar Record Buttons Pulse
-                const topbarRecBtn = document.getElementById('topbar-btn-record');
-                if (topbarRecBtn) topbarRecBtn.classList.add('ring-2', 'ring-red-500', 'bg-red-100');
+                if (timerEl) { timerEl.classList.remove('hidden'); timerEl.innerText = '00:00'; }
+                if (visEl) visEl.classList.remove('hidden');
+                if (cardEl) { cardEl.classList.add('bg-red-50/50', 'border-red-300'); }
+                if (labelEl) labelEl.innerText = 'Parar & Gerar Nota';
+                if (iconEl) iconEl.className = 'ph-bold ph-stop text-white text-sm';
 
                 recordInterval = setInterval(() => {
                     const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
                     const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
                     const secs = String(elapsed % 60).padStart(2, '0');
-                    const timeStr = `${mins}:${secs}`;
-                    if (globalTimer) globalTimer.innerText = timeStr;
-                    if (homeTimerEl) homeTimerEl.innerText = timeStr;
+                    if (timerEl) timerEl.innerText = `${mins}:${secs}`;
                 }, 1000);
 
                 showInAppToast('🎙️ Gravação iniciada. Fale à vontade!', 'info');
@@ -1954,34 +1893,24 @@
             }
         }
 
-        async function startWebVoiceRecording() {
-            return startGlobalVoiceRecording();
-        }
-
-        async function stopGlobalVoiceRecordingAndProcess() {
+        async function stopWebVoiceRecordingAndProcess() {
             if (!mediaRecorder) return;
             
             clearInterval(recordInterval);
             isRecording = false;
 
             // Reset UI
-            const globalBar = document.getElementById('global-recording-bar');
-            if (globalBar) globalBar.classList.add('hidden');
+            const timerEl = document.getElementById('recording-timer');
+            const visEl = document.getElementById('recording-visualizer');
+            const labelEl = document.getElementById('record-btn-label');
+            const iconEl = document.getElementById('record-btn-icon');
+            const cardEl = document.getElementById('mic-recorder-card');
 
-            const homeTimerEl = document.getElementById('recording-timer');
-            const homeVisEl = document.getElementById('recording-visualizer');
-            const homeLabelEl = document.getElementById('record-btn-label');
-            const homeIconEl = document.getElementById('record-btn-icon');
-            const homeCardEl = document.getElementById('mic-recorder-card');
-
-            if (homeTimerEl) homeTimerEl.classList.add('hidden');
-            if (homeVisEl) homeVisEl.classList.add('hidden');
-            if (homeCardEl) { homeCardEl.classList.remove('bg-red-50/50', 'border-red-300'); }
-            if (homeLabelEl) homeLabelEl.innerText = 'Iniciar Gravação';
-            if (homeIconEl) homeIconEl.className = 'ph-bold ph-record text-red-400 text-sm';
-
-            const topbarRecBtn = document.getElementById('topbar-btn-record');
-            if (topbarRecBtn) topbarRecBtn.classList.remove('ring-2', 'ring-red-500', 'bg-red-100');
+            if (timerEl) timerEl.classList.add('hidden');
+            if (visEl) visEl.classList.add('hidden');
+            if (cardEl) { cardEl.classList.remove('bg-red-50/50', 'border-red-300'); }
+            if (labelEl) labelEl.innerText = 'Iniciar Gravação';
+            if (iconEl) iconEl.className = 'ph-bold ph-record text-red-400 text-sm';
 
             mediaRecorder.stop();
 
@@ -1990,38 +1919,6 @@
                 const file = new File([audioBlob], `gravacao_${Date.now()}.webm`, { type: 'audio/webm' });
                 await processAudioUpload(file, `Nota de Voz — ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}`);
             }, 300);
-        }
-
-        async function stopWebVoiceRecordingAndProcess() {
-            return stopGlobalVoiceRecordingAndProcess();
-        }
-
-        function cancelGlobalVoiceRecording() {
-            if (!mediaRecorder) return;
-            clearInterval(recordInterval);
-            isRecording = false;
-            audioChunks = [];
-            
-            const globalBar = document.getElementById('global-recording-bar');
-            if (globalBar) globalBar.classList.add('hidden');
-
-            const homeTimerEl = document.getElementById('recording-timer');
-            const homeVisEl = document.getElementById('recording-visualizer');
-            const homeLabelEl = document.getElementById('record-btn-label');
-            const homeIconEl = document.getElementById('record-btn-icon');
-            const homeCardEl = document.getElementById('mic-recorder-card');
-
-            if (homeTimerEl) homeTimerEl.classList.add('hidden');
-            if (homeVisEl) homeVisEl.classList.add('hidden');
-            if (homeCardEl) { homeCardEl.classList.remove('bg-red-50/50', 'border-red-300'); }
-            if (homeLabelEl) homeLabelEl.innerText = 'Iniciar Gravação';
-            if (homeIconEl) homeIconEl.className = 'ph-bold ph-record text-red-400 text-sm';
-
-            const topbarRecBtn = document.getElementById('topbar-btn-record');
-            if (topbarRecBtn) topbarRecBtn.classList.remove('ring-2', 'ring-red-500', 'bg-red-100');
-
-            mediaRecorder.stop();
-            showInAppToast('Gravação cancelada.', 'info');
         }
 
         function handleAudioFileSelect(input) {
@@ -2048,12 +1945,6 @@
             const statusLabel = document.getElementById('processing-status-label');
             if (shimmer) shimmer.classList.remove('hidden');
             if (statusLabel) statusLabel.innerText = `Transcrevendo "${file.name}" com Whisper e gerando inteligência...`;
-
-            // Global floating progress pill
-            const globalShimmer = document.getElementById('global-upload-shimmer');
-            const globalTitle = document.getElementById('global-upload-status-title');
-            if (globalShimmer) globalShimmer.classList.remove('hidden');
-            if (globalTitle) globalTitle.innerText = `Transcrevendo "${file.name}" com Whisper...`;
 
             try {
                 const formData = new FormData();
@@ -2082,7 +1973,6 @@
                 showInAppToast(err.message || 'Falha ao processar áudio.', 'error');
             } finally {
                 if (shimmer) shimmer.classList.add('hidden');
-                if (globalShimmer) globalShimmer.classList.add('hidden');
             }
         }
 
@@ -11535,46 +11425,6 @@ Felipe Donato`);
             </div>
         </div>
     </div>
-
-    <!-- 🎙️ GLOBAL FLOATING RECORDING BAR (ACTIVE FROM ANYWHERE IN APP) -->
-    <div id="global-recording-bar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-zinc-950/95 backdrop-blur-xl text-white px-5 py-3.5 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-red-500/30 flex items-center gap-4 animate-fade-in max-w-md w-[92vw]">
-        <div class="flex items-center gap-3 flex-1 min-w-0">
-            <span class="relative flex h-3 w-3 flex-shrink-0">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
-            </span>
-            <div class="truncate leading-tight">
-                <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>Gravando Áudio</span>
-                    <span id="global-recording-timer" class="font-mono text-red-400 bg-red-950/80 border border-red-800/60 px-1.5 py-0.5 rounded text-[11px]">00:00</span>
-                </div>
-                <div class="text-[10px] text-gray-400 truncate">Fale ao microfone do dispositivo...</div>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-            <button onclick="cancelGlobalVoiceRecording()" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-xs font-semibold transition cursor-pointer">
-                Cancelar
-            </button>
-            <button onclick="stopGlobalVoiceRecordingAndProcess()" class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer">
-                <i class="ph-bold ph-stop text-sm"></i>
-                <span>Parar & Gerar</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ⚡ GLOBAL FLOATING UPLOAD / TRANSCRIPTION PROGRESS PILL -->
-    <div id="global-upload-shimmer" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-zinc-950/95 backdrop-blur-xl text-white px-5 py-3.5 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-emerald-500/30 flex items-center gap-3 animate-fade-in max-w-md w-[92vw]">
-        <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
-            <i class="ph-bold ph-spinner animate-spin text-base"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-            <div id="global-upload-status-title" class="text-xs font-bold text-white truncate">Processando Áudio com Whisper...</div>
-            <div id="global-upload-status-sub" class="text-[10px] text-emerald-300/80 truncate">Extraindo inteligência executiva e ata oficial...</div>
-        </div>
-    </div>
-
-    <!-- 📁 GLOBAL HIDDEN AUDIO INPUT (ALWAYS PRESENT IN DOM) -->
-    <input type="file" id="global-audio-upload-input" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.webm,.m4p" class="hidden" onchange="handleGlobalAudioUpload(this)">
 
 </body>
 </html>
