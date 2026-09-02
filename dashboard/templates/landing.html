@@ -3,35 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Evo OS — Pense em voz alta. O sistema faz o resto. | evonotes.app</title>
-    <meta name="description" content="O sistema operacional por voz para quem pensa mais rápido do que digita. Transforme sua fala em decisões, atas e entregas em menos de 2 segundos.">
+    <title>EvoNotes — O Segundo Cérebro de Voz para Lideranças | evonotes.app</title>
+    <meta name="description" content="Capture pensamentos no WhatsApp, reuniões e consultas. O EvoNotes sintetiza decisões, pendências e tarefas em menos de 2 segundos.">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-[#F0F2F6] text-[#09090B] min-h-screen antialiased selection:bg-emerald-700 selection:text-white relative overflow-x-hidden">
 
     <!-- Soft Ambient Depth Glows -->
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-tr from-emerald-200/35 via-zinc-200/40 to-sky-200/30 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-tr from-emerald-200/35 via-zinc-200/40 to-sky-200/30 rounded-full blur-[140px] pointer-events-none -z-10"></div>
     <div class="absolute top-[45%] right-0 w-[600px] h-[600px] bg-gradient-to-bl from-emerald-100/30 via-zinc-200/30 to-transparent rounded-full blur-[150px] pointer-events-none -z-10"></div>
 
-    <!-- ━━━ FIXED FLOATING PILL NAVBAR WITH GLASSMORPHISM ━━━ -->
+    <!-- ━━━ FIXED FLOATING PILL NAVBAR WITH CLEAN GLASSMORPHISM ━━━ -->
     <div class="fixed top-4 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none">
-        <header class="pointer-events-auto w-full max-w-3xl backdrop-blur-2xl bg-white/80 border border-white/90 shadow-[0_10px_35px_rgba(0,0,0,0.08)] rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between transition-all duration-300">
-            <a href="/" class="flex items-center gap-2.5 group">
+        <header class="pointer-events-auto w-full max-w-4xl backdrop-blur-2xl bg-white/80 border border-white/90 shadow-[0_10px_35px_rgba(0,0,0,0.08)] rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between transition-all duration-300">
+            <a href="/" class="flex items-center gap-2.5 group text-decoration-none">
                 <div class="w-6 h-6 rounded-lg bg-zinc-950 text-white flex items-center justify-center text-xs font-black shadow-xs group-hover:scale-105 transition-transform">
                     <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M6 8v8M18 10v4M3 11v2M21 11v2" />
                     </svg>
                 </div>
-                <span class="font-extrabold text-sm tracking-tight text-zinc-950">Evo OS</span>
+                <span class="font-extrabold text-sm tracking-tight text-zinc-950">EvoNotes</span>
                 <span class="text-[10px] font-medium text-zinc-400 hidden sm:inline">by OQueVem.AI</span>
             </a>
 
-            <div class="flex items-center gap-2 sm:gap-3">
+            <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-zinc-600">
+                <a href="#como-funciona" class="hover:text-zinc-950 transition">Como Funciona</a>
+                <a href="#profissoes" class="hover:text-zinc-950 transition">Profissões</a>
+                <a href="#seguranca" class="hover:text-zinc-950 transition">Segurança</a>
+                <a href="#planos" class="hover:text-zinc-950 transition">Preços</a>
+                <a href="#faq" class="hover:text-zinc-950 transition">FAQ</a>
+            </nav>
+
+            <div class="flex items-center gap-2">
                 <a href="/login" class="text-xs font-bold text-zinc-600 hover:text-zinc-950 px-3 py-1.5 rounded-full hover:bg-zinc-100 transition">
                     Entrar
                 </a>
@@ -43,95 +53,618 @@
         </header>
     </div>
 
-    <!-- Main 1-Slide Viewport Content -->
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 min-h-[92vh] flex flex-col justify-between items-center text-center">
-        
-        <!-- Hero Content (1 Slide) -->
-        <div class="max-w-3xl mx-auto my-auto pt-4 pb-8">
-            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-semibold mb-5 backdrop-blur-md bg-white/80 text-zinc-800 border border-white/90 shadow-2xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                <span>Evo OS • Pré-Venda VIP Aberta • 01/Outubro</span>
-            </div>
+    <!-- Main Content Container with Top Padding for Fixed Nav -->
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-20">
 
-            <h1 class="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight text-zinc-950 leading-[1.02] mb-4">
-                Evo OS
-            </h1>
-
-            <p class="text-xl sm:text-3xl font-extrabold text-emerald-800 tracking-tight leading-snug mb-4">
-                Pense em voz alta. O sistema faz o resto.
-            </p>
-
-            <p class="text-sm sm:text-base text-zinc-600 max-w-xl mx-auto leading-relaxed mb-8">
-                O sistema operacional por voz para quem pensa mais rápido do que digita. Transforme sua fala em decisões, atas e entregas em menos de 2 segundos.
-            </p>
-
-            <!-- 1-Click Action Buttons -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto mb-5">
-                <a href="#form" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-zinc-950 hover:bg-black text-white text-sm font-bold shadow-lg transition transform active:scale-98 cursor-pointer">
-                    <span>Garantir 1º Ano Grátis</span>
-                    <i class="ph-bold ph-arrow-right text-emerald-400"></i>
-                </a>
-                <a href="/login" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white/80 hover:bg-white text-zinc-800 text-sm font-bold border border-zinc-200/80 shadow-2xs transition">
-                    <i class="ph-bold ph-sign-in text-zinc-600"></i>
-                    <span>Acessar o App</span>
-                </a>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-500 font-medium">
-                <span>★ 1º ano grátis no Starter</span>
-                <span>•</span>
-                <span>100% no navegador (Web & Celular)</span>
-                <span>•</span>
-                <span>Sem cartão de crédito</span>
-            </div>
-        </div>
-
-        <!-- Hero Window Preview (Interactive Look) -->
-        <div class="w-full max-w-4xl relative rounded-[28px] p-2.5 sm:p-3.5 backdrop-blur-2xl bg-white/70 border border-white/95 shadow-[0_16px_40px_rgba(0,0,0,0.06)] mt-2">
-            <div class="bg-white rounded-[20px] border border-zinc-200/80 overflow-hidden shadow-2xs">
-                <div class="px-4 py-2.5 bg-[#fdfdfd] border-b border-zinc-200/70 flex items-center justify-between">
-                    <div class="flex items-center gap-1.5">
-                        <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                        <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                        <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+        <!-- Hero Section -->
+        <section class="max-w-5xl mx-auto pt-2 pb-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10">
+                <div class="lg:col-span-7 text-left">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] font-semibold mb-4 backdrop-blur-md bg-white/80 text-zinc-800 border border-white/90 shadow-2xs">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                        <span>Lançamento em 01 de Outubro • Pré-Venda VIP Aberta</span>
                     </div>
-                    <div class="text-[11px] font-bold text-zinc-800 flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Evo OS Workspace — Second Brain</span>
-                    </div>
-                    <div class="text-[10px] text-zinc-400 font-mono">01/10/2026</div>
+
+                    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-950 leading-[1.08] mb-4">
+                        Sua voz em ação, <br />
+                        <span class="text-emerald-700">pronta para decidir.</span>
+                    </h1>
                 </div>
-                <div class="p-6 sm:p-8 bg-zinc-50/70 text-left flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
-                            <span>Pronto para usar</span>
-                        </div>
-                        <h3 class="text-base sm:text-lg font-bold text-zinc-950">Central Executiva de Voz & Decisões</h3>
-                        <p class="text-xs text-zinc-600 mt-1 max-w-md">Grave áudios, reuniões ou notas soltas. O Evo OS processa com seus modelos especialistas e gera atas, tarefas e relatórios instantâneos.</p>
+
+                <div class="lg:col-span-5 text-left lg:pt-6">
+                    <p class="text-sm sm:text-base text-zinc-600 leading-relaxed mb-6 font-normal">
+                        Capture pensamentos no WhatsApp, reuniões e consultas. O EvoNotes sintetiza decisões, pendências e e-mails de follow-up em menos de 2 segundos.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <a href="#form" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-zinc-950 hover:bg-black text-white text-sm font-bold shadow-md transition transform active:scale-98 cursor-pointer">
+                            <span>Garantir 1 Ano Grátis</span>
+                            <i class="ph-bold ph-arrow-right text-emerald-400"></i>
+                        </a>
                     </div>
-                    <a href="/login" class="shrink-0 px-5 py-2.5 bg-zinc-950 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
-                        <span>Abrir Dashboard</span>
-                        <i class="ph-bold ph-arrow-up-right text-emerald-400"></i>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500 font-medium">
+                        <span>★ 1º ano grátis no Starter</span>
+                        <span>•</span>
+                        <span>Sem cartão de crédito</span>
+                        <span>•</span>
+                        <span>Hardware 100% opcional</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Main Window (Clean White Glassmorphic Frame with Interactive Screen) -->
+            <div class="relative rounded-[32px] p-2.5 sm:p-4 backdrop-blur-2xl bg-white/70 border border-white/95 shadow-[0_16px_40px_rgba(0,0,0,0.06)] mb-16">
+                <div class="bg-white rounded-[22px] border border-zinc-200/80 overflow-hidden shadow-2xs">
+                    <div class="px-4 py-3 bg-[#fdfdfd] border-b border-zinc-200/70 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                            <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <div id="hero-window-title" class="text-[11px] font-bold text-zinc-800 flex items-center gap-1.5 truncate">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Gravação de Voz no Navegador & Celular</span>
+                        </div>
+                        <div class="text-[10px] text-zinc-400 font-mono hidden sm:block">01/10/2026</div>
+                    </div>
+
+                    <div class="relative w-full aspect-[16/9] bg-zinc-50">
+                        <img id="hero-window-img" src="/evonotes/images/screen_meeting_desktop.jpg" alt="EvoNotes Tela" class="w-full h-full object-cover transition-opacity duration-300" />
+                    </div>
+
+                    <div class="px-4 py-2.5 bg-white border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+                        <span id="hero-window-subtitle">Microfone web sem latência com transcrição em tempo real</span>
+                        <span class="text-emerald-700 font-bold hidden sm:inline">Toque nos botões abaixo para alternar telas ↴</span>
+                    </div>
+                </div>
+
+                <!-- Sticky Toolbar Pill -->
+                <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 backdrop-blur-2xl bg-white/95 border border-white/95 shadow-[0_10px_35px_rgba(0,0,0,0.12)] rounded-full p-1 flex items-center gap-1 sm:gap-1.5 z-20 max-w-[95%] overflow-x-auto">
+                    <button onclick="setHeroMode('voz')" id="btn-hero-voz" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-zinc-950 text-white shadow-xs">
+                        <i class="ph-bold ph-microphone text-emerald-400"></i>
+                        <span>Voz</span>
+                    </button>
+                    <button onclick="setHeroMode('whatsapp')" id="btn-hero-whatsapp" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/70">
+                        <i class="ph-bold ph-whatsapp-logo text-emerald-600"></i>
+                        <span>WhatsApp</span>
+                    </button>
+                    <button onclick="setHeroMode('tarefas')" id="btn-hero-tarefas" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/70">
+                        <i class="ph-bold ph-check-square text-blue-600"></i>
+                        <span>Tarefas</span>
+                    </button>
+                    <div class="w-px h-4 bg-zinc-200 mx-0.5 hidden sm:block"></div>
+                    <button onclick="setHeroMode('plaud')" id="btn-hero-plaud" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-indigo-200 text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100/80">
+                        <i class="ph-bold ph-headphones text-indigo-600"></i>
+                        <span>Plaud (Opcional)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Countdown Box -->
+            <div class="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl backdrop-blur-xl bg-white/80 border border-white/90 shadow-[0_4px_20px_rgba(0,0,0,0.04)] text-left mb-16">
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Contagem Regressiva para 01/Outubro</div>
+                    <div class="text-xs text-zinc-600 mt-0.5">Garanta sua vaga na lista VIP antes do lançamento público.</div>
+                </div>
+                <div class="flex items-center gap-3 text-center">
+                    <div class="bg-zinc-950 text-white px-2.5 py-1.5 rounded-xl">
+                        <div id="count-days" class="text-sm font-black tabular-nums">29</div>
+                        <div class="text-[9px] text-zinc-400 font-bold uppercase">Dias</div>
+                    </div>
+                    <div class="bg-zinc-950 text-white px-2.5 py-1.5 rounded-xl">
+                        <div id="count-hours" class="text-sm font-black tabular-nums">02</div>
+                        <div class="text-[9px] text-zinc-400 font-bold uppercase">Horas</div>
+                    </div>
+                    <div class="bg-zinc-950 text-white px-2.5 py-1.5 rounded-xl">
+                        <div id="count-mins" class="text-sm font-black tabular-nums">25</div>
+                        <div class="text-[9px] text-zinc-400 font-bold uppercase">Min</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: COMO FUNCIONA (4 PASSOS) ━━━ -->
+        <section id="como-funciona" class="max-w-5xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
+                    <span>Fluxo Contínuo & Inteligente</span>
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
+                    Da voz à decisão em 4 etapas
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-600 mt-2">
+                    Zero fricção. Não mude a sua rotina — o EvoNotes se adapta a como você já trabalha.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="backdrop-blur-xl bg-white/75 rounded-2xl p-5 border border-white/90 shadow-2xs">
+                    <div class="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-xs font-black mb-3">1</div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Grave ou Fale</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">No navegador, no bot de WhatsApp (Pro) ou no Plaud Note acoplado ao celular.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/75 rounded-2xl p-5 border border-white/90 shadow-2xs">
+                    <div class="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-xs font-black mb-3">2</div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Síntese com IA</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Modelos de IA transcrevem e extraem decisões, contexto e itens acionáveis.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/75 rounded-2xl p-5 border border-white/90 shadow-2xs">
+                    <div class="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-xs font-black mb-3">3</div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Atribuição de Ações</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Tarefas criadas com dono, prazo e status, sem necessidade de digitação manual.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/75 rounded-2xl p-5 border border-white/90 shadow-2xs">
+                    <div class="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-xs font-black mb-3">4</div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Briefing Executivo</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Ouça o resumo do seu dia em áudio ou receba atas prontas por e-mail.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: 7 CARREIRAS ESPECIALISTAS ━━━ -->
+        <section id="profissoes" class="max-w-5xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
+                    <span>Especialização Real por Área</span>
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
+                    Calibrado para quem decide
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-600 mt-2">
+                    Vocabulário técnico, conformidade ética e modelos de atas específicos para cada segmento.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Médico -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/niche_doctor.jpg" alt="Médico" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Saúde & Clínica</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Médicos & Consultórios</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Evoluções SOAP, hipóteses diagnósticas e prescrições organizadas em segundos sem tocar no teclado.</p>
+                    </div>
+                </div>
+
+                <!-- Advogado -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/niche_lawyer.jpg" alt="Advogado" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">Jurídico & Compliance</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Advogados & Escritórios</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Atas de audiência, prazos processuais e acordos com proteção absoluta de dados e sigilo.</p>
+                    </div>
+                </div>
+
+                <!-- C-Level -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/csuite_boardroom.jpg" alt="C-Level" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">Executivos & Board</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Diretores & C-Level</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Reuniões de diretoria, deliberações e follow-ups corporativos sintetizados para rápida ação.</p>
+                    </div>
+                </div>
+
+                <!-- Consultor -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/niche_consultant.jpg" alt="Consultor" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">Projetos & Consultoria</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Consultores de Gestão</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Diagnósticos, planos de trabalho e alinhamentos de escopo com clientes registrados com clareza.</p>
+                    </div>
+                </div>
+
+                <!-- Tech -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/niche_tech.jpg" alt="Tech Lead" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">Engenharia & Produto</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Líderes de Tecnologia</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Dailies, RFCs e decisões de arquitetura transformadas em cards e pendências no Jira/Linear.</p>
+                    </div>
+                </div>
+
+                <!-- Empreendedor -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl overflow-hidden border border-white/90 shadow-2xs">
+                    <div class="relative h-44 w-full">
+                        <img src="/evonotes/images/niche_entrepreneur.jpg" alt="Empreendedor" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="p-5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">Negócios & Founders</span>
+                        <h3 class="text-base font-bold text-zinc-950 mt-2">Founders & Empreendedores</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Capture ideias no trânsito, conversas com sócios e alinhamentos rápidos com o time em movimento.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: SEGURANÇA & LGPD ━━━ -->
+        <section id="seguranca" class="max-w-5xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
+                    <span>Privacidade Inegociável</span>
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
+                    Seus dados nunca treinam modelos
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-600 mt-2">
+                    Blindagem ponta a ponta com conformidade LGPD e HIPAA. Seus segredos de negócio permanecem exclusivamente seus.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl p-6 border border-white/90 shadow-2xs">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg mb-4">
+                        <i class="ph-bold ph-lock-key"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Criptografia AES-256</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Em trânsito e em repouso. Transmissão 100% blindada via TLS 1.3.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl p-6 border border-white/90 shadow-2xs">
+                    <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center text-lg mb-4">
+                        <i class="ph-bold ph-shield-check"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Zero Retenção de Treino</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Acordos contratuais de Zero Data Retention com os provedores de inteligência.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl p-6 border border-white/90 shadow-2xs">
+                    <div class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center text-lg mb-4">
+                        <i class="ph-bold ph-trash"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-zinc-950 mb-1">Exclusão Sob Demanda</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed">Apague notas e transcrições permanentemente com 1 clique a qualquer momento.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: PREÇOS & PLANOS ━━━ -->
+        <section id="planos" class="max-w-5xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
+                    <span>Valores Transparentes</span>
+                </div>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-zinc-950 tracking-tight">
+                    Escolha como deseja operar
+                </h2>
+                <p class="text-xs sm:text-sm text-zinc-600 mt-2">
+                    Inicie sem custo no plano Starter ou conecte seu WhatsApp e Plaud Note no plano Pro.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!-- Plano 1: Starter -->
+                <div class="backdrop-blur-xl bg-white/80 rounded-3xl p-7 border border-white/95 shadow-sm relative flex flex-col justify-between">
+                    <div>
+                        <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-800 mb-3">
+                            <span>Vaga VIP de Pré-Venda</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-950">Starter (Web & Mobile)</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Ideal para uso no navegador do computador e do celular.</p>
+                        
+                        <div class="my-6">
+                            <span class="text-3xl sm:text-4xl font-black text-zinc-950">Grátis</span>
+                            <span class="text-xs text-emerald-700 font-bold ml-2">por 1 ano inteiro</span>
+                            <div class="text-[11px] text-zinc-400 mt-1">Depois R$ 29,90/mês se desejar continuar.</div>
+                        </div>
+
+                        <ul class="space-y-3 text-xs text-zinc-700">
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Gravação de voz direta no navegador</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Atas e resumos executivos automáticos</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Gestão de tarefas com prazos e donos</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Acesso ao painel executivo em qualquer tela</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="pt-8">
+                        <a href="#form" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition shadow-xs">
+                            <span>Garantir 1º Ano Grátis</span>
+                            <i class="ph-bold ph-arrow-right text-emerald-400"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Plano 2: Pro & Sync -->
+                <div class="backdrop-blur-xl bg-white/95 rounded-3xl p-7 border-2 border-zinc-950 shadow-md relative flex flex-col justify-between">
+                    <div class="absolute -top-3 right-6 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-xs">
+                        Mais Completo
+                    </div>
+                    <div>
+                        <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-3">
+                            <span>WhatsApp + Plaud Cloud</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-zinc-950">Pro & Sync</h3>
+                        <p class="text-xs text-zinc-600 mt-1">Bot dedicado no WhatsApp e sincronização de hardware.</p>
+                        
+                        <div class="my-6">
+                            <span class="text-3xl sm:text-4xl font-black text-zinc-950">R$ 49,90</span>
+                            <span class="text-xs text-zinc-500 font-bold ml-1">/mês</span>
+                            <div class="text-[11px] text-zinc-500 mt-1">Sem fidelidade, cancele a qualquer momento.</div>
+                        </div>
+
+                        <ul class="space-y-3 text-xs text-zinc-700">
+                            <li class="flex items-center gap-2 font-bold text-zinc-950">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Bot Exclusivo de Voz no seu WhatsApp 24/7</span>
+                            </li>
+                            <li class="flex items-center gap-2 font-bold text-zinc-950">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Sincronização Nuvem com Plaud Note (Hardware)</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>10 Briefings de Áudio/mês inclusos</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ph-bold ph-check text-emerald-600"></i>
+                                <span>Disparo de Atas por E-mail Corporativo</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="pt-8">
+                        <a href="#form" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-zinc-950 hover:bg-black text-white text-xs font-bold transition shadow-xs">
+                            <span>Entrar na Lista VIP do Pro</span>
+                            <i class="ph-bold ph-arrow-right text-emerald-400"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pacote de Tokens para Briefings de Áudio -->
+            <div class="max-w-4xl mx-auto mt-8 p-6 rounded-3xl backdrop-blur-xl bg-white/80 border border-white/90 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 mb-2">
+                        <i class="ph-bold ph-waveform text-xs"></i>
+                        <span>Recarga Flexível de Áudio</span>
+                    </div>
+                    <h3 class="text-base font-bold text-zinc-950">Pacote com 10 Briefings em Áudio</h3>
+                    <p class="text-xs text-zinc-600 mt-1 max-w-lg">Ouça o resumo das suas reuniões e notas narrado por IA ultra-realista. Apenas R$ 1,50 por áudio gerado.</p>
+                </div>
+                <div class="flex items-center gap-4 shrink-0">
+                    <div class="text-right">
+                        <div class="text-2xl font-black text-zinc-950">R$ 15,00</div>
+                        <div class="text-[10px] text-zinc-500 font-medium">10 Briefings Completos</div>
+                    </div>
+                    <div class="px-3.5 py-2 rounded-xl bg-zinc-100 border border-zinc-200 text-[11px] font-bold text-zinc-800 flex items-center gap-1.5">
+                        <i class="ph-bold ph-apple-logo text-sm"></i>
+                        <span>Apple Pay & Google Pay</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: FORMULÁRIO VIP ━━━ -->
+        <section id="form" class="max-w-2xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="backdrop-blur-2xl bg-white/90 rounded-3xl p-6 sm:p-10 border border-white/95 shadow-md">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 mb-2">
+                        <span>Vaga Prioritária Garantida</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight">
+                        Garanta seu 1º ano gratuito
+                    </h2>
+                    <p class="text-xs sm:text-sm text-zinc-600 mt-1">
+                        Preencha para receber seu link de acesso antecipado antes do lançamento oficial em 01 de Outubro.
+                    </p>
+                </div>
+
+                <div id="form-success-msg" class="hidden text-center py-6">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200 text-xl">
+                        <i class="ph-bold ph-check-circle"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-zinc-950 mb-1">Inscrição VIP Confirmada!</h3>
+                    <p class="text-xs text-zinc-600 leading-relaxed mb-4">
+                        Sua vaga prioritária foi registrada com 1º ano do plano Starter 100% gratuito. Enviaremos um link exclusivo com acesso antecipado no seu e-mail e WhatsApp nos próximos dias.
+                    </p>
+                    <a href="/login" class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-950 text-white rounded-xl text-xs font-bold">
+                        <span>Acessar o App</span>
+                        <i class="ph-bold ph-arrow-right text-emerald-400"></i>
                     </a>
                 </div>
-            </div>
-        </div>
 
-        <!-- Simple Footer -->
-        <footer class="w-full pt-8 text-xs text-zinc-500 flex items-center justify-between border-t border-zinc-200/60 mt-12">
+                <form id="vip-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Seu Nome Completo</label>
+                        <input type="text" id="lead-name" required placeholder="Felipe Donato" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all border border-zinc-200 bg-white/70 text-zinc-900 placeholder-zinc-400" />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Seu E-mail Corporativo</label>
+                            <input type="email" id="lead-email" required placeholder="felipe@empresa.com" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all border border-zinc-200 bg-white/70 text-zinc-900 placeholder-zinc-400" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">WhatsApp (com DDD)</label>
+                            <input type="tel" id="lead-whatsapp" required placeholder="(11) 99999-9999" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all border border-zinc-200 bg-white/70 text-zinc-900 placeholder-zinc-400" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Sua Área / Profissão</label>
+                            <select id="lead-profession" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all border border-zinc-200 bg-white text-zinc-900">
+                                <option value="leadership">👥 Gestor / C-Level</option>
+                                <option value="sales">🏢 Vendas B2B / Comercial</option>
+                                <option value="health">🩺 Médico / Saúde</option>
+                                <option value="legal">⚖️ Advogado / Jurídico</option>
+                                <option value="consulting">💼 Consultor / Projetos</option>
+                                <option value="tech">💻 Tech / Produto / Dev</option>
+                                <option value="general">💡 Empreendedor / Outros</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-700 mb-1">Possui Plaud Note?</label>
+                            <select id="lead-plaud" class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all border border-zinc-200 bg-white text-zinc-900">
+                                <option value="no">Não (Usarei no Celular/Web)</option>
+                                <option value="yes">Sim, já tenho o dispositivo</option>
+                                <option value="buying">Pretendo comprar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="form-submit-btn" class="w-full bg-zinc-950 hover:bg-black text-white font-bold py-4 px-6 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98 text-sm cursor-pointer mt-2">
+                        <span>Garantir Vaga com 1 Ano Grátis</span>
+                        <i class="ph-bold ph-arrow-right text-emerald-400"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ━━━ SEÇÃO: FAQ ━━━ -->
+        <section id="faq" class="max-w-3xl mx-auto py-12 text-left border-t border-zinc-200/70">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-extrabold text-zinc-950 tracking-tight">Perguntas Frequentes</h2>
+                <p class="text-xs text-zinc-600 mt-1">Tudo o que você precisa saber sobre o EvoNotes.</p>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div class="backdrop-blur-xl bg-white/80 p-5 rounded-2xl border border-white/90">
+                    <h3 class="font-bold text-zinc-950 text-sm mb-1">Preciso comprar algum aparelho para usar?</h3>
+                    <p class="text-zinc-600 leading-relaxed">Não! O EvoNotes funciona 100% no navegador do seu computador e no celular. O dispositivo Plaud Note é um hardware opcional para quem deseja captura física via MagSafe.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/80 p-5 rounded-2xl border border-white/90">
+                    <h3 class="font-bold text-zinc-950 text-sm mb-1">Como funciona o 1º ano grátis no Starter?</h3>
+                    <p class="text-zinc-600 leading-relaxed">Ao se cadastrar na pré-venda VIP, você garante 12 meses de acesso gratuito ao plano Starter, sem necessidade de cadastrar cartão de crédito.</p>
+                </div>
+                <div class="backdrop-blur-xl bg-white/80 p-5 rounded-2xl border border-white/90">
+                    <h3 class="font-bold text-zinc-950 text-sm mb-1">Como funcionam os briefings de áudio?</h3>
+                    <p class="text-zinc-600 leading-relaxed">Você pode ouvir o resumo executivo das suas reuniões e notas narrado por uma IA hiper-realista. No plano Pro você tem 10 áudios inclusos por mês, e pode recarregar pacotes adicionais de 10 áudios por R$ 15,00 com 1 clique via Apple Pay ou Google Pay.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ━━━ FOOTER ━━━ -->
+        <footer class="max-w-5xl mx-auto pt-12 text-xs text-zinc-500 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-zinc-200/70">
             <div class="flex items-center gap-2">
-                <span class="font-extrabold text-zinc-950">Evo OS</span>
+                <span class="font-extrabold text-zinc-950">EvoNotes</span>
                 <span>•</span>
                 <span>evonotes.app</span>
                 <span>•</span>
                 <span>by OQueVem.AI</span>
             </div>
-            <div>
+            <div class="flex items-center gap-4">
+                <a href="#como-funciona" class="hover:text-zinc-950">Como Funciona</a>
+                <a href="#planos" class="hover:text-zinc-950">Planos</a>
                 <a href="/login" class="hover:text-zinc-950 font-bold">Login</a>
             </div>
         </footer>
 
-    </main>
+    </div>
 
+    <!-- Interactive Scripts -->
+    <script>
+        const heroScreens = {
+            voz: {
+                title: "Gravação de Voz no Navegador & Celular",
+                subtitle: "Microfone web sem latência com transcrição em tempo real",
+                image: "/evonotes/images/screen_meeting_desktop.jpg"
+            },
+            whatsapp: {
+                title: "Bot de Inteligência no WhatsApp 24/7 (Plano Pro)",
+                subtitle: "Envie áudios de até 15 minutos e receba a ata pronta em segundos",
+                image: "/evonotes/images/whatsapp_in_hand.jpg"
+            },
+            tarefas: {
+                title: "Central de Tarefas & Decisões Acionáveis",
+                subtitle: "Pendências organizadas com donos, prazos e prioridade",
+                image: "/evonotes/images/screen_tasks_central.jpg"
+            },
+            plaud: {
+                title: "Hardware Plaud Note Pro — Opcional MagSafe",
+                subtitle: "Sensor de condução óssea para gravar reuniões presenciais e chamadas",
+                image: "/evonotes/images/plaud_optional_magsafe.jpg"
+            }
+        };
+
+        function setHeroMode(mode) {
+            const data = heroScreens[mode];
+            if (!data) return;
+
+            document.getElementById('hero-window-title').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span><span>${data.title}</span>`;
+            document.getElementById('hero-window-subtitle').innerText = data.subtitle;
+            document.getElementById('hero-window-img').src = data.image;
+
+            ['voz', 'whatsapp', 'tarefas', 'plaud'].forEach(m => {
+                const btn = document.getElementById(`btn-hero-${m}`);
+                if (m === mode) {
+                    btn.className = "px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-zinc-950 text-white shadow-xs";
+                } else if (m === 'plaud') {
+                    btn.className = "px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-indigo-200 text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100/80";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/70";
+                }
+            });
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('form-submit-btn');
+            btn.innerHTML = '<span>Salvando sua vaga...</span>';
+            btn.disabled = true;
+
+            const payload = {
+                name: document.getElementById('lead-name').value,
+                email: document.getElementById('lead-email').value,
+                whatsapp: document.getElementById('lead-whatsapp').value,
+                profession: document.getElementById('lead-profession').value,
+                has_plaud: document.getElementById('lead-plaud').value
+            };
+
+            try {
+                await fetch('/api/evonotes/waitlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {}
+
+            document.getElementById('vip-form').classList.add('hidden');
+            document.getElementById('form-success-msg').classList.remove('hidden');
+        }
+
+        // Live Countdown Calculation
+        function updateCountdown() {
+            const launchDate = new Date('2026-10-01T00:00:00-03:00').getTime();
+            const now = new Date().getTime();
+            const diff = launchDate - now;
+
+            if (diff > 0) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                document.getElementById('count-days').innerText = String(days).padStart(2, '0');
+                document.getElementById('count-hours').innerText = String(hours).padStart(2, '0');
+                document.getElementById('count-mins').innerText = String(mins).padStart(2, '0');
+            }
+        }
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
 </body>
 </html>

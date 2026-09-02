@@ -33,13 +33,52 @@ from google_workspace_bridge import google_bridge
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(title="Executive Voice OS — Second Brain Engine", version="3.6.0")
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+STATIC_DIR = BASE_DIR / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+if (STATIC_DIR / "evonotes").exists():
+    app.mount("/evonotes", StaticFiles(directory=str(STATIC_DIR / "evonotes")), name="evonotes")
+
 client = OpenAI(api_key=OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "sk-dummy-startup-key")
 learning_engine = SelfLearningEngine()
 voice_engine = VoiceBriefingEngine()
+
+@app.post("/api/evonotes/waitlist")
+async def api_evonotes_waitlist(payload: dict = Body(default={})):
+    """Receives and dispatches EvoNotes VIP waitlist leads."""
+    email = payload.get("email", "").strip()
+    name = payload.get("name", "Líder").strip()
+    whatsapp = payload.get("whatsapp", "").strip()
+    profession = payload.get("profession", "general")
+    has_plaud = payload.get("has_plaud", "no")
+
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="E-mail inválido")
+
+    # Send telegram notification if configured
+    tg_token = "7734494805:AAEybSrLc5O3z0sJCgNYaggcc7EdUIAf1-Q"
+    tg_chat = "856670142"
+    try:
+        msg = f"🎙️ <b>NOVO LEAD VIP EVONOTES (evonotes.app)!</b>\n\n👤 <b>Nome:</b> {name}\n📧 <b>E-mail:</b> {email}\n📱 <b>WhatsApp:</b> {whatsapp}\n💼 <b>Profissão:</b> {profession}\n🎧 <b>Plaud:</b> {has_plaud}\n🎟️ <b>Benefício:</b> 1º Ano Grátis no Starter"
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{tg_token}/sendMessage",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"chat_id": tg_chat, "text": msg, "parse_mode": "HTML"}).encode("utf-8")
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception as e:
+        logging.warning(f"Telegram dispatch error: {e}")
+
+    return JSONResponse({
+        "success": True,
+        "message": "Inscrição VIP confirmada com 1º ano grátis! Enviaremos o link de acesso antecipado nos próximos dias."
+    })
 
 # Official Plaud Cloud Catalog (7 Recordings) with Rich Context & Metadata
 plaud_cloud_catalog = [
