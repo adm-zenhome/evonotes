@@ -861,99 +861,85 @@
             </div>
         </div>
 
-        <!-- Floating Bottom Input Bar with Integrated Expandable Copilot Terminal (Docked on Top) -->
-        <div id="bottom-input-container" class="px-4 sm:px-6 pb-4 pt-1 bg-gradient-to-t from-[#f4f5f7] via-[#f4f5f7] to-transparent w-full flex-shrink-0 transition-all duration-300">
-            <div id="bottom-input-inner" class="w-full mx-auto transition-all duration-300 layout-width-container max-w-5xl relative">
+        <!-- Floating Bottom Input Bar with Docked Bounded Copilot Chat Drawer -->
+        <div id="bottom-input-container" class="px-4 sm:px-6 pb-4 pt-1 w-full flex-shrink-0 transition-all duration-300">
+            <div id="bottom-input-inner" class="w-full mx-auto transition-all duration-300 layout-width-container max-w-4xl relative space-y-2">
                 
-                <!-- 🌟 DOCKED EXECUTIVE AI TERMINAL (MATCHING IMAGE 1 • SITS DIRECTLY ABOVE INPUT WITH EXACT SAME WIDTH) -->
-                <div id="copilot-bottom-drawer" class="hidden mb-2.5 bg-[#18181b]/98 backdrop-blur-2xl rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.55)] border border-zinc-800 text-white overflow-hidden transition-all duration-300 animate-fade-in flex flex-col">
+                <!-- 🌟 DOCKED BOUNDED COPILOT CHAT DRAWER (LIMITED STRICTLY ABOVE PROMPT BAR) -->
+                <div id="copilot-bottom-drawer" class="hidden bg-[#242426] backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] border border-zinc-700/60 text-zinc-100 overflow-hidden transition-all duration-300 animate-fade-in flex flex-col">
                     
-                    <!-- 1. Running Tasks Banner (Matching Image 1 Reference) -->
-                    <div id="terminal-tasks-banner" class="px-5 py-3 bg-zinc-900/90 border-b border-zinc-800/80 flex flex-col gap-2 select-none">
-                        <div class="flex items-center justify-between">
-                            <div onclick="toggleTerminalTasksDetail()" class="flex items-center gap-2 cursor-pointer group">
-                                <span class="text-xs font-bold text-zinc-300 group-hover:text-white transition flex items-center gap-1.5">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    <span id="terminal-tasks-count-label">2 tasks running</span>
-                                </span>
-                                <i id="terminal-tasks-chevron" class="ph-bold ph-caret-down text-zinc-500 group-hover:text-zinc-300 text-xs transition"></i>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 text-[10px] font-mono font-bold flex items-center gap-1">
-                                    <i class="ph-bold ph-sparkle"></i> Meta Muse Spark 100x
-                                </span>
-                                <button onclick="clearCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer" title="Limpar Conversa">
-                                    <i class="ph-bold ph-trash text-xs"></i>
-                                </button>
-                                <button onclick="toggleCopilotDrawerSize()" id="btn-drawer-expand" class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer" title="Expandir / Reduzir">
-                                    <i class="ph-bold ph-arrows-out-simple text-xs"></i>
-                                </button>
-                                <button onclick="collapseCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition cursor-pointer" title="Recolher (Esc)">
-                                    <i class="ph-bold ph-x text-xs"></i>
-                                </button>
-                            </div>
+                    <!-- 1. Drawer Header -->
+                    <div class="px-5 py-3 bg-[#1e1e20] border-b border-zinc-700/60 flex items-center justify-between select-none">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="text-xs font-bold text-zinc-200">Meta Muse Spark • Copilot 100x</span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400" id="drawer-model-badge">Gemini 3.7 Flash</span>
                         </div>
 
-                        <!-- Running Command List (Pixel-Perfect Image 1 Match) -->
-                        <div id="terminal-tasks-detail" class="space-y-1.5 text-[11px] font-mono text-zinc-400 pt-1">
-                            <div class="flex items-center gap-2">
-                                <i class="ph-bold ph-circle-notch animate-spin text-zinc-500 text-xs"></i>
-                                <span class="truncate">bash /Users/felipe/Jarvis/modules/executive_voice_os/run.sh</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <i class="ph-bold ph-circle-notch animate-spin text-zinc-500 text-xs"></i>
-                                <span class="truncate">bash /Users/felipe/Jarvis/evonotes/sandbox/run_sandbox.sh</span>
-                            </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="clearCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700/60 transition cursor-pointer" title="Limpar Histórico">
+                                <i class="ph-bold ph-trash text-xs"></i>
+                            </button>
+                            <button onclick="collapseCopilotDrawer()" class="p-1 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700/60 transition cursor-pointer" title="Recolher Chat (Esc)">
+                                <i class="ph-bold ph-x text-xs"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- 2. Terminal Messages Viewport -->
-                    <div id="copilot-drawer-messages" class="p-4 sm:p-5 overflow-y-auto max-h-[50vh] space-y-4 text-xs sm:text-sm custom-scrollbar text-zinc-200">
-                        <div class="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-zinc-300 space-y-2">
-                            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                                <i class="ph-bold ph-sparkle text-sm"></i>
-                                <span>Chief of Staff Executivo • Meta Muse Spark</span>
+                    <!-- 2. Bounded Scrollable Chat Messages Viewport (Max 360px height) -->
+                    <div id="copilot-drawer-messages" class="p-4 sm:p-5 overflow-y-auto max-h-[360px] space-y-3.5 text-xs sm:text-sm custom-scrollbar text-zinc-200">
+                        <div class="p-3.5 rounded-2xl bg-[#1c1c1e] border border-zinc-800 text-zinc-300 space-y-1">
+                            <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                                <i class="ph-bold ph-sparkle text-xs"></i>
+                                <span>Chief of Staff Executivo</span>
                             </div>
                             <p class="text-xs text-zinc-400 leading-relaxed">
-                                Estou conectado em tempo real à sua base de inteligência (14 notas do Plaud Note Pro e WhatsApp Oficial). Pergunte qualquer coisa ou peça uma tarefa (ex: <em>"Anota aí: ligar para X amanhã"</em>).
+                                Conectado à sua base de 14 notas do Plaud Note Pro e WhatsApp Oficial (+55 11 96000-4895). Pergunte qualquer coisa ou anote tarefas.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Unified Bottom Input Bar -->
-                <div class="relative bg-white rounded-[28px] shadow-[0_10px_35px_rgba(0,0,0,0.06)] focus-within:shadow-[0_14px_45px_rgba(0,0,0,0.1)] transition-all duration-300 border border-gray-200/60">
-                <textarea id="prompt-input" rows="2" 
-                          onkeydown="handleKeyDown(event)" 
-                          placeholder="Pergunte à IA, cite com @ ou anote uma tarefa (ex: 'Anota aí: ...')" 
-                          class="w-full bg-transparent px-5 pt-4 pb-11 text-sm text-[#0d0d0d] placeholder-gray-400 focus:outline-none resize-none font-sans"></textarea>
-                
-                <div class="absolute bottom-2.5 sm:bottom-3 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between gap-1.5">
-                    <!-- Left: Strict Page-Level Guardrail & Context Tag -->
-                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 truncate min-w-0 max-w-[110px] sm:max-w-xs" id="chat-context-badge">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse"></span>
-                        <span id="chat-context-label" class="truncate">Inteligência Conectada</span>
-                    </div>
+                <!-- Unified Bottom Input Bar (Dark Matte Aesthetic matching Image 1) -->
+                <div class="relative bg-[#1c1c1e] rounded-2xl sm:rounded-3xl shadow-[0_15px_50px_rgba(0,0,0,0.35)] focus-within:shadow-[0_20px_60px_rgba(0,0,0,0.5)] transition-all duration-300 border border-zinc-800/90 text-zinc-100">
+                    <textarea id="prompt-input" rows="2" 
+                              onkeydown="handleKeyDown(event)" 
+                              placeholder="Ask anything, @ to mention, / for actions" 
+                              class="w-full bg-transparent px-5 pt-4 pb-12 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none font-sans"></textarea>
+                    
+                    <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between gap-2">
+                        <!-- Left Controls: Plus and Model Selector -->
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="showInAppToast('Anexar contexto ou nota', 'info')" class="text-zinc-400 hover:text-zinc-200 transition cursor-pointer p-0.5" title="Adicionar anexo / menção">
+                                <i class="ph-bold ph-plus text-sm"></i>
+                            </button>
 
-                    <!-- Right: Model Selector Dropdown & Send Button -->
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <div class="relative group/aimode flex items-center">
-                            <select id="chat-model-selector" onchange="changeChatModel(this.value)" class="text-xs bg-gray-100 hover:bg-gray-200/80 rounded-full px-2.5 py-1 text-gray-800 font-semibold focus:outline-none cursor-pointer border-0 transition max-w-[130px] sm:max-w-xs truncate" title="Escolha o modo de IA">
-                                <option value="gemini-3.6-flash" selected>⚡ Gemini 3.6 Flash (100x)</option>
-                                <option value="gemini-3.7-flash">🧠 Gemini 3.7 Flash High</option>
-                                <option value="gpt-4o">🔬 C-Level Master</option>
-                            </select>
+                            <div class="relative flex items-center">
+                                <div class="flex items-center gap-1.5 text-xs text-zinc-200 font-medium cursor-pointer group/modelselect">
+                                    <span class="text-zinc-200 font-sans" id="selected-model-name-label">Gemini 3.7 Flash</span>
+                                    <span class="text-[11px] text-zinc-500 font-normal">High</span>
+                                    <i class="ph-bold ph-caret-up text-[10px] text-zinc-400 group-hover/modelselect:text-white transition"></i>
+                                    
+                                    <select id="chat-model-selector" onchange="onModelSelectorChanged(this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" title="Escolha o modelo de IA">
+                                        <option value="gemini-3.7-flash" selected>Gemini 3.7 Flash High</option>
+                                        <option value="gemini-3.6-flash">Gemini 3.6 Flash (100x)</option>
+                                        <option value="gpt-4o">GPT-4o C-Level</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <button onclick="sendPrompt()" id="btn-send" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900 text-white hover:bg-black flex items-center justify-center transition disabled:opacity-40 shadow-xs border-0 flex-shrink-0 active:scale-95 cursor-pointer">
-                            <i class="ph-bold ph-arrow-up text-xs sm:text-sm"></i>
-                        </button>
+
+                        <!-- Right Controls: Mic & Send/Action Button -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button type="button" onclick="toggleVoiceRecording()" class="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 transition cursor-pointer" title="Gravar Áudio">
+                                <i class="ph-bold ph-microphone text-base"></i>
+                            </button>
+                            <button onclick="sendPrompt()" id="btn-send" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#2c2c2e] hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs" title="Enviar (Enter)">
+                                <i class="ph-bold ph-arrow-up text-xs sm:text-sm"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="text-[11px] text-center text-gray-400 mt-2.5">
-                EvoNotes • Mesma inteligência 100x no Web Dashboard e no WhatsApp oficial (+55 11 96000-4895).
-            </div>
             </div>
         </div>
 
@@ -4143,42 +4129,22 @@
         window.closeMobileSidebarOnAction = closeMobileSidebarOnAction;
 
         // ==============================================================
-        // 🌟 DOCKED EXECUTIVE TERMINAL DRAWER CONTROLLER (IMAGE 1 SPEC)
+        // 🌟 DOCKED BOUNDED COPILOT DRAWER CONTROLLER
         // ==============================================================
-        function toggleTerminalTasksDetail() {
-            const detail = document.getElementById('terminal-tasks-detail');
-            const chevron = document.getElementById('terminal-tasks-chevron');
-            if (!detail) return;
-            if (detail.classList.contains('hidden')) {
-                detail.classList.remove('hidden');
-                if (chevron) chevron.className = 'ph-bold ph-caret-up text-zinc-500 group-hover:text-zinc-300 text-xs transition';
-            } else {
-                detail.classList.add('hidden');
-                if (chevron) chevron.className = 'ph-bold ph-caret-down text-zinc-500 group-hover:text-zinc-300 text-xs transition';
-            }
-        }
-
-        let isDrawerExpanded = false;
-        function toggleCopilotDrawerSize() {
-            const messages = document.getElementById('copilot-drawer-messages');
-            const btn = document.getElementById('btn-drawer-expand');
-            if (!messages) return;
-            isDrawerExpanded = !isDrawerExpanded;
-            if (isDrawerExpanded) {
-                messages.classList.remove('max-h-[50vh]');
-                messages.classList.add('max-h-[75vh]');
-                if (btn) btn.innerHTML = '<i class="ph-bold ph-arrows-in-simple text-xs"></i>';
-            } else {
-                messages.classList.remove('max-h-[75vh]');
-                messages.classList.add('max-h-[50vh]');
-                if (btn) btn.innerHTML = '<i class="ph-bold ph-arrows-out-simple text-xs"></i>';
-            }
+        function onModelSelectorChanged(val) {
+            currentAiModel = val;
+            const label = document.getElementById('selected-model-name-label');
+            const badge = document.getElementById('drawer-model-badge');
+            let name = 'Gemini 3.7 Flash';
+            if (val === 'gemini-3.6-flash') name = 'Gemini 3.6 Flash';
+            if (val === 'gpt-4o') name = 'GPT-4o Master';
+            if (label) label.innerText = name;
+            if (badge) badge.innerText = name;
         }
 
         function expandCopilotDrawer() {
             const drawer = document.getElementById('copilot-bottom-drawer');
-            if (!drawer) return;
-            drawer.classList.remove('hidden');
+            if (drawer) drawer.classList.remove('hidden');
         }
 
         function collapseCopilotDrawer() {
@@ -4190,10 +4156,10 @@
             const messages = document.getElementById('copilot-drawer-messages');
             if (messages) {
                 messages.innerHTML = `
-                    <div class="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 text-zinc-300 space-y-2">
-                        <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs">
-                            <i class="ph-bold ph-sparkle text-sm"></i>
-                            <span>Chief of Staff Executivo • Meta Muse Spark</span>
+                    <div class="p-3.5 rounded-2xl bg-[#1c1c1e] border border-zinc-800 text-zinc-300 space-y-1">
+                        <div class="flex items-center gap-1.5 text-emerald-400 font-bold text-xs">
+                            <i class="ph-bold ph-sparkle text-xs"></i>
+                            <span>Chief of Staff Executivo</span>
                         </div>
                         <p class="text-xs text-zinc-400 leading-relaxed">
                             Histórico reiniciado. Base de inteligência 100% conectada e pronta para novas solicitações.
@@ -6540,12 +6506,6 @@ Prazo/Contexto: ${deadline}`);
 
         
         // ==============================================================
-        // ✨ GRANOLA-STYLE AI COPILOT TERMINAL CONTROLLER
-        // ==============================================================
-
-        let isTerminalExpanded = false;
-
-        function openGranolaTerminal() {
         // 🚀 DOCKED EXECUTIVE AI TERMINAL CONTROLLER (100X ENGINE)
         // ==============================================================
         function handleKeyDown(e) {
@@ -6657,14 +6617,6 @@ Prazo/Contexto: ${deadline}`);
                     </div>
                 `);
             }
-        }
-
-            const text = input ? input.value.trim() : '';
-            if (!text) return;
-
-            input.value = '';
-            // Launch Granola Copilot Terminal without scrolling the main dashboard!
-            await executeGranolaTerminalPrompt(text);
         }
 
         async function legacySendPrompt() {
@@ -7007,34 +6959,6 @@ Prazo/Contexto: ${deadline}`);
 
         function closeAiModelInfoModal() {
             document.getElementById('ai-model-info-modal').classList.add('hidden');
-        }
-
-
-        function openPlaudConnectModal() {
-            document.getElementById('plaud-connect-modal').classList.remove('hidden');
-        }
-
-        function closePlaudConnectModal() {
-            document.getElementById('plaud-connect-modal').classList.add('hidden');
-        }
-
-        async function savePlaudAccount() {
-            const email = document.getElementById('plaud-email-input').value.trim();
-            if (!email) {
-                showInAppToast('Digite um e-mail ou token válido', 'info')
-                return;
-            }
-            try {
-                const res = await fetch('/api/plaud/connect', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email})
-                });
-                const data = await res.json();
-                showInAppToast(data.message || 'Conta Plaud atualizada!', 'info')
-            } catch (e) {
-                showInAppToast('Erro ao salvar conta: ' + e.message, 'error')
-            }
         }
 
 
@@ -9522,13 +9446,13 @@ Felipe Donato`);
             }
         }
 
-        async function disconnectPlaudAccount() {
+        async function disconnectPlaudFromModal() {
             try {
                 const res = await fetch('/api/plaud/disconnect', {method: 'POST'});
                 const data = await res.json();
                 showInAppToast(data.message || 'Conta Plaud desconectada.', 'info');
-                await updatePlaudSyncButtonState(); loadIngestionItems();
-                await renderActiveIntegrationsPills(); updatePlaudSyncButtonState(); loadIngestionItems();
+                if (typeof updatePlaudSyncButtonState === 'function') await updatePlaudSyncButtonState();
+                if (typeof renderPlaudHardwareTab === 'function') await renderPlaudHardwareTab();
                 closePlaudConnectModal();
             } catch (e) {
                 showInAppToast('Erro ao desconectar: ' + e.message, 'error');
@@ -10426,7 +10350,7 @@ Felipe Donato`);
                         </div>
                         <div class="truncate">
                             <div class="font-bold text-xs truncate">WhatsApp Direto</div>
-                            <div class="text-[10px] text-gray-400">Disparar via Meta Cloud API</div>
+                            <div class="text-[10px] text-gray-400">Disparar via Z-API</div>
                         </div>
                     </button>
                 </div>
@@ -10459,7 +10383,7 @@ Felipe Donato`);
                     </div>
                     <div>
                         <h3 class="text-base font-bold text-gray-900 leading-tight">Contatos & Conversas do WhatsApp</h3>
-                        <p class="text-[11px] text-gray-500 font-medium">Meta WhatsApp Cloud API Oficial (+55 11 96000-4895)</p>
+                        <p class="text-[11px] text-gray-500 font-medium">Instância Z-API conectada em tempo real</p>
                     </div>
                 </div>
                 <button onclick="closeWhatsAppContactsModal()" class="w-8 h-8 rounded-full text-gray-400 hover:text-black hover:bg-gray-200/80 flex items-center justify-center transition">
@@ -11353,7 +11277,7 @@ Felipe Donato`);
             <div class="flex items-center justify-between pt-3 border-t border-gray-100 flex-shrink-0 text-xs">
                 <span class="text-[11px] text-gray-500 flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Meta WhatsApp Cloud API Conectada (+55 11 96000-4895)</span>
+                    <span>Instância Z-API Conectada (+55 11 97430-7292)</span>
                 </span>
                 <button onclick="closeWhatsAppAudioInboxModal()" class="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition cursor-pointer">
                     Fechar
