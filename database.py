@@ -405,17 +405,19 @@ class ExecutiveDatabase:
             except Exception as e:
                 logging.error(f"Error during legacy migration: {e}")
 
-    def get_all_meetings(self, channel: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_all_meetings(self, channel: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            query = "SELECT * FROM meetings WHERE 1=1"
+            params = []
+            if user_id:
+                query += " AND (user_id = ? OR user_id IS NULL OR user_id = 'default_user')"
+                params.append(user_id)
             if channel:
-                cursor.execute("""
-                    SELECT * FROM meetings 
-                    WHERE channel LIKE ? OR custom_notes LIKE ? OR title LIKE ?
-                    ORDER BY created_at DESC
-                """, (f"%{channel}%", f"%{channel}%", f"%{channel}%"))
-            else:
-                cursor.execute("SELECT * FROM meetings ORDER BY created_at DESC")
+                query += " AND (channel LIKE ? OR custom_notes LIKE ? OR title LIKE ?)"
+                params.extend([f"%{channel}%", f"%{channel}%", f"%{channel}%"])
+            query += " ORDER BY created_at DESC"
+            cursor.execute(query, params)
             rows = cursor.fetchall()
             meetings = []
             for r in rows:
