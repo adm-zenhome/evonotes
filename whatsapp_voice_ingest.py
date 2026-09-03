@@ -732,6 +732,9 @@ class WhatsAppVoiceIngest:
         msg_lines.append(f"⚡ _Processado pelo EvoNotes OS em {duration_s}s_")
         return "\n".join(msg_lines)
 
+    def _process_text_memo(self, text: str, phone: str, user_id: str, start_time: float) -> Dict[str, Any]:
+        msg_id = f"wa_txt_{int(time.time())}"
+        
         # 0. Check for interactive action choices (1, 2, 3, 4)
         action_reply = self._execute_action_choice(text, phone, user_id)
         if action_reply:
