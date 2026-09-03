@@ -209,6 +209,101 @@ class WhatsAppVoiceIngest:
 
         return await self._process_zapi_webhook(payload, user_id, start_time)
 
+    def send_whatsapp_buttons(self, phone: str, text: str, buttons: list, header_text: str = None) -> bool:
+        """
+        Envia Botões Interativos Nativos da Meta WhatsApp Cloud API (até 3 botões rápidos de 1 toque).
+        """
+        clean_phone = normalize_whatsapp_phone(phone)
+        if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID:
+            try:
+                url = f"{META_WA_BASE_URL}/messages"
+                headers = {"Authorization": f"Bearer {META_WA_TOKEN}", "Content-Type": "application/json"}
+                
+                button_items = []
+                for b in buttons[:3]:
+                    button_items.append({
+                        "type": "reply",
+                        "reply": {
+                            "id": b["id"],
+                            "title": b["title"][:20]  # Limite rígido da Meta: 20 caracteres
+                        }
+                    })
+                
+                interactive_payload = {
+                    "type": "button",
+                    "body": {"text": text[:1024]},
+                    "action": {"buttons": button_items}
+                }
+                if header_text:
+                    interactive_payload["header"] = {"type": "text", "text": header_text[:60]}
+                
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": clean_phone,
+                    "type": "interactive",
+                    "interactive": interactive_payload
+                }
+                r = httpx.post(url, json=payload, headers=headers, timeout=15)
+                if r.status_code in [200, 201]:
+                    logger.info(f"Meta interactive buttons sent successfully to {clean_phone}")
+                    return True
+                else:
+                    logger.warning(f"Meta buttons returned {r.status_code}: {r.text}, falling back to text...")
+            except Exception as e:
+                logger.warning(f"Error sending Meta interactive buttons: {e}")
+        
+        # Fallback formatado com números caso a Meta falhe
+        lines = [text, "", "━━━━━━━━━━━━━━━━━━━━"]
+        for idx, b in enumerate(buttons[:3], 1):
+            lines.append(f"{idx}️⃣ *[{idx}]* {b['title']}")
+        lines.append("\n_(Responda com o número correspondente)_")
+        return self.send_whatsapp_text(clean_phone, "\n".join(lines))
+
+    def send_whatsapp_reaction(self, phone: str, message_id: str, emoji: str = "⚡") -> bool:
+        """
+        Envia uma reação de emoji oficial (ex: 👍, ⚡, 🎯, ✅) na mensagem do usuário.
+        """
+        clean_phone = normalize_whatsapp_phone(phone)
+        if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID and message_id:
+            try:
+                url = f"{META_WA_BASE_URL}/messages"
+                headers = {"Authorization": f"Bearer {META_WA_TOKEN}", "Content-Type": "application/json"}
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": clean_phone,
+                    "type": "reaction",
+                    "reaction": {
+                        "message_id": message_id,
+                        "emoji": emoji
+                    }
+                }
+                r = httpx.post(url, json=payload, headers=headers, timeout=10)
+                return r.status_code in [200, 201]
+            except Exception as e:
+                logger.warning(f"Reaction send failed: {e}")
+        return False
+
+    def mark_whatsapp_read(self, message_id: str) -> bool:
+        """
+        Marca a mensagem como lida (ticks azuis) na Meta Cloud API.
+        """
+        if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID and message_id:
+            try:
+                url = f"{META_WA_BASE_URL}/messages"
+                headers = {"Authorization": f"Bearer {META_WA_TOKEN}", "Content-Type": "application/json"}
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "status": "read",
+                    "message_id": message_id
+                }
+                r = httpx.post(url, json=payload, headers=headers, timeout=10)
+                return r.status_code in [200, 201]
+            except Exception as e:
+                logger.warning(f"Mark read failed: {e}")
+        return False
+
     def send_whatsapp_action_menu(self, phone: str, summary_text: str, context_payload: dict = None) -> bool:
         clean_phone = normalize_whatsapp_phone(phone)
         if context_payload:
