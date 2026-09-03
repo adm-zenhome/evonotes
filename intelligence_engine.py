@@ -414,8 +414,13 @@ TRECHO {chunk_idx}/{total_chunks}:
         """
         try:
             from database import db
+            raw_text = (text or "").strip()
+            lower_text = raw_text.lower()
+            clean_normalized = re.sub(r"[^\w\s]", " ", lower_text)
+            words = clean_normalized.split()
+
             # Consulta em tempo real ao SQLite DB
-            tasks = db.get_all_tasks(status="PENDING")
+            tasks = db.get_all_tasks(user_id=user_id, status="PENDING")
             tasks_str = json.dumps([{"id": t["id"], "action": t["action"], "owner": t.get("owner"), "deadline": t.get("deadline_or_context")} for t in tasks[:20]], ensure_ascii=False)
             
             all_meetings = db.get_all_meetings()
@@ -632,9 +637,13 @@ Retorne um JSON ESTRITO com o formato:
                     }
 
             # Detect Pending Tasks Query
-            if any(k in lower_text for k in ["minhas tarefas", "quais tarefas", "tarefas pendentes", "o que tenho pra fazer", "o que eu tenho"]):
+            if any(k in lower_text for k in [
+                "tarefa", "tarefas", "liste tarefas", "lista tarefas", "listar tarefas", 
+                "minhas tarefas", "quais tarefas", "tarefas pendentes", "pendencias", "pendências",
+                "to-dos", "to dos", "o que tenho pra fazer", "o que tenho que fazer", "ver tarefas"
+            ]) and not any(k in lower_text for k in ["anota", "criar", "adicionar", "nova tarefa", "concluir", "feita"]):
                 if tasks:
-                    task_lines = "\n".join([f"• **{t.get('action')}** (Prazo: {t.get('deadline_or_context') or 'A definir'})" for t in tasks[:10]])
+                    task_lines = "\n".join([f"{idx}. **{t.get('action')}** (Prazo: {t.get('deadline_or_context') or 'A definir'})" for idx, t in enumerate(tasks[:15], 1)])
                     return {
                         "intent": "QUESTION",
                         "reply_msg": f"📋 **Suas Principais Tarefas Pendentes ({len(tasks)} no total):**\n\n{task_lines}\n\n*Central de Tarefas sincronizada.*",
@@ -648,6 +657,24 @@ Retorne um JSON ESTRITO com o formato:
                         "tasks_to_create": [],
                         "is_memo": False
                     }
+
+            # Detect Help / Capabilities Query
+            if any(k in lower_text for k in ["ajuda", "help", "menu", "comandos", "o que você faz", "o que vc faz", "funcionalidades", "como usar"]):
+                reply = (
+                    f"🧠 *Evo Agent — Seu Segundo Cérebro Executivo de Voz:*\n\n"
+                    f"Aqui estão os principais comandos e ações que você pode enviar:\n\n"
+                    f"• 📋 *'Liste tarefas'* — Ver todas as suas pendências ativas\n"
+                    f"• 📂 *'Liste notas'* — Ver histórico de reuniões e áudios\n"
+                    f"• 📝 *'Anota aí: [ação]'* — Criar nova tarefa instantânea\n"
+                    f"• ⚡ *'Status'* — Consultar o status da sua conta\n"
+                    f"• 🎙️ Ou simplesmente envie um *áudio de voz* para transcrição e ata instantânea!"
+                )
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": reply,
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
 
             # Detect Greeting / Intro (Says who it is ONLY at the beginning)
             if any(k in lower_text for k in ["oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "começar", "iniciar"]):
