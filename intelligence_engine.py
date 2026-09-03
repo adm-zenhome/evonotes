@@ -339,28 +339,44 @@ TRECHO {chunk_idx}/{total_chunks}:
 
         system_instruction = f"{MULTI_TEMPLATE_SYSTEM_PROMPT}\n\n{profession_spec}\n\n{acoustic_glossary_block}"
 
-        # 7. LLM Inference (Direct Gemini 3.6 Flash / OpenAI)
-        gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY") or GOOGLE_API_KEY
-        openai_key = os.environ.get("OPENAI_API_KEY", "") or OPENAI_API_KEY or ""
-        
-        has_real_openai = bool(openai_key and not any(k in openai_key for k in ["dummy", "placeholder", "sk-your-"]))
-        has_real_gemini = bool(gemini_key and not any(k in gemini_key for k in ["dummy", "placeholder", "your-"]))
-
-        if has_real_gemini and not has_real_openai:
+        # 7. LLM Inference (Gemini Flash Lite REST / OpenAI)
+        gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if gemini_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=gemini_key)
-                model = genai.GenerativeModel("gemini-3.6-flash")
+                import urllib.request
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key}"
                 combined_prompt = f"{system_instruction}\n\n{prompt}"
-                resp = model.generate_content(combined_prompt)
-                return clean_and_parse_json(resp.text)
+                payload = {
+                    "contents": [{"parts": [{"text": combined_prompt}]}]
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                    raw_text = resp_data["candidates"][0]["content"]["parts"][0]["text"]
+                    return clean_and_parse_json(raw_text)
             except Exception as ge:
-                logger.warning(f"Direct Gemini inference error: {ge}")
+                logger.warning(f"Gemini REST inference error ({ge}); falling back to OpenAI...")
 
-        if has_real_openai:
+        try:
+            response = self.client.chat.completions.create(
+                model=chosen_model,
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            raw_json = response.choices[0].message.content or "{}"
+        except Exception as primary_err:
+            logger.warning(f"Primary model {chosen_model} failed: {primary_err}. Triggering fallback to gpt-4o-mini...")
             try:
                 response = self.client.chat.completions.create(
-                    model=chosen_model,
+                    model="gpt-4o-mini",
                     temperature=0.2,
                     response_format={"type": "json_object"},
                     messages=[
@@ -369,20 +385,9 @@ TRECHO {chunk_idx}/{total_chunks}:
                     ]
                 )
                 raw_json = response.choices[0].message.content or "{}"
-            except Exception as primary_err:
-                logger.warning(f"Primary model {chosen_model} failed: {primary_err}. Triggering fallback...")
-                if has_real_gemini:
-                    try:
-                        import google.generativeai as genai
-                        genai.configure(api_key=gemini_key)
-                        model = genai.GenerativeModel("gemini-3.6-flash")
-                        resp = model.generate_content(f"{system_instruction}\n\n{prompt}")
-                        return clean_and_parse_json(resp.text)
-                    except Exception as ge:
-                        logger.error(f"Gemini fallback failed: {ge}")
-                raw_json = "{}"
-        else:
-            raw_json = "{}"
+            except Exception as fallback_err:
+                logger.error(f"OpenAI fallback failed: {fallback_err}")
+                return {"error": f"LLM Inference failed: {str(fallback_err)}"}
 
         # 8. Robust JSON Parsing & Post-Normalization
         try:
@@ -402,235 +407,285 @@ TRECHO {chunk_idx}/{total_chunks}:
             return {"error": str(e), "raw_response": raw_json}
 
 
-    def route_and_process_text(self, text: str, user_id: str = "felipe_donato") -> Dict[str, Any]:
+    def route_and_process_text(self, text: str, user_id: str = "default_user") -> Dict[str, Any]:
         """
-        Roteamento Inteligente de Intenção para mensagens de texto via WhatsApp e Copilot In-App (Chief of Staff Proativo).
-        Utiliza o MCP Server Multi-Tenant local e LLM com inteligência contextual executiva real.
+        Roteamento Inteligente de Intenção para mensagens de texto via WhatsApp e Copilot In-App (100x Hyper-Intelligent).
+        Consulta SQLite em tempo real e usa Gemini 3.6 Flash / GPT-4o para resposta em < 2s com contexto total da base.
         """
         try:
             from database import db
-            import mcp_server
-            import re
+            # Consulta em tempo real ao SQLite DB
+            tasks = db.get_all_tasks(status="PENDING")
+            tasks_str = json.dumps([{"id": t["id"], "action": t["action"], "owner": t.get("owner"), "deadline": t.get("deadline_or_context")} for t in tasks[:20]], ensure_ascii=False)
+            
+            all_meetings = db.get_all_meetings()
+            meetings_summary_list = []
+            for m in all_meetings:
+                intel = m.get("intelligence")
+                if not isinstance(intel, dict):
+                    intel = {}
+                parts = intel.get("participants") or []
+                part_names = []
+                if isinstance(parts, list):
+                    for p in parts:
+                        if isinstance(p, dict) and p.get("name") and p.get("name") != "Felipe Donato":
+                            part_names.append(p["name"])
+                        elif isinstance(p, str) and p != "Felipe Donato":
+                            part_names.append(p)
+                meetings_summary_list.append({
+                    "id": m.get("file_id"),
+                    "title": (m.get("title") or "Sem Título").replace("🎙️", "").strip(),
+                    "category": m.get("category", "Geral"),
+                    "date": (m.get("start_time") or "")[:10],
+                    "duration_min": round((m.get("duration_seconds") or 0) / 60, 1),
+                    "participants": part_names,
+                    "summary": (m.get("executive_summary") or "")[:180]
+                })
+            meetings_str = json.dumps(meetings_summary_list, ensure_ascii=False)
+            
+            prompt = f"""Você é o Evo Agent — Segundo Cérebro de Voz e Inteligência Operacional.
+Sua missão é classificar a intenção da mensagem e responder com máxima inteligência, tom executivo conciso e precisão.
+Não fique repetindo seu nome em todas as respostas (diga quem é apenas no início de uma nova conversa se o usuário disser 'Oi' ou 'Olá').
 
-            raw_text = (text or "").strip()
-            lower_text = raw_text.lower()
-            clean_normalized = re.sub(r"[^\w\s]", " ", lower_text)
-            words = clean_normalized.split()
+INTENÇÕES POSSÍVEIS:
+1. COMMAND_TASK: Criar uma nova tarefa (ex: "Anota aí", "Lembrar de...", "Adiciona tarefa para amanhã").
+2. LIST_NOTES: Listar, organizar ou buscar reuniões/gravações gravadas no Plaud Note Pro e WhatsApp (ex: "Liste minhas notas", "Mostre todas as notas", "Quais reuniões tive?", "Organize minhas notas por cliente").
+   - IMPORTANTE AO LISTAR NOTAS:
+     - Traga TODAS as notas cadastradas na base em formato de lista executiva limpa (Título, Data, Categoria, Duração e 1 linha de resumo).
+     - Se o usuário pedir ordenação por DATA: ordene da mais recente para a mais antiga.
+     - Se pedir por CLIENTE/EMPRESA: agrupe por Britânia, Wine, etc.
+     - Se apenas pedir para listar sem especificar a ordem: liste todas de forma concisa e pergunte ativamente ao final: "💡 *Deseja que eu ordene esta lista por 📅 Data mais recente, 🏢 Cliente/Empresa ou 🏷️ Categoria?*"
+3. QUESTION: Perguntas sobre status da conta, tarefas ativas ou conversa executiva (ex: "Minha conta ta ativa?", "Quais são minhas tarefas?").
+4. KNOWLEDGE_SEARCH: Perguntas sobre o conteúdo específico de uma reunião (ex: "O que a Débora da Britânia falou sobre App Builder?").
 
-            # Resgata dados reais do banco para o usuário ativo
-            all_meetings = db.get_all_meetings(user_id=user_id)
-            pending_tasks = db.get_all_tasks(user_id=user_id, status="PENDING")
-            user_name = "Felipe" if user_id == "felipe_donato" else "Líder"
+DADOS EM TEMPO REAL DO SISTEMA (SQLITE):
+- Usuário: {user_id}
+- Total de Tarefas Pendentes no Banco ({len(tasks)}): {tasks_str}
+- Total de Notas/Gravações no Banco ({len(all_meetings)}): {meetings_str}
 
-            # -------------------------------------------------------------
-            # 1. SAUDAÇÕES & CUMPRIMENTOS ("eai?", "oi", "olá", "bom dia", "teste", etc.)
-            # -------------------------------------------------------------
-            greetings = ["eai", "e aí", "e ai", "oi", "ola", "olá", "fala", "fala chefe", "opa", "bom dia", "boa tarde", "boa noite", "salve", "teste", "testando", "tudo bem", "como vai"]
-            if any(lower_text == g or lower_text.startswith(f"{g} ") or lower_text.endswith(f" {g}") or g in words for g in greetings) and len(words) <= 5:
-                reply = (
-                    f"⚡ *Chief of Staff EvoNotes:*\n"
-                    f"Fala {user_name}! 👊 Tudo pronto e 100% operacional.\n\n"
-                    f"📊 *Status do seu Workspace:* {len(all_meetings)} notas arquivadas e {len(pending_tasks)} tarefas pendentes.\n\n"
-                    f"💡 *Comandos Rápidos Disponíveis:*\n"
-                    f"• 📋 *'Liste tarefas'* — Ver todas as suas pendências\n"
-                    f"• 📂 *'Liste notas'* — Ver histórico de reuniões e áudios\n"
-                    f"• 🏛️ *'Briefing'* — Síntese executiva e prioridades do dia\n"
-                    f"• 📝 *'Anota aí: [ação]'* — Criar nova tarefa com 1 clique\n"
-                    f"• 🎙️ Ou mande um *áudio de voz* para transcrição e ata instantânea!"
-                )
-                return {
-                    "intent": "GREETING",
-                    "reply_msg": reply,
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
+MENSAGEM DO USUÁRIO: "{text}"
 
-            # -------------------------------------------------------------
-            # 2. CAPACIDADES / O QUE VOCÊ FAZ? / AJUDA / MENU
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["o que vc faz", "o que você faz", "oq vc faz", "quais suas funcoes", "quais suas funções", "funcionalidades", "como funciona", "capacidades", "help", "ajuda", "menu"]):
-                reply = (
-                    f"🧠 *EvoNotes OS — Seu Segundo Cérebro Executivo de Voz:*\n\n"
-                    f"Eu sou o seu Chief of Staff digital com inteligência em tempo real. Aqui está o que eu faço:\n\n"
-                    f"1️⃣ *Gravações & Áudios:* Transcrevo áudios de WhatsApp e sincronizo com Plaud Note Pro, gerando resumos executivos C-Level, participantes e acordos.\n"
-                    f"2️⃣ *Gestão de Tarefas (GTD):* Crio, gerencio e acompanho prazos de compromissos com responsáveis e tags de prioridade.\n"
-                    f"3️⃣ *Oráculo de Conhecimento:* Respondo qualquer dúvida sobre reuniões passadas, clientes (Britânia, Wine, etc.) e decisões tomadas.\n"
-                    f"4️⃣ *Briefings Executivos:* Gero relatórios diários de horas economizadas e status geral da operação.\n\n"
-                    f"💬 *Como usar:* Digite comandos em texto livre ou simplesmente fale comigo por áudio de voz!"
-                )
-                return {
-                    "intent": "CAPABILITIES",
-                    "reply_msg": reply,
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 3. BANCO DE DADOS & INFRAESTRUTURA
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["qual eh meu banco", "qual é o meu banco", "qual meu banco", "banco de dados", "database", "sqlite", "onde ficam os dados", "qual banco"]):
-                reply = (
-                    f"🗄️ *Infraestrutura & Banco de Dados EvoNotes OS:*\n\n"
-                    f"• *Motor:* SQLite 3 Persistente (`data/executive_voice.db`)\n"
-                    f"• *Tenant Ativo:* `{user_id}` (Workspace Privado & Isolado)\n"
-                    f"• *Conexão:* Model Context Protocol (MCP Server com 8 ferramentas ativas)\n"
-                    f"• *Métricas do seu Banco:*\n"
-                    f"  - 📂 *{len(all_meetings)}* Notas e Transcrições Executivas\n"
-                    f"  - 📋 *{len(pending_tasks)}* Tarefas e Compromissos Ativos\n"
-                    f"• *Hospedagem:* Nuvem Railway + WhatsApp Meta Cloud API Oficial"
-                )
-                return {
-                    "intent": "DATABASE_INFO",
-                    "reply_msg": reply,
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 4. LISTAGEM DE TAREFAS (MCP get_tasks)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in [
-                "tarefa", "tarefas", "liste tarefas", "lista tarefas", "listar tarefas", 
-                "minhas tarefas", "quais tarefas", "tarefas pendentes", "pendencias", "pendências",
-                "to-dos", "to dos", "o que tenho pra fazer", "o que tenho que fazer", "ver tarefas"
-            ]) and not any(k in lower_text for k in ["anota", "criar", "adicionar", "nova tarefa", "concluir", "feita"]):
-                task_res = mcp_server.execute_get_tasks({"status": "PENDING"}, user_id=user_id)
-                return {
-                    "intent": "LIST_TASKS",
-                    "reply_msg": str(task_res),
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 5. CRIAÇÃO DE TAREFA (MCP create_task)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["anota aí", "anota ai", "anotar", "lembrar de", "criar tarefa", "adicionar tarefa", "tarefa:", "nova tarefa"]):
-                clean_action = re.sub(r"^(anota aí|anota ai|anotar|lembrar de|criar tarefa|adicionar tarefa|tarefa:|nova tarefa)\s*[:,-]?\s*", "", raw_text, flags=re.IGNORECASE).strip()
-                if not clean_action: clean_action = raw_text
-                
-                create_res = mcp_server.execute_create_task({"action": clean_action, "owner": user_name, "deadline": "Hoje"}, user_id=user_id)
-                return {
-                    "intent": "COMMAND_TASK",
-                    "reply_msg": str(create_res),
-                    "tasks_to_create": [{"action": clean_action, "owner": user_name, "deadline": "Hoje"}],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 6. CONCLUSÃO DE TAREFA (MCP complete_task)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["concluir tarefa", "finalizar tarefa", "tarefa feita", "conclui a tarefa", "concluir #", "feita #", "concluido #", "concluído #"]):
-                id_match = re.search(r"#?(\d+)", raw_text)
-                if id_match:
-                    task_id = int(id_match.group(1))
-                    comp_res = mcp_server.execute_complete_task({"task_id": task_id}, user_id=user_id)
-                    return {
-                        "intent": "COMPLETE_TASK",
-                        "reply_msg": str(comp_res),
-                        "tasks_to_create": [],
-                        "is_memo": False
-                    }
-
-            # -------------------------------------------------------------
-            # 7. LISTAGEM DE NOTAS & GRAVAÇÕES (MCP get_recent_notes)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in [
-                "minhas notas", "todas as notas", "listar notas", "liste as notas", "liste notas", "lista notas",
-                "quais notas", "quais reuniões", "reunioes", "reuniões", "gravações", "gravacoes", "audios", "áudios", "historico", "histórico"
-            ]):
-                notes_res = mcp_server.execute_get_recent_notes({"limit": 8}, user_id=user_id)
-                return {
-                    "intent": "LIST_NOTES",
-                    "reply_msg": str(notes_res),
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 8. BRIEFING EXECUTIVO (MCP get_executive_briefing)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["briefing", "resumo", "status", "como esta meu dia", "como está meu dia", "metricas", "métricas"]):
-                briefing_res = mcp_server.execute_get_executive_briefing({}, user_id=user_id)
-                return {
-                    "intent": "BRIEFING",
-                    "reply_msg": str(briefing_res),
-                    "tasks_to_create": [],
-                    "is_memo": False
-                }
-
-            # -------------------------------------------------------------
-            # 9. BUSCA / ORÁCULO DE REUNIÕES (MCP search_notes)
-            # -------------------------------------------------------------
-            if any(k in lower_text for k in ["o que foi dito sobre", "o que conversamos sobre", "o que a debora falou", "o que a débora falou", "sobre a britânia", "sobre a britania", "sobre a wine", "pesquisar", "busca", "buscar"]):
-                search_query = re.sub(r"^(o que foi dito sobre|o que conversamos sobre|pesquisar|busca|buscar)\s*", "", raw_text, flags=re.IGNORECASE).strip()
-                if search_query:
-                    search_res = mcp_server.execute_search_notes({"query": search_query}, user_id=user_id)
-                    return {
-                        "intent": "SEARCH",
-                        "reply_msg": search_res.get("formatted_whatsapp_message") or f"🔍 *Resultados para:* '{search_query}'",
-                        "tasks_to_create": [],
-                        "is_memo": False
-                    }
-
-            # -------------------------------------------------------------
-            # 10. RESPOSTA DINÂMICA VIA LLM OU CONTEXTO EXECUTIVO
-            # -------------------------------------------------------------
-            # Se for uma pergunta aberta, tentamos Gemini / OpenAI
+Retorne um JSON ESTRITO com o formato:
+{{
+  "intent": "COMMAND_TASK|LIST_NOTES|QUESTION|KNOWLEDGE_SEARCH|MEMO",
+  "reply_msg": "Texto da resposta executiva formatada em markdown.",
+  "tasks_to_create": [
+     {{"action": "Ação clara", "owner": "Responsável", "deadline": "Prazo"}}
+  ],
+  "is_memo": false
+}}
+"""
+            # 1. Try Gemini 3.6 Flash
             gemini_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
             if gemini_key:
                 try:
                     import google.generativeai as genai
                     genai.configure(api_key=gemini_key)
-                    
-                    llm_prompt = f"""Você é o Chief of Staff Executivo do EvoNotes AI para o usuário {user_name}.
-Dados reais do workspace:
-- Total de notas gravadas: {len(all_meetings)}
-- Tarefas ativas ({len(pending_tasks)}): {json.dumps([t.get('action') for t in pending_tasks[:8]], ensure_ascii=False)}
-- Notas recentes: {json.dumps([m.get('title') for m in all_meetings[:5]], ensure_ascii=False)}
-
-Pergunta ou instrução do {user_name}: "{raw_text}"
-
-Responda de forma extremamente útil, elegante, direta e executiva em markdown do WhatsApp (com emojis e negritos). Máximo de 4 parágrafos curtos."""
-                    
-                    for model_name in ["gemini-flash-latest", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-flash-lite-latest"]:
-                        try:
-                            model = genai.GenerativeModel(model_name)
-                            resp = model.generate_content(llm_prompt)
-                            if resp and resp.text:
-                                return {
-                                    "intent": "QUESTION",
-                                    "reply_msg": resp.text.strip(),
-                                    "tasks_to_create": [],
-                                    "is_memo": False
-                                }
-                        except Exception:
-                            continue
+                    model = genai.GenerativeModel("gemini-3.6-flash")
+                    resp = model.generate_content(prompt)
+                    res_json = clean_and_parse_json(resp.text)
+                    if isinstance(res_json, dict) and "reply_msg" in res_json:
+                        return res_json
                 except Exception as ge:
-                    logger.warning(f"LLM generation failed: {ge}")
+                    logger.warning(f"Gemini route error: {ge}")
 
-            # Fallback Executivo Contextualizado (Zero frases repetitivas estáticas!)
+            # 2. Try OpenAI if configured
+            if self.client and "dummy" not in getattr(self.client, "api_key", "dummy"):
+                try:
+                    response = self.client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                        messages=[
+                            {"role": "system", "content": "Você é o Evo Agent — Segundo Cérebro de Voz."},
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    raw_json = response.choices[0].message.content or "{}"
+                    res_json = clean_and_parse_json(raw_json)
+                    if isinstance(res_json, dict) and "reply_msg" in res_json:
+                        return res_json
+                except Exception as oe:
+                    logger.warning(f"OpenAI fallback error: {oe}")
+
+            # 3. Deterministic Evo Agent Engine (Zero Quota / Zero Timeout Guaranteed)
+            # Detect Plaud Sync Command
+            if any(k in lower_text for k in ["sincronizar plaud", "sincronize o plaud", "sync plaud", "atualizar plaud", "puxar gravações", "puxar gravacoes", "novas gravações", "sincronizar"]):
+                try:
+                    from plaud_processor import get_all_plaud_recordings
+                    recs = get_all_plaud_recordings()
+                    for r in recs:
+                        db.save_meeting(r, user_id=user_id)
+                    refreshed = db.get_all_meetings(user_id=user_id)
+                    return {
+                        "intent": "SYNC_PLAUD",
+                        "reply_msg": f"🎙️ **Plaud Note Pro Sincronizado com Sucesso!**\n\nForam sincronizadas as gravações da sua conta Plaud.\n📊 **Total de Notas Ativas:** {len(refreshed)}\n✅ Transcrições na íntegra, sínteses e tarefas atualizadas na Central de Inteligência.",
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+                except Exception as se:
+                    return {
+                        "intent": "SYNC_PLAUD",
+                        "reply_msg": f"⚠️ Erro ao sincronizar Plaud: {se}",
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+            # Detect Task Creation Command
+            if any(k in lower_text for k in ["anota aí", "anota ai", "lembrar de", "criar tarefa", "adicionar tarefa", "tarefa:"]):
+                clean_action = re.sub(r"^(anota aí|anota ai|lembrar de|criar tarefa|adicionar tarefa|tarefa:)\s*[:,-]?\s*", "", text, flags=re.IGNORECASE).strip()
+                if not clean_action: clean_action = text
+                return {
+                    "intent": "COMMAND_TASK",
+                    "reply_msg": f"✅ **Tarefa Registrada:** '{clean_action}'\n📌 **Responsável:** Você\n⏱️ **Prazo:** Hoje / Próximos Passos\n\n*Ação cadastrada na Central de Tarefas.*",
+                    "tasks_to_create": [{"action": clean_action, "owner": "Você", "deadline": "Hoje"}],
+                    "is_memo": False
+                }
+
+            # Detect Notes Listing & Custom Sorting Query
+            if any(k in lower_text for k in [
+                "minhas notas", "todas as notas", "listar notas", "liste as notas", "liste minhas notas", 
+                "quais notas", "quais reuniões", "reunioes", "gravações", "gravacoes", "historico",
+                "organize por", "ordene por", "agrupe por", "agrupar por", "por cliente", "por data", "por categoria", "ordem cronol"
+            ]):
+                if not all_meetings:
+                    return {
+                        "intent": "LIST_NOTES",
+                        "reply_msg": "📂 **Nenhuma nota registrada no momento.**\n\nSua base está limpa. Envie um áudio ou nota aqui para registrar a primeira gravação!",
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+                
+                # Check for sorting preferences
+                if any(k in lower_text for k in ["por cliente", "por empresa", "por conta", "clientes"]):
+                    # Group by client/company
+                    grouped = {}
+                    for m in all_meetings:
+                        t = m.get("title") or ""
+                        c = "Outros / Geral"
+                        if "Britânia" in t: c = "🏢 Britânia"
+                        elif "Wine" in t: c = "🍷 Wine"
+                        elif "Augusto Cury" in t or "Cury" in t: c = "🧠 Desenvolvimento / Cury"
+                        elif "WhatsApp" in t: c = "📱 WhatsApp Oficial"
+                        grouped.setdefault(c, []).append(m)
+                    
+                    lines = [f"📂 **Todas as suas Notas ({len(all_meetings)} no total) Organizadas por Cliente/Conta:**\n"]
+                    for grp_name, m_list in grouped.items():
+                        lines.append(f"### {grp_name} ({len(m_list)} registro{'s' if len(m_list)>1 else ''})")
+                        for idx, m in enumerate(m_list, 1):
+                            m_date = (m.get("start_time") or "")[:10]
+                            m_title = (m.get("title") or "").replace("🎙️", "").strip()
+                            m_dur = round((m.get("duration_seconds") or 0) / 60, 1)
+                            m_sum = (m.get("executive_summary") or "")[:120]
+                            lines.append(f"• **{m_title}** — *{m_date}* ({m_dur} min)")
+                            if m_sum:
+                                lines.append(f"  > _{m_sum}..._")
+                        lines.append("")
+                    return {
+                        "intent": "LIST_NOTES",
+                        "reply_msg": "\n".join(lines).strip(),
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+                elif any(k in lower_text for k in ["por data", "recente", "cronol"]):
+                    # Sorted by date
+                    sorted_meetings = sorted(all_meetings, key=lambda x: str(x.get("start_time") or ""), reverse=True)
+                    lines = [f"📅 **Todas as suas Notas ({len(all_meetings)} no total) em Ordem Cronológica:**\n"]
+                    for idx, m in enumerate(sorted_meetings, 1):
+                        m_date = (m.get("start_time") or "")[:10]
+                        m_title = (m.get("title") or "").replace("🎙️", "").strip()
+                        m_dur = round((m.get("duration_seconds") or 0) / 60, 1)
+                        m_cat = m.get("category") or "Geral"
+                        m_sum = (m.get("executive_summary") or "")[:130]
+                        lines.append(f"**{idx}. {m_title}**")
+                        lines.append(f"• 📅 Data: `{m_date}` | ⏱️ Duração: `{m_dur} min` | 🏷️ `{m_cat}`")
+                        if m_sum:
+                            lines.append(f"• 🎯 Resumo: _{m_sum}..._")
+                        lines.append("")
+                    return {
+                        "intent": "LIST_NOTES",
+                        "reply_msg": "\n".join(lines).strip(),
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+                else:
+                    # Default list of all notes + interactive sorting question
+                    lines = [f"📋 **Todas as suas Notas Registradas ({len(all_meetings)} no total):**\n"]
+                    for idx, m in enumerate(all_meetings, 1):
+                        m_date = (m.get("start_time") or "")[:10]
+                        m_title = (m.get("title") or "").replace("🎙️", "").strip()
+                        m_dur = round((m.get("duration_seconds") or 0) / 60, 1)
+                        m_cat = m.get("category") or "Geral"
+                        m_sum = (m.get("executive_summary") or "")[:110]
+                        lines.append(f"**{idx}.** {m_title} — `{m_date}` ({m_dur} min) • *{m_cat}*")
+                        if m_sum:
+                            lines.append(f"   > _{m_sum}..._")
+                    
+                    lines.append("\n---\n💡 **Personalização de Visualização:**\n*Deseja que eu reordene esta lista por:*\n• **1.** 📅 *Data mais recente*\n• **2.** 🏢 *Cliente / Empresa*\n• **3.** 🏷️ *Categoria / Tipo de Reunião*")
+                    return {
+                        "intent": "LIST_NOTES",
+                        "reply_msg": "\n".join(lines).strip(),
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+            # Detect Pending Tasks Query
+            if any(k in lower_text for k in ["minhas tarefas", "quais tarefas", "tarefas pendentes", "o que tenho pra fazer", "o que eu tenho"]):
+                if tasks:
+                    task_lines = "\n".join([f"• **{t.get('action')}** (Prazo: {t.get('deadline_or_context') or 'A definir'})" for t in tasks[:10]])
+                    return {
+                        "intent": "QUESTION",
+                        "reply_msg": f"📋 **Suas Principais Tarefas Pendentes ({len(tasks)} no total):**\n\n{task_lines}\n\n*Central de Tarefas sincronizada.*",
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+                else:
+                    return {
+                        "intent": "QUESTION",
+                        "reply_msg": "🎉 **Você não tem nenhuma tarefa pendente no momento!**",
+                        "tasks_to_create": [],
+                        "is_memo": False
+                    }
+
+            # Detect Greeting / Intro (Says who it is ONLY at the beginning)
+            if any(k in lower_text for k in ["oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "começar", "iniciar"]):
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": f"Olá! Sou o **Evo Agent**, seu Segundo Cérebro de Voz.\n\nEstou conectado ao seu WhatsApp oficial. Você pode me mandar áudios, reuniões, comandos ou tarefas a qualquer momento.\n\nComo posso ajudar agora?",
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # Detect Status / Connection Query
+            if any(k in lower_text for k in ["conta ta ativa", "conta está ativa", "status", "conectado", "ta funcionando", "está funcionando"]):
+                return {
+                    "intent": "QUESTION",
+                    "reply_msg": f"⚡ **Conta 100% Ativa e Operacional!**\n\n• **Evo Agent:** Online\n• **WhatsApp:** +55 (11) 96000-4895\n• **Base:** {len(all_meetings)} notas registradas e {len(tasks)} tarefas ativas.",
+                    "tasks_to_create": [],
+                    "is_memo": False
+                }
+
+            # General Executive Question / Knowledge
             return {
-                "intent": "QUESTION",
-                "reply_msg": (
-                    f"⚡ *Chief of Staff EvoNotes:*\n"
-                    f"Recebi sua mensagem: *\"{raw_text}\"*\n\n"
-                    f"Estou com sua base ativa ({len(all_meetings)} notas e {len(pending_tasks)} tarefas).\n"
-                    f"Para eu te ajudar com máxima precisão, você pode:\n"
-                    f"• Digitar *'Liste tarefas'* ou *'Liste notas'*\n"
-                    f"• Dizer *'Anota aí: [nova ação]'* para criar um to-do\n"
-                    f"• Ou enviar um *áudio de voz* explicando o que precisa."
-                ),
+                "intent": "QUESTION", 
+                "reply_msg": f"Entendido! Sua base conta com {len(all_meetings)} notas e {len(tasks)} tarefas ativas. Como deseja prosseguir?", 
                 "tasks_to_create": [],
                 "is_memo": False
             }
-
         except Exception as e:
             import traceback
             logger.error(f"Error in route_and_process_text:\n{traceback.format_exc()}")
             return {
-                "intent": "QUESTION",
-                "reply_msg": f"⚡ *Chief of Staff EvoNotes:* Estou online e operacional! Digite *'ajuda'* ou *'liste tarefas'* para visualizar suas prioridades.",
+                "intent": "QUESTION", 
+                "reply_msg": "Olá! Sua inteligência executiva está 100% ativa e operacional.", 
+                "tasks_to_create": [],
+                "is_memo": False
+            }
+            return {
+                "intent": "QUESTION", 
+                "reply_msg": "⚡ Olá Felipe! Sua inteligência executiva no EvoNotes está 100% ativa, conectada e operacional.", 
                 "tasks_to_create": [],
                 "is_memo": False
             }

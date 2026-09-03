@@ -1,29 +1,13 @@
 {
-  "user_id": "felipe_donato",
-  "user_name": "Felipe Donato",
+  "user_id": "user_5511955554444",
+  "user_name": "Executivo",
   "company": "Zendesk",
   "preferred_voice_tone": "Executivo Direto, Confiante e Sofisticado",
   "elevenlabs_voice_id": "JBFqnCBsd6RMkjVDRZzb",
   "calibration_meetings_processed": 0,
   "calibration_target": 10,
   "calibration_status": "LEARNING",
-  "vocabulary_and_jargon": [
-    "MEDDPICC",
-    "ARR",
-    "MRR",
-    "ICP",
-    "Discovery",
-    "Champion",
-    "Gatekeeper",
-    "POC",
-    "Pricing",
-    "Pipeline",
-    "Churn",
-    "CAC",
-    "LTV",
-    "SLA",
-    "Upsell"
-  ],
+  "vocabulary_and_jargon": [],
   "stakeholders": [],
   "style_preferences": {
     "bullet_format": "Conciso e orientado a decisões",
@@ -31,5 +15,5 @@
     "risk_sensitivity": "ALTA"
   },
   "learned_insights": [],
-  "last_updated": "2026-09-02T01:13:30.976949"
+  "last_updated": "2026-09-02T01:11:21.151344"
 }

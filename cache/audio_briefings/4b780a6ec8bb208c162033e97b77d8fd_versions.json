@@ -1,0 +1,23 @@
+[
+  {
+    "version": 1,
+    "filename": "4b780a6ec8bb208c162033e97b77d8fd_briefing.mp3",
+    "created_at": "Take Atual",
+    "url": "/api/audio-briefing/4b780a6ec8bb208c162033e97b77d8fd",
+    "direction": "Foco em metas"
+  },
+  {
+    "version": 2,
+    "filename": "4b780a6ec8bb208c162033e97b77d8fd_briefing_v2.mp3",
+    "created_at": "01/09 16:49",
+    "url": "/api/audio-briefing/4b780a6ec8bb208c162033e97b77d8fd?v=2",
+    "direction": "Foco em metas"
+  },
+  {
+    "version": 3,
+    "filename": "4b780a6ec8bb208c162033e97b77d8fd_briefing.mp3",
+    "created_at": "Take Atual",
+    "url": "/api/audio-briefing/4b780a6ec8bb208c162033e97b77d8fd",
+    "direction": "Foco em metas"
+  }
+]

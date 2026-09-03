@@ -182,12 +182,13 @@ class ExecutiveDatabase:
                 )
             """)
             
-            # Ensure channel column exists in meetings
+            # Ensure channel and user_id columns exist in meetings
             try:
                 cursor.execute("ALTER TABLE meetings ADD COLUMN channel TEXT DEFAULT 'Plaud Note Pro'")
-
-
-
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE meetings ADD COLUMN user_id TEXT DEFAULT 'felipe_donato'")
             except Exception:
                 pass
 
@@ -201,16 +202,17 @@ class ExecutiveDatabase:
                     deadline_or_context TEXT,
                     status TEXT DEFAULT 'PENDING',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    user_id TEXT DEFAULT 'felipe_donato',
                     FOREIGN KEY (meeting_id) REFERENCES meetings (file_id) ON DELETE CASCADE
                 )
             """)
             # Ensure optional commitment columns exist
-            for col in ['completed_at TIMESTAMP', 'rationale_why TEXT', 'rationale_how TEXT']:
+            for col in ['completed_at TIMESTAMP', 'rationale_why TEXT', 'rationale_how TEXT', 'user_id TEXT DEFAULT "felipe_donato"']:
                 try:
                     cursor.execute(f"ALTER TABLE commitments ADD COLUMN {col}")
                 except Exception:
                     pass
-            # Ensure columns value_amount and quote_citation exist in accounts_deals
+            # Ensure columns value_amount, quote_citation, and user_id exist in accounts_deals
             try:
                 cursor.execute("ALTER TABLE accounts_deals ADD COLUMN value_amount INTEGER DEFAULT 0")
             except Exception:
@@ -219,6 +221,15 @@ class ExecutiveDatabase:
                 cursor.execute("ALTER TABLE accounts_deals ADD COLUMN quote_citation TEXT DEFAULT ''")
             except Exception:
                 pass
+            try:
+                cursor.execute("ALTER TABLE accounts_deals ADD COLUMN user_id TEXT DEFAULT 'felipe_donato'")
+            except Exception:
+                pass
+
+            # Backfill any null user_id to felipe_donato for historical data
+            cursor.execute("UPDATE meetings SET user_id = 'felipe_donato' WHERE user_id IS NULL OR user_id = ''")
+            cursor.execute("UPDATE commitments SET user_id = 'felipe_donato' WHERE user_id IS NULL OR user_id = ''")
+            cursor.execute("UPDATE accounts_deals SET user_id = 'felipe_donato' WHERE user_id IS NULL OR user_id = ''")
 
 
             # Inferred Feedback & Exclusions Learning Engine (Zero Hallucination Guardrail)
@@ -334,6 +345,19 @@ class ExecutiveDatabase:
             """)
 
             cursor.execute("""
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    auth_code TEXT NOT NULL,
+                    pin_code TEXT NOT NULL,
+                    phone TEXT,
+                    user_id TEXT,
+                    is_authorized INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP NOT NULL
+                )
+            """)
+
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS meeting_source_links (
                     id TEXT PRIMARY KEY,
                     meeting_id TEXT NOT NULL,
@@ -405,18 +429,16 @@ class ExecutiveDatabase:
             except Exception as e:
                 logging.error(f"Error during legacy migration: {e}")
 
-    def get_all_meetings(self, channel: Optional[str] = None, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_all_meetings(self, channel: Optional[str] = None, user_id: str = "felipe_donato") -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            query = "SELECT * FROM meetings WHERE 1=1"
-            params = []
-            if user_id:
-                query += " AND (user_id = ? OR user_id IS NULL OR user_id = 'default_user')"
-                params.append(user_id)
+            params = [user_id]
+            where_clauses = ["user_id = ?"]
             if channel:
-                query += " AND (channel LIKE ? OR custom_notes LIKE ? OR title LIKE ?)"
+                where_clauses.append("(channel LIKE ? OR custom_notes LIKE ? OR title LIKE ?)")
                 params.extend([f"%{channel}%", f"%{channel}%", f"%{channel}%"])
-            query += " ORDER BY created_at DESC"
+            
+            query = f"SELECT * FROM meetings WHERE {' AND '.join(where_clauses)} ORDER BY created_at DESC"
             cursor.execute(query, params)
             rows = cursor.fetchall()
             meetings = []
@@ -457,7 +479,7 @@ class ExecutiveDatabase:
                     m_dict["intelligence"] = {}
             return m_dict
 
-    def save_meeting(self, meeting_data: Dict[str, Any]):
+    def save_meeting(self, meeting_data: Dict[str, Any], user_id: str = "felipe_donato"):
         intel = meeting_data.get("intelligence", {})
         file_id = meeting_data.get("file_id")
         
@@ -468,8 +490,8 @@ class ExecutiveDatabase:
                 INSERT OR REPLACE INTO meetings (
                     file_id, title, category, duration_seconds, start_time,
                     audio_path, audio_url, doc_path, executive_summary,
-                    intelligence_json, transcript_full, custom_notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    intelligence_json, transcript_full, custom_notes, user_id, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """, (
                 file_id,
                 intel.get("meeting_title", meeting_data.get("title", "Sem Título")),
@@ -482,30 +504,32 @@ class ExecutiveDatabase:
                 intel.get("executive_summary", meeting_data.get("executive_summary", "")),
                 json.dumps(intel, ensure_ascii=False),
                 t_full,
-                meeting_data.get("custom_notes", "")
+                meeting_data.get("custom_notes", ""),
+                user_id
             ))
 
             # Refresh commitments
             cursor.execute("DELETE FROM commitments WHERE meeting_id = ?", (file_id,))
             for c in intel.get("commitments_and_promises", []):
                 cursor.execute("""
-                    INSERT INTO commitments (meeting_id, owner, action, deadline_or_context)
-                    VALUES (?, ?, ?, ?)
-                """, (file_id, c.get("owner", ""), c.get("action", ""), c.get("deadline_or_context", "")))
+                    INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, user_id)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (file_id, c.get("owner", ""), c.get("action", ""), c.get("deadline_or_context", ""), user_id))
 
             # Refresh accounts
             cursor.execute("DELETE FROM accounts_deals WHERE meeting_id = ?", (file_id,))
             for acc in intel.get("accounts_discussed", []):
                 cursor.execute("""
-                    INSERT INTO accounts_deals (meeting_id, account_name, opportunity_or_risk, next_step, value_amount, quote_citation)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO accounts_deals (meeting_id, account_name, opportunity_or_risk, next_step, value_amount, quote_citation, user_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     file_id, 
                     acc.get("account_name", ""), 
                     acc.get("opportunity_or_risk", ""), 
                     acc.get("next_step", ""),
                     acc.get("value_amount", 0),
-                    acc.get("quote_citation", "")
+                    acc.get("quote_citation", ""),
+                    user_id
                 ))
 
             conn.commit()
@@ -603,7 +627,7 @@ class ExecutiveDatabase:
 
 
 
-    def get_all_tasks(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_all_tasks(self, status: Optional[str] = None, user_id: str = "felipe_donato") -> List[Dict[str, Any]]:
         """Returns all commitments/tasks across all meetings with meeting metadata.
         Completed tasks naturally sink to the bottom. Tasks completed >24h are flagged as ARCHIVED.
         """
@@ -625,10 +649,11 @@ class ExecutiveDatabase:
                        m.title as meeting_title, m.category as meeting_category, m.start_time
                 FROM commitments c
                 LEFT JOIN meetings m ON c.meeting_id = m.file_id
+                WHERE c.user_id = ?
             """
-            params = []
+            params = [user_id]
             if status and status != "ALL":
-                query += " WHERE c.status = ?"
+                query += " AND c.status = ?"
                 params.append(status)
             
             # Ordering: Active tasks first (PENDING/DELEGATED), then DONE at bottom, then ARCHIVED
@@ -695,16 +720,29 @@ class ExecutiveDatabase:
             conn.commit()
             return cursor.rowcount > 0
 
-    def create_task(self, meeting_id: str, action: str, owner: str = "Felipe Donato", deadline: str = "Hoje", user_id: str = "felipe_donato") -> int:
+    def create_task(self, meeting_id: str, action: str, owner: str = "Você", deadline: str = "Hoje", status: str = "PENDING", user_id: str = "felipe_donato") -> int:
         """Creates a new task/commitment."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO commitments (meeting_id, owner, action, deadline_or_context, status, user_id)
-                VALUES (?, ?, ?, ?, 'PENDING', ?)
-            """, (meeting_id, owner, action, deadline, user_id))
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (meeting_id, owner, action, deadline, status, user_id))
             conn.commit()
             return cursor.lastrowid
+
+    def get_all_deals(self, user_id: str = "felipe_donato") -> List[Dict[str, Any]]:
+        """Returns all accounts and deals isolated by user_id."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT a.*, m.title as meeting_title 
+                FROM accounts_deals a
+                LEFT JOIN meetings m ON a.meeting_id = m.file_id
+                WHERE a.user_id = ?
+                ORDER BY a.created_at DESC
+            """, (user_id,))
+            return [dict(row) for row in cursor.fetchall()]
 
 
 # --- Analytics & Feedback Extension ---
@@ -741,7 +779,7 @@ def init_analytics_tables():
 
 def get_keyword_analytics(user_id: str = "felipe_donato") -> Dict[str, Any]:
     """Aggregates spoken terms, pipeline and metrics STRICTLY from SQLite database dynamically."""
-    meetings = db.get_all_meetings()
+    meetings = db.get_all_meetings(user_id=user_id)
     
     # 1. Dynamically extract candidate terms from existing meetings in SQLite
     term_counts = {}
@@ -1351,6 +1389,76 @@ def verify_whatsapp_otp(phone: str, code: str, user_id: str = "felipe_donato") -
         conn.commit()
         return True, "Telefone verificado com sucesso!"
 
+def create_auth_session(session_id: str, auth_code: str, pin_code: str, expires_seconds: int = 600) -> dict:
+    expires_at = datetime.fromtimestamp(time.time() + expires_seconds).strftime("%Y-%m-%d %H:%M:%S")
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO auth_sessions (session_id, auth_code, pin_code, is_authorized, expires_at)
+            VALUES (?, ?, ?, 0, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                auth_code = excluded.auth_code,
+                pin_code = excluded.pin_code,
+                is_authorized = 0,
+                expires_at = excluded.expires_at
+        """, (session_id, auth_code, pin_code, expires_at))
+        conn.commit()
+    return {
+        "session_id": session_id,
+        "auth_code": auth_code,
+        "pin_code": pin_code,
+        "expires_at": expires_at
+    }
+
+def get_auth_session(session_id: str) -> Optional[dict]:
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM auth_sessions WHERE session_id = ?", (session_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return dict(row)
+
+def authorize_auth_session_by_code(code: str, sender_phone: str) -> Optional[dict]:
+    clean_code = code.strip().upper()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    with db.get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM auth_sessions 
+            WHERE (UPPER(auth_code) = ? OR pin_code = ?)
+              AND expires_at > ?
+            ORDER BY created_at DESC LIMIT 1
+        """, (clean_code, clean_code, now_str))
+        row = cursor.fetchone()
+        if not row:
+            return None
+            
+        session_data = dict(row)
+        clean_phone = sender_phone.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
+        user_id = "felipe_donato" if "974307292" in clean_phone else f"user_{clean_phone}"
+        
+        cursor.execute("""
+            INSERT INTO user_profiles (user_id, user_name, whatsapp_phone)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                whatsapp_phone = excluded.whatsapp_phone,
+                updated_at = CURRENT_TIMESTAMP
+        """, (user_id, "Felipe Donato" if user_id == "felipe_donato" else f"Membro {clean_phone[-4:]}", f"+{clean_phone}"))
+        
+        cursor.execute("""
+            UPDATE auth_sessions 
+            SET is_authorized = 1, phone = ?, user_id = ?
+            WHERE session_id = ?
+        """, (f"+{clean_phone}", user_id, session_data["session_id"]))
+        conn.commit()
+        
+        session_data["is_authorized"] = 1
+        session_data["phone"] = f"+{clean_phone}"
+        session_data["user_id"] = user_id
+        return session_data
+
 # Bind methods to ExecutiveDatabase class as well
 ExecutiveDatabase.save_whatsapp_inbox_item = lambda self, item: save_whatsapp_inbox_item(item)
 ExecutiveDatabase.get_pending_whatsapp_inbox = lambda self, limit=None: get_pending_whatsapp_inbox(limit)
@@ -1359,6 +1467,9 @@ ExecutiveDatabase.get_user_whatsapp_phone = lambda self, uid="felipe_donato": ge
 ExecutiveDatabase.set_user_whatsapp_phone = lambda self, uid="felipe_donato", p="": set_user_whatsapp_phone(uid, p)
 ExecutiveDatabase.save_whatsapp_otp = lambda self, p, c, exp=300, uid="felipe_donato": save_whatsapp_otp(p, c, exp, uid)
 ExecutiveDatabase.verify_whatsapp_otp = lambda self, p, c, uid="felipe_donato": verify_whatsapp_otp(p, c, uid)
+ExecutiveDatabase.create_auth_session = lambda self, sid, ac, pc, exp=600: create_auth_session(sid, ac, pc, exp)
+ExecutiveDatabase.get_auth_session = lambda self, sid: get_auth_session(sid)
+ExecutiveDatabase.authorize_auth_session_by_code = lambda self, code, sender_phone="": authorize_auth_session_by_code(code, sender_phone)
 ExecutiveDatabase.update_meeting_title = lambda self, fid, t: update_meeting_title(fid, t)
 
 # Singleton Database Instance

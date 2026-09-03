@@ -7,6 +7,7 @@ and persists everything into SQLite database and Desktop.
 """
 
 import os
+import re
 import time
 import logging
 import httpx
@@ -24,7 +25,7 @@ logger = logging.getLogger("WhatsAppVoiceIngest")
 # Meta WhatsApp Cloud API Credentials
 META_WA_TOKEN = os.environ.get(
     "META_WA_TOKEN", 
-    "EAAXwYUV5YAsBSRirZCm5lKg1qMhgczjmb1n99sC8ENezAuoPxwkuViGvmEzQXlJEfy1lb8jP5XxhS0YlLNFpahpHvZBDLOS1ZBZCbM5WjmSOVMnuAbKO1PLNLJI5ZCnBLtZAzK34HytsGZCqfUZAa5uNZBpZCGNkrOOCD0hcq7nciPASPajzGdMP63WhUHCC1MOOIKZAAZDZD"
+    "EAAXwYUV5YAsBSZAbfYYhrF10KpNMCaVLa9hat5WG08xJEdAe51yTZATXaNO5TAQSUDNZAU7wVaPWScx1ZBJyKe0Fbhd83qLw5AmjRjNsKxkGn01HlEJonQRMq2coiWZAjUobsbMDS1NxLONI5LOjMMiqZAGktZCDkI9mzio7m710xqKEDLvI47tneyNBnpTbRDjFAZDZD"
 )
 META_WA_PHONE_NUMBER_ID = os.environ.get("META_WA_PHONE_NUMBER_ID", "1288311671030624")
 META_WA_WABA_ID = os.environ.get("META_WA_WABA_ID", "1615247683296412")
@@ -38,14 +39,96 @@ CLIENT_TOKEN = os.environ.get("ZAPI_CLIENT_TOKEN", "Fe3901d4f2b4e4862bfb1ab045b7
 ZAPI_BASE_URL = f"https://api.z-api.io/instances/{INSTANCE_ID}/token/{TOKEN}"
 ZAPI_HEADERS = {"Client-Token": CLIENT_TOKEN, "Content-Type": "application/json"}
 
+# Global state for interactive action contexts
+_PENDING_ACTION_CONTEXTS = {}
+
+def normalize_whatsapp_phone(raw_phone: str) -> str:
+    import re
+    digits = re.sub(r'\D', '', str(raw_phone))
+    if digits.startswith('0') and len(digits) in [11, 12]:
+        digits = digits[1:]
+    if len(digits) in [10, 11]:
+        digits = '55' + digits
+    return digits
+
+def get_brazilian_phone_variations(clean_phone: str) -> list:
+    variations = [clean_phone]
+    if clean_phone.startswith("55"):
+        # If 13 digits (55XX9XXXXXXX)
+        if len(clean_phone) == 13 and clean_phone[4] == '9':
+            alt = clean_phone[:4] + clean_phone[5:]
+            if alt not in variations:
+                variations.append(alt)
+        # If 12 digits (55XXXXXXXXXX)
+        elif len(clean_phone) == 12:
+            alt = clean_phone[:4] + '9' + clean_phone[4:]
+            if alt not in variations:
+                variations.append(alt)
+    return variations
 
 class WhatsAppVoiceIngest:
     def __init__(self):
         self.audio_pipeline = AudioPipeline()
         self.intelligence_engine = IntelligenceEngine()
 
+    def send_whatsapp_auth_template(self, phone: str, otp_code: str) -> bool:
+        clean_phone = normalize_whatsapp_phone(phone)
+        targets = get_brazilian_phone_variations(clean_phone)
+        any_success = False
+
+        for target in targets:
+            if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID:
+                try:
+                    url = f"{META_WA_BASE_URL}/messages"
+                    headers = {
+                        "Authorization": f"Bearer {META_WA_TOKEN}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "messaging_product": "whatsapp",
+                        "recipient_type": "individual",
+                        "to": target,
+                        "type": "template",
+                        "template": {
+                            "name": "evonotes_auth_code",
+                            "language": {"code": "pt_BR"},
+                            "components": [
+                                {
+                                    "type": "body",
+                                    "parameters": [{"type": "text", "text": str(otp_code)}]
+                                },
+                                {
+                                    "type": "button",
+                                    "sub_type": "url",
+                                    "index": "0",
+                                    "parameters": [{"type": "text", "text": str(otp_code)}]
+                                }
+                            ]
+                        }
+                    }
+                    r = httpx.post(url, json=payload, headers=headers, timeout=15)
+                    if r.status_code in [200, 201]:
+                        logger.info(f"Official Meta 2FA template sent successfully to {target}")
+                        any_success = True
+                    else:
+                        logger.warning(f"Meta template to {target} returned {r.status_code}: {r.text}")
+                except Exception as e:
+                    logger.warning(f"Meta template send error to {target}: {e}")
+
+            if not any_success:
+                fallback_msg = (
+                    f"🔐 *Código de Acesso EvoNotes OS*\n\n"
+                    f"Seu código de acesso é: *{otp_code}*\n\n"
+                    f"Digite este código no painel para entrar no seu Segundo Cérebro de Voz.\n"
+                    f"⏳ Válido por 5 minutos."
+                )
+                if self.send_whatsapp_text(target, fallback_msg):
+                    any_success = True
+
+        return any_success
+
     def send_whatsapp_text(self, phone: str, text: str) -> bool:
-        clean_phone = phone.replace("+", "").replace("-", "").replace(" ", "").replace("@c.us", "").replace("@g.us", "")
+        clean_phone = normalize_whatsapp_phone(phone)
         
         if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID:
             try:
@@ -126,6 +209,138 @@ class WhatsAppVoiceIngest:
 
         return await self._process_zapi_webhook(payload, user_id, start_time)
 
+    def send_whatsapp_action_menu(self, phone: str, summary_text: str, context_payload: dict = None) -> bool:
+        clean_phone = normalize_whatsapp_phone(phone)
+        if context_payload:
+            _PENDING_ACTION_CONTEXTS[clean_phone] = {
+                **context_payload,
+                "timestamp": time.time()
+            }
+        
+        # Meta Cloud API Interactive List / Buttons
+        if META_WA_TOKEN and META_WA_PHONE_NUMBER_ID:
+            try:
+                url = f"{META_WA_BASE_URL}/messages"
+                headers = {"Authorization": f"Bearer {META_WA_TOKEN}", "Content-Type": "application/json"}
+                
+                # Interactive List with 4 Small Action Buttons
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": clean_phone,
+                    "type": "interactive",
+                    "interactive": {
+                        "type": "list",
+                        "body": {
+                            "text": (summary_text[:900] + "\n\n⚡ *O que deseja fazer com este conteúdo?*")
+                        },
+                        "action": {
+                            "button": "⚡ Escolher Ação",
+                            "sections": [
+                                {
+                                    "title": "Ações Rápidas",
+                                    "rows": [
+                                        {"id": "action_save_note", "title": "📝 Salvar como Nota", "description": "Gera briefing e salva no painel"},
+                                        {"id": "action_create_tasks", "title": "✅ Criar Tarefas", "description": "Cadastra pendências com prazos"},
+                                        {"id": "action_email_followup", "title": "📧 Follow-up E-mail", "description": "Gera rascunho de e-mail"},
+                                        {"id": "action_dismiss", "title": "💬 Apenas Conversa", "description": "Mantém no chat sem salvar"}
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+                r = httpx.post(url, json=payload, headers=headers, timeout=15)
+                if r.status_code in [200, 201]:
+                    logger.info(f"Interactive 4-action list sent successfully to {clean_phone}")
+                    return True
+                else:
+                    logger.warning(f"Meta interactive list returned {r.status_code}: {r.text}, falling back to text...")
+            except Exception as e:
+                logger.warning(f"Error sending Meta interactive list: {e}")
+
+        # Fallback text with clear 4 choices
+        menu_text = (
+            f"{summary_text}\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡ *O que deseja fazer com este conteúdo?*\n\n"
+            f"1️⃣ *[1]* 📝 Salvar como Nota Oficial no Painel\n"
+            f"2️⃣ *[2]* ✅ Criar Tarefas na Central de Tarefas\n"
+            f"3️⃣ *[3]* 📧 Gerar Rascunho de Follow-up (E-mail)\n"
+            f"4️⃣ *[4]* 💬 Apenas Conversa (Não salvar)\n\n"
+            f"_(Responda apenas com o número **1**, **2**, **3** ou **4**)_"
+        )
+        return self.send_whatsapp_text(clean_phone, menu_text)
+
+    def _execute_action_choice(self, action_key: str, phone: str, user_id: str) -> Optional[str]:
+        clean_phone = normalize_whatsapp_phone(phone)
+        ctx = _PENDING_ACTION_CONTEXTS.get(clean_phone)
+        if not ctx:
+            return None
+
+        action_key = str(action_key).strip().lower()
+
+        if action_key in ["1", "action_save_note", "salvar", "salvar nota", "nota", "salvar como nota"]:
+            intel = ctx.get("intel", {})
+            msg_id = ctx.get("msg_id", f"wa_{int(time.time())}")
+            raw_text = ctx.get("raw_text", "")
+            target_audio = ctx.get("target_audio", "")
+            transcript_data = ctx.get("transcript_data", {})
+            
+            self._persist_meeting_and_tasks(msg_id, clean_phone, intel, raw_text, target_audio, transcript_data)
+            _PENDING_ACTION_CONTEXTS.pop(clean_phone, None)
+            return "📝 **Nota Oficial Salva com Sucesso!**\n\nO briefing completo, transcrição e áudio já estão disponíveis no seu Dashboard."
+
+        elif action_key in ["2", "action_create_tasks", "tarefa", "tarefas", "criar tarefas", "criar tarefa"]:
+            intel = ctx.get("intel", {})
+            msg_id = ctx.get("msg_id", f"wa_{int(time.time())}")
+            tasks = intel.get("commitments_and_promises", [])
+            if not tasks:
+                tasks = [{"action": "Revisar pontos da mensagem", "owner": "Você", "deadline": "Hoje"}]
+                
+            for t in tasks:
+                action = t.get("action") or t.get("description", "")
+                if action:
+                    db.create_task(
+                        meeting_id=msg_id,
+                        action=action,
+                        owner=t.get("owner", "Você"),
+                        deadline=t.get("deadline_or_context") or t.get("deadline", "Hoje")
+                    )
+            _PENDING_ACTION_CONTEXTS.pop(clean_phone, None)
+            return f"✅ **{len(tasks)} Tarefa(s) Cadastrada(s)!**\n\nOs itens de ação com donos e prazos foram adicionados à sua Central de Tarefas."
+
+        elif action_key in ["3", "action_email_followup", "followup", "email", "follow-up", "e-mail"]:
+            intel = ctx.get("intel", {})
+            emails = intel.get("follow_up_emails", [])
+            if emails:
+                e = emails[0]
+                to_p = e.get("to", "Participantes")
+                subj = e.get("subject", "Follow-up de Alinhamento")
+                body = e.get("body", "Obrigado pela reunião. Seguem os combinados...")
+            else:
+                to_p = "Equipe / Cliente"
+                subj = f"Follow-up: {intel.get('meeting_title', 'Alinhamento')}"
+                body = f"Olá,\n\nSeguem os principais tópicos alinhados:\n\n{intel.get('executive_summary', '')}\n\nFico à disposição."
+
+            reply = (
+                f"📧 *RASCUNHO DE FOLLOW-UP DE E-MAIL:*\n\n"
+                f"📌 *Para:* {to_p}\n"
+                f"📝 *Assunto:* {subj}\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"{body}\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"_(Basta copiar o texto acima e enviar)_"
+            )
+            _PENDING_ACTION_CONTEXTS.pop(clean_phone, None)
+            return reply
+
+        elif action_key in ["4", "action_dismiss", "descartar", "cancelar", "apenas conversa", "conversa"]:
+            _PENDING_ACTION_CONTEXTS.pop(clean_phone, None)
+            return "👍 **Entendido!** Mensagem mantida apenas como conversa rápida, sem registrar nada no painel."
+
+        return None
+
     async def _process_meta_cloud_webhook(self, payload: Dict[str, Any], user_id: str, start_time: float) -> Dict[str, Any]:
         try:
             entry = payload.get("entry", [{}])[0]
@@ -140,6 +355,15 @@ class WhatsAppVoiceIngest:
             sender_phone = msg.get("from", "")
             msg_id = msg.get("id", f"wa_meta_{int(time.time())}")
             msg_type = msg.get("type", "")
+
+            # Check for interactive button/list reply
+            if msg_type == "interactive":
+                inter = msg.get("interactive", {})
+                action_id = inter.get("list_reply", {}).get("id") or inter.get("button_reply", {}).get("id", "")
+                reply_txt = self._execute_action_choice(action_id, sender_phone, user_id)
+                if reply_txt:
+                    self.send_whatsapp_text(sender_phone, reply_txt)
+                    return {"status": "SUCCESS", "mode": "INTERACTIVE_ACTION_EXECUTED", "action": action_id}
 
             if msg_type in ["audio", "voice"]:
                 media_info = msg.get("audio") or msg.get("voice", {})
@@ -178,8 +402,8 @@ class WhatsAppVoiceIngest:
                 intent = intent_data.get("intent", "QUESTION")
                 is_memo = intent_data.get("is_memo", False)
 
-                # Se for Comando de Voz ou Pergunta Curta (< 20s e não for memo narrativo longo)
-                if not is_memo and duration <= 20 and intent in ["LIST_TASKS", "LIST_NOTES", "COMMAND_TASK", "QUESTION", "STATUS"]:
+                # Se for Comando de Voz ou Pergunta Curta (< 15s)
+                if not is_memo and duration <= 15 and intent in ["LIST_TASKS", "LIST_NOTES", "COMMAND_TASK", "QUESTION", "STATUS"]:
                     reply_msg = intent_data.get("reply_msg", "Comando de voz executado com sucesso.")
                     tasks = intent_data.get("tasks_to_create", [])
                     for t in tasks:
@@ -188,29 +412,38 @@ class WhatsAppVoiceIngest:
                             db.create_task(
                                 meeting_id=msg_id,
                                 action=action,
-                                owner=t.get("owner", "Felipe Donato"),
+                                owner=t.get("owner", "Você"),
                                 deadline=t.get("deadline", "Hoje")
                             )
                     if sender_phone:
                         self.send_whatsapp_text(sender_phone, reply_msg)
                     return {"status": "SUCCESS", "mode": "VOICE_COMMAND", "reply": reply_msg, "processing_time": duration_s}
 
-                # Se for Reunião Real ou Nota de Áudio Longa (> 20s ou memo explícito)
+                # Se for Áudio de Conteúdo/Reunião: Gera Síntese e Pergunta com os 4 Botões de Ação
                 meta = {
                     "file_id": msg_id,
-                    "name": f"WhatsApp Voice — {datetime.now().strftime('%d/%m %H:%M')}",
+                    "name": f"Áudio WhatsApp — {datetime.now().strftime('%d/%m %H:%M')}",
                     "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "duration": duration,
                     "sender_phone": sender_phone,
                     "source_type": "WHATSAPP_CLOUD_API"
                 }
                 intel = self.intelligence_engine.analyze(raw_text, metadata=meta, user_id=user_id)
-                reply_msg = self._build_whatsapp_reply(intel, raw_text, duration_s)
+                summary_reply = self._build_whatsapp_reply(intel, raw_text, duration_s)
+                
+                # Envia Resumo + Menu Interativo de 4 Ações (NÃO salva automaticamente)
                 if sender_phone:
-                    self.send_whatsapp_text(sender_phone, reply_msg)
+                    context_payload = {
+                        "msg_id": msg_id,
+                        "raw_text": raw_text,
+                        "intel": intel,
+                        "meta": meta,
+                        "target_audio": str(target_audio),
+                        "transcript_data": transcript_data
+                    }
+                    self.send_whatsapp_action_menu(sender_phone, summary_reply, context_payload)
 
-                self._persist_meeting_and_tasks(msg_id, sender_phone, intel, raw_text, target_audio, transcript_data)
-                return {"status": "SUCCESS", "file_id": msg_id, "title": intel.get("meeting_title"), "processing_time": duration_s}
+                return {"status": "SUCCESS", "mode": "ACTION_MENU_PRESENTED", "file_id": msg_id, "processing_time": duration_s}
 
             elif msg_type == "text":
                 text_body = msg.get("text", {}).get("body", "")
@@ -222,6 +455,7 @@ class WhatsAppVoiceIngest:
 
         except Exception as e:
             logger.error(f"Error in Meta webhook: {e}", exc_info=True)
+            return {"status": "ERROR", "error": str(e)}
             return {"status": "ERROR", "error": str(e)}
 
     async def _process_zapi_webhook(self, payload: Dict[str, Any], user_id: str, start_time: float) -> Dict[str, Any]:
@@ -403,8 +637,39 @@ class WhatsAppVoiceIngest:
         msg_lines.append(f"⚡ _Processado pelo EvoNotes OS em {duration_s}s_")
         return "\n".join(msg_lines)
 
-    def _process_text_memo(self, text: str, phone: str, user_id: str, start_time: float) -> Dict[str, Any]:
-        msg_id = f"wa_txt_{int(time.time())}"
+        # 0. Check for interactive action choices (1, 2, 3, 4)
+        action_reply = self._execute_action_choice(text, phone, user_id)
+        if action_reply:
+            if phone:
+                self.send_whatsapp_text(phone, action_reply)
+            return {"status": "SUCCESS", "mode": "ACTION_EXECUTED", "reply": action_reply}
+
+        # 0.1 Intercept Instant Handshake Login / Auth Code
+        code_match = re.search(r'(?:EVO-[\w\d]+|AUTH-[\w\d]+|\b\d{6}\b)', text, re.IGNORECASE)
+        candidate_code = code_match.group(0) if code_match else text.strip()
+        auth_result = db.authorize_auth_session_by_code(candidate_code, sender_phone=phone)
+        
+        if not auth_result and any(w in text.upper() for w in ["ATIVAR", "ENTRAR", "LOGIN", "QUERO ENTRAR", "OI"]):
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                cursor.execute("SELECT session_id, auth_code FROM auth_sessions WHERE is_authorized = 0 AND expires_at > ? ORDER BY created_at DESC LIMIT 1", (now_str,))
+                row = cursor.fetchone()
+                if row:
+                    auth_result = db.authorize_auth_session_by_code(row["auth_code"], sender_phone=phone)
+
+        if auth_result:
+            welcome_name = "Felipe Donato" if auth_result["user_id"] == "felipe_donato" else f"Membro {auth_result['phone'][-4:]}"
+            reply = (
+                f"🎉 *Acesso Autorizado!*\n\n"
+                f"Olá, {welcome_name}! Sua sessão foi autenticada com sucesso no navegador.\n\n"
+                f"Você já pode voltar para a tela do computador ou celular — seu Dashboard foi aberto na hora!\n"
+                f"Todos os áudios e comandos de voz enviados por aqui serão processados pelo seu Segundo Cérebro de Voz em tempo real."
+            )
+            if phone:
+                self.send_whatsapp_text(phone, reply)
+            return {"status": "SUCCESS", "mode": "AUTH_HANDSHAKE_COMPLETED", "session_id": auth_result["session_id"], "user_id": auth_result["user_id"]}
+
         meta = {
             "file_id": msg_id,
             "name": f"Nota WhatsApp — {datetime.now().strftime('%d/%m %H:%M')}",
@@ -419,29 +684,44 @@ class WhatsAppVoiceIngest:
         reply_msg = intent_data.get("reply_msg", "Comando processado.")
         is_memo = intent_data.get("is_memo", False)
 
-        if is_memo or len(text) > 300:
-            # Rota: ÁUDIO / MEMO LONGO (Textos longos)
+        if is_memo or len(text) > 200:
+            # Rota: MEMO / CONTEXTO LONGO: Gera Síntese e Menu de 4 Ações (NÃO salva direto)
             intel = self.intelligence_engine.analyze(text, metadata=meta, user_id=user_id)
             duration_s = round(time.time() - start_time, 1)
-            reply_msg = self._build_whatsapp_reply(intel, text, duration_s)
+            summary_reply = self._build_whatsapp_reply(intel, text, duration_s)
 
             if phone:
-                self.send_whatsapp_text(phone, reply_msg)
+                context_payload = {
+                    "msg_id": msg_id,
+                    "raw_text": text,
+                    "intel": intel,
+                    "meta": meta,
+                    "target_audio": "",
+                    "transcript_data": {"text": text, "duration": 10}
+                }
+                self.send_whatsapp_action_menu(phone, summary_reply, context_payload)
 
-            db.save_meeting({
-                "file_id": msg_id,
-                "title": f"💬 {intel.get('meeting_title', 'Mensagem WhatsApp')}",
-                "duration": 10,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "audio_path": "",
-                "audio_url": "",
-                "doc_path": "",
-                "executive_summary": intel.get("executive_summary", ""),
-                "intelligence": intel,
-                "transcript_full": text,
-                "custom_notes": f"Ingerido via WhatsApp Texto ({phone})"
-            })
-            return {"status": "SUCCESS", "file_id": msg_id, "processing_time": duration_s}
+            return {"status": "SUCCESS", "mode": "ACTION_MENU_PRESENTED", "file_id": msg_id, "processing_time": duration_s}
+
+        # Rota: PERGUNTA / COMANDO / CONVERSA RÁPIDA
+        duration_s = round(time.time() - start_time, 1)
+        
+        # Criação de Tarefa Rápida se comando explícito
+        tasks = intent_data.get("tasks_to_create", [])
+        for t in tasks:
+            action = t.get("action")
+            if action:
+                db.create_task(
+                    meeting_id=msg_id,
+                    action=action,
+                    owner=t.get("owner", "Você"),
+                    deadline=t.get("deadline", "Hoje")
+                )
+
+        if phone:
+            self.send_whatsapp_text(phone, reply_msg)
+
+        return {"status": "SUCCESS", "mode": "CONVERSATION_REPLY", "reply": reply_msg, "processing_time": duration_s}
 
         # Rota: PERGUNTA / COMANDO / CONVERSA / KNOWLEDGE_SEARCH
         duration_s = round(time.time() - start_time, 1)
