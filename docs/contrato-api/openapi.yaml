@@ -1,0 +1,350 @@
+openapi: 3.1.0
+info:
+  title: Evo Admin API
+  version: 0.1.0-draft
+  description: |
+    Contrato do Painel ADM do Evo (EvoNotes). ESQUELETO — nenhum endpoint abaixo está implementado ainda.
+    Todas as rotas exigem Bearer JWT. Papéis: ADMIN, OPERADOR, LEITURA.
+    Todo recurso é escopado por account_id (isolamento multi-tenant) e namespace (pessoal|familia|corporativo).
+    Erros nunca expõem stack trace, SQL, banco ou provedor.
+servers:
+  - url: /v1
+security:
+  - bearerAuth: []
+tags:
+  - name: accounts
+  - name: agents
+  - name: whatsapp
+  - name: conversations
+  - name: usage
+  - name: observability
+  - name: audit
+  - name: users
+
+paths:
+  /health:
+    get:
+      tags: [observability]
+      security: []
+      summary: Liveness/readiness (sanitizado)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { status: ok, version: "0.1.0", checks: { db: ok, whatsapp: degraded } }
+
+  /accounts:
+    get:
+      tags: [accounts]
+      summary: Listar contas (ADMIN, OPERADOR, LEITURA)
+      parameters: [{ $ref: "#/components/parameters/Cursor" }, { $ref: "#/components/parameters/Limit" }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/AccountPage" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [accounts]
+      summary: Criar conta (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountCreate" }
+            example: { name: "Conta Pessoal Felipe", namespace: pessoal, plan: pro }
+      responses:
+        "201": { description: Criada, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /accounts/{account_id}:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [accounts]
+      summary: Detalhe da conta
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [accounts]
+      summary: Alterar plano/limites (ADMIN)
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountUpdate" } } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /accounts/{account_id}/suspend:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    post:
+      tags: [accounts]
+      summary: Suspender conta (ADMIN, exige confirmação)
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/Confirmation" } } }
+      responses:
+        "200": { description: Suspensa }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /accounts/{account_id}/agents:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [agents]
+      summary: Listar os 39 agentes e estado por conta
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Agent" } } } } }
+  /accounts/{account_id}/agents/{agent_id}:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }, { $ref: "#/components/parameters/AgentId" }]
+    patch:
+      tags: [agents]
+      summary: Ligar/desligar agente (ADMIN, OPERADOR)
+      requestBody:
+        content: { application/json: { schema: { type: object, properties: { enabled: { type: boolean } }, required: [enabled] }, example: { enabled: false } } }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Agent" } } } }
+  /accounts/{account_id}/agents/{agent_id}/versions:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }, { $ref: "#/components/parameters/AgentId" }]
+    get:
+      tags: [agents]
+      summary: Histórico de versões de persona/prompt
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/AgentVersion" } } } } }
+    post:
+      tags: [agents]
+      summary: Publicar nova versão de persona/prompt (ADMIN)
+      requestBody:
+        content: { application/json: { schema: { $ref: "#/components/schemas/AgentVersionCreate" } } }
+      responses:
+        "201": { description: Criada, content: { application/json: { schema: { $ref: "#/components/schemas/AgentVersion" } } } }
+
+  /accounts/{account_id}/whatsapp/session:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [whatsapp]
+      summary: Status da sessão
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/WhatsAppSession" } } } }
+  /accounts/{account_id}/whatsapp/pairing:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    post:
+      tags: [whatsapp]
+      summary: Gerar QR/código de pareamento (ADMIN)
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { qr_png_base64: { type: string }, expires_at: { type: string, format: date-time } } } } } }
+  /accounts/{account_id}/whatsapp/queue:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [whatsapp]
+      summary: Fila de envio
+      parameters: [{ name: status, in: query, schema: { type: string, enum: [pending, sent, failed] } }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/OutboundMessage" } } } } }
+  /accounts/{account_id}/whatsapp/queue/{message_id}/resend:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }, { name: message_id, in: path, required: true, schema: { type: string } }]
+    post:
+      tags: [whatsapp]
+      summary: Reenviar mensagem individual (ADMIN, OPERADOR). Envio em massa exige confirmação.
+      responses:
+        "202": { description: Reenfileirada }
+  /accounts/{account_id}/whatsapp/blocks:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [whatsapp]
+      summary: Contatos bloqueados
+      responses: { "200": { description: OK } }
+    post:
+      tags: [whatsapp]
+      summary: Bloquear contato
+      requestBody: { content: { application/json: { schema: { type: object, properties: { contact: { type: string } }, required: [contact] } } } }
+      responses: { "201": { description: Bloqueado } }
+
+  /accounts/{account_id}/conversations:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [conversations]
+      summary: Histórico e busca
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { $ref: "#/components/parameters/Cursor" }
+        - { $ref: "#/components/parameters/Limit" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Conversation" } } } } }
+  /accounts/{account_id}/conversations/{conversation_id}/handoff:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }, { name: conversation_id, in: path, required: true, schema: { type: string } }]
+    post:
+      tags: [conversations]
+      summary: Assumir/devolver conversa (handoff humano)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { mode: { type: string, enum: [human, bot] } }, required: [mode] } } } }
+      responses: { "200": { description: OK } }
+
+  /accounts/{account_id}/usage:
+    parameters: [{ $ref: "#/components/parameters/AccountId" }]
+    get:
+      tags: [usage]
+      summary: Mensagens, tokens, custo; alerta a 80% da cota
+      parameters: [{ name: period, in: query, schema: { type: string, example: "2026-11" } }]
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Usage" } } } }
+
+  /observability/errors:
+    get:
+      tags: [observability]
+      summary: Erros recentes (sanitizados, ADMIN)
+      responses: { "200": { description: OK } }
+  /observability/metrics:
+    get:
+      tags: [observability]
+      summary: Latência, filas, jobs
+      responses: { "200": { description: OK } }
+
+  /audit:
+    get:
+      tags: [audit]
+      summary: Log de auditoria imutável (append-only)
+      parameters:
+        - { name: account_id, in: query, schema: { type: string } }
+        - { name: actor, in: query, schema: { type: string } }
+        - { $ref: "#/components/parameters/Cursor" }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/AuditEvent" } } } } }
+
+  /users:
+    get:
+      tags: [users]
+      summary: Operadores do painel e papéis (ADMIN)
+      responses: { "200": { description: OK } }
+    post:
+      tags: [users]
+      summary: Convidar usuário com papel (ADMIN)
+      requestBody: { content: { application/json: { schema: { type: object, properties: { email: { type: string, format: email }, role: { $ref: "#/components/schemas/Role" } }, required: [email, role] } } } }
+      responses: { "201": { description: Criado } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    AccountId: { name: account_id, in: path, required: true, schema: { type: string } }
+    AgentId: { name: agent_id, in: path, required: true, schema: { type: string } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+  responses:
+    BadRequest: { description: Requisição inválida, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Unauthorized: { description: Não autenticado, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Forbidden: { description: Papel insuficiente, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    NotFound: { description: Não encontrado (ou de outro tenant), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Conflict: { description: Conflito de estado, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  schemas:
+    Role: { type: string, enum: [ADMIN, OPERADOR, LEITURA] }
+    Namespace: { type: string, enum: [pessoal, familia, corporativo] }
+    Error:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code: { type: string, example: forbidden }
+        message: { type: string, example: "Ação não permitida para este papel." }
+        request_id: { type: string }
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded, down] }
+        version: { type: string }
+        checks: { type: object, additionalProperties: { type: string } }
+    Account:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        namespace: { $ref: "#/components/schemas/Namespace" }
+        plan: { type: string }
+        status: { type: string, enum: [active, suspended] }
+        limits: { $ref: "#/components/schemas/Limits" }
+        created_at: { type: string, format: date-time }
+    AccountCreate:
+      type: object
+      required: [name, namespace, plan]
+      properties:
+        name: { type: string }
+        namespace: { $ref: "#/components/schemas/Namespace" }
+        plan: { type: string }
+    AccountUpdate:
+      type: object
+      properties:
+        plan: { type: string }
+        limits: { $ref: "#/components/schemas/Limits" }
+    AccountPage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Account" } }
+        next_cursor: { type: [string, "null"] }
+    Limits:
+      type: object
+      properties:
+        messages_month: { type: integer }
+        tokens_month: { type: integer }
+        cost_cap_usd: { type: number }
+    Confirmation:
+      type: object
+      required: [confirm]
+      properties:
+        confirm: { type: string, const: "Sim Jarvis" }
+        reason: { type: string }
+    Agent:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        enabled: { type: boolean }
+        active_version: { type: integer }
+    AgentVersion:
+      type: object
+      properties:
+        version: { type: integer }
+        persona: { type: string }
+        system_prompt: { type: string }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+    AgentVersionCreate:
+      type: object
+      required: [persona, system_prompt]
+      properties:
+        persona: { type: string }
+        system_prompt: { type: string }
+        note: { type: string }
+    WhatsAppSession:
+      type: object
+      properties:
+        status: { type: string, enum: [connected, pairing, disconnected, banned] }
+        phone_masked: { type: string, example: "+55 11 9****-1234" }
+        last_seen_at: { type: string, format: date-time }
+    OutboundMessage:
+      type: object
+      properties:
+        id: { type: string }
+        to_masked: { type: string }
+        status: { type: string, enum: [pending, sent, failed] }
+        attempts: { type: integer }
+        error_code: { type: [string, "null"] }
+    Conversation:
+      type: object
+      properties:
+        id: { type: string }
+        contact_masked: { type: string }
+        mode: { type: string, enum: [bot, human] }
+        last_message_at: { type: string, format: date-time }
+    Usage:
+      type: object
+      properties:
+        period: { type: string }
+        messages: { type: integer }
+        tokens: { type: integer }
+        cost_usd: { type: number }
+        quota_pct: { type: number }
+        alert_80: { type: boolean }
+    AuditEvent:
+      type: object
+      properties:
+        id: { type: string }
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        account_id: { type: string }
+        action: { type: string }
+        target: { type: string }
+        hash_prev: { type: string, description: "Encadeamento para imutabilidade" }
