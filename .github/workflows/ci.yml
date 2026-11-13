@@ -1,0 +1,17 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyyaml
+      - name: Sintaxe Python
+        run: python -m compileall -q . -x '(\.git|node_modules)'
+      - name: Contrato OpenAPI valido (YAML)
+        run: python -c "import yaml;yaml.safe_load(open('docs/contrato-api/openapi.yaml'))"

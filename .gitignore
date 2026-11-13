@@ -1,0 +1,7 @@
+
+# dados locais (nunca versionar)
+*.db
+*.db-shm
+*.db-wal
+data/profiles/
+.env
