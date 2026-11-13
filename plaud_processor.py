@@ -152,6 +152,15 @@ def extract_participants_from_content(title: str, content: str) -> List[Dict[str
     return participants
 
 
+def extract_key_dialogues_from_content(title: str, content: str, participants: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Mantido por compatibilidade com dashboard/app.py (removido em bec5a39 e quebrava o boot).
+
+    A versão antiga retornava falas fixas inventadas; aqui não inventamos dados:
+    os diálogos reais vêm do IntelligenceEngine. Retorna lista vazia.
+    """
+    return []
+
+
 def extract_commitments_from_content(title: str, content: str) -> List[Dict[str, Any]]:
     commitments = []
     if "Britânia" in content or "Britânia" in title or "Débora" in content:
