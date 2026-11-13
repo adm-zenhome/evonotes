@@ -9,4 +9,4 @@ fi
 
 export PYTHONPATH="$DIR:$DIR/dashboard"
 echo "🚀 Iniciando EvoNotes Sandbox na porta 8766..."
-python3 -m uvicorn dashboard.app:app --host 127.0.0.1 --port 8766 --reload
+python3 -m uvicorn asgi:app --host 127.0.0.1 --port 8766 --reload

@@ -5,7 +5,7 @@ console.log(`[Bridge] Launching Executive Voice OS (EvoNotes) on port ${port}...
 
 const uvicorn = spawn('python3', [
     '-m', 'uvicorn',
-    'dashboard.app:app',
+    'asgi:app',
     '--host', '0.0.0.0',
     '--port', String(port)
 ], {

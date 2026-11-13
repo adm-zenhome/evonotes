@@ -10,4 +10,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python3 -m uvicorn dashboard.app:app --host 0.0.0.0 --port ${PORT:-8765}"
+cmd = "python3 -m uvicorn asgi:app --host 0.0.0.0 --port ${PORT:-8765}"

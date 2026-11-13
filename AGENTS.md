@@ -12,7 +12,7 @@ Operação pelo celular: respostas curtas, ações objetivas, resumo de 3 linhas
 - Observação: hoje as rotas HTTP vivem em `dashboard/app.py`. Novas rotas do Painel ADM devem nascer em módulo Python na raiz (ex.: `api/`) e ser montadas no app.
 
 ## Stack (confirmada lendo o repo em 2026-11-13)
-- Linguagem/framework: Python 3 + FastAPI/Uvicorn (`main.py` → `dashboard.app:app`). `index.js` é só bridge que sobe o uvicorn.
+- Linguagem/framework: Python 3 + FastAPI/Uvicorn (`main.py` → `asgi:app` (dashboard.app + api/)). `index.js` é só bridge que sobe o uvicorn.
 - Banco: SQLite (`database.py`, `data/executive_voice.db`). Sem migrações versionadas.
 - Fila: nenhuma; jobs via threads/background tasks em processo.
 - Nuvem: Railway (Dockerfile, `railway.json`, `Procfile`, `nixpacks.toml`).
