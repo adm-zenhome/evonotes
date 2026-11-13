@@ -22,6 +22,27 @@ tags:
   - name: users
 
 paths:
+  /api/admin/health:
+    servers: [{ url: / }]
+    get:
+      tags: [observability]
+      security: []
+      summary: "IMPLEMENTADO. Saúde com nomes públicos (sem host/porta/provedor)"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminHealth" }
+              example:
+                status: degradado
+                componentes:
+                  - { nome_publico: Banco de dados, status: ok }
+                  - { nome_publico: Inteligência artificial, status: ok }
+                  - { nome_publico: Voz, status: nao_configurado }
+                  - { nome_publico: E-mail, status: ok }
+        "500": { description: Erro, content: { application/json: { schema: { $ref: "#/components/schemas/AdminError" } } } }
+
   /health:
     get:
       tags: [observability]
@@ -231,6 +252,26 @@ components:
     NotFound: { description: Não encontrado (ou de outro tenant), content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
     Conflict: { description: Conflito de estado, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
   schemas:
+    AdminError:
+      type: object
+      required: [code, message]
+      description: "Formato padrão de erro em /api/admin/* (pt-BR, sem detalhes internos)"
+      properties:
+        code: { type: string, example: nao_encontrado }
+        message: { type: string, example: "Recurso não encontrado." }
+    AdminHealth:
+      type: object
+      required: [status, componentes]
+      properties:
+        status: { type: string, enum: [ok, degradado, fora] }
+        componentes:
+          type: array
+          items:
+            type: object
+            required: [nome_publico, status]
+            properties:
+              nome_publico: { type: string }
+              status: { type: string, enum: [ok, fora, nao_configurado] }
     Role: { type: string, enum: [ADMIN, OPERADOR, LEITURA] }
     Namespace: { type: string, enum: [pessoal, familia, corporativo] }
     Error:

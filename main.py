@@ -13,7 +13,7 @@ def start_server(port_num):
     print(f"🚀 [EvoNotes] Starting FastAPI listener on 0.0.0.0:{port_num}...")
     try:
         uvicorn.run(
-            "dashboard.app:app",
+            "asgi:app",
             host="0.0.0.0",
             port=port_num,
             log_level="info",
